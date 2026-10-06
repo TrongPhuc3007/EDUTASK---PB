@@ -11,7 +11,10 @@ echo.
 echo Đang tiến hành đẩy code lên GitHub (nhánh main)...
 echo.
 
-git push -u origin main --force
+set "GIT_EXE=C:\Users\LECOO\AppData\Local\Programs\Git\cmd\git.exe"
+if not exist "%GIT_EXE%" set "GIT_EXE=git"
+
+"%GIT_EXE%" push -u origin main --force
 
 echo.
 if %ERRORLEVEL% EQU 0 (
