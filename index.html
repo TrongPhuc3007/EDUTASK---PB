@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EDUTASK - PB">
+  <meta name="theme-color" content="#0f2b5c">
+  <meta name="format-detection" content="telephone=no">
+  <title>EDUTASK - PB — Hệ Thống Học Tập & Dạy Kèm Tri Thức</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans (Nội dung), Outfit (Tiêu đề hiện đại), Cinzel (Biểu tượng tri thức), JetBrains Mono (Mã số) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/canvas.css">
+</head>
+<body>
+
+  <!-- ================= TOP NAVIGATION & ROLE SWITCHER ================= -->
+  <!-- Dải Banner Giám Sát Toàn Quyền Của Admin (Chỉ hiện khi Admin đang đóng vai xem Gia Sư hoặc Học Sinh) -->
+  <div id="adminSuperviseBanner" style="display:none; background:linear-gradient(90deg, #78350f, #b45309); color:white; padding:8px 24px; font-size:13px; align-items:center; justify-content:space-between; z-index:101; position:relative; box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="font-size:16px;">🛡️</span>
+      <span><strong>CHẾ ĐỘ GIÁM SÁT TOÀN QUYỀN (ADMIN):</strong> Đang xem với góc nhìn của <strong id="adminSuperviseTargetName">Gia Sư</strong></span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-xs btn-white" onclick="Auth.adminReturnToAdmin()">👑 Thoát Chế Độ Giám Sát & Về Trang Admin</button>
+    </div>
+  </div>
+
+  <!-- Header chính của ứng dụng -->
+  <header class="top-header">
+    <div class="header-container">
+      
+      <!-- Brand Logo -->
+      <a href="#" class="logo-area" onclick="App.handleLogoClick()">
+        <div class="logo-icon" title="EDUTASK - PB">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <h1>EDUTASK - PB</h1>
+          <span id="headerWorkspaceSubtitle">Hệ Thống Dạy Kèm Tri Thức & Giao Bài 1-1</span>
+        </div>
+      </a>
+
+      <!-- Thanh điều hướng vai trò: CHỈ HIỂN THỊ KHI LÀ ADMIN ĐỂ GIÁM SÁT TOÀN QUYỀN. Gia Sư và Học Sinh HOÀN TOÀN ẨN! -->
+      <div id="headerRoleNavigation" style="display:flex; align-items:center; gap:8px;">
+        <!-- Render động Admin Master Control Bar khi đăng nhập Admin -->
+      </div>
+
+      <!-- Khu vực tài khoản & Nút Đăng Xuất -->
+      <div id="headerUserActions" style="display:flex; align-items:center; gap:12px;">
+        <!-- Render động Profile Badge + Nút Đăng Xuất -->
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= MAIN VIEW CONTAINER ================= -->
+  <main class="app-container" id="viewContainer">
+    <!-- Nội dung được render tự động theo vai trò người dùng (Admin, Tutor, Student, Parent) -->
+  </main>
+
+  <!-- ================= MODAL 1: GIAO BÀI TẬP CÁ NHÂN HÓA ================= -->
+  <div class="modal-overlay" id="createAssignmentModal">
+    <div class="modal-box" style="max-width:680px; max-height:94vh;">
+      <div class="modal-header">
+        <h3>🎯 Giao Bài Tập Mới (Cá Nhân Hóa)</h3>
+        <button class="modal-close" onclick="App.closeModal('createAssignmentModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:13px;">
+        <div class="form-group">
+          <label for="newAsnTitle">Tiêu đề bài tập <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="newAsnTitle" class="form-control" placeholder="VD: Phiếu 06 - Luyện tập Bất đẳng thức Cauchy">
+        </div>
+
+        <div class="form-group">
+          <label for="newAsnDesc">Hướng dẫn / Yêu cầu làm bài</label>
+          <textarea id="newAsnDesc" class="form-control" placeholder="Làm bài ra vở viết tay, trình bày sạch sẽ và chụp ảnh nộp trước 21h00."></textarea>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label for="newAsnTopic">Chuyên đề / Dạng bài</label>
+            <input type="text" id="newAsnTopic" class="form-control" placeholder="VD: Bất đẳng thức & Cực trị">
+          </div>
+          <div class="form-group">
+            <label for="newAsnDifficulty">Mức độ phân hóa</label>
+            <select id="newAsnDifficulty" class="form-control">
+              <option value="Cơ bản - Lấy gốc">🟢 Cơ bản - Lấy gốc</option>
+              <option value="Thông hiểu - Vận dụng" selected>🟡 Thông hiểu - Vận dụng</option>
+              <option value="Vận dụng cao (9+)">🔴 Vận dụng cao (9+)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="newAsnTargetType">Hình thức giao bài</label>
+          <select id="newAsnTargetType" class="form-control">
+            <option value="individual">🎯 Giao riêng cho học sinh cụ thể (Cá nhân hóa)</option>
+            <option value="group">👥 Giao cho tất cả học sinh trong nhóm</option>
+          </select>
+        </div>
+
+        <!-- Danh sách chọn học sinh -->
+        <div class="form-group" id="studentPickerContainer">
+          <label>Chọn học sinh nhận bài tập:</label>
+          <div class="student-picker-list" id="studentCheckboxesList">
+            <!-- Dynamic checkboxes -->
+          </div>
+        </div>
+
+        <!-- Đính kèm File Đề Bài (PDF, Word, Ảnh...) -->
+        <div class="form-group">
+          <label style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-weight:700; color:#334155; font-size:13px;">📎 Đính kèm tệp đề bài / tài liệu (PDF, Word, Ảnh):</span>
+            <span style="font-size:12px; color:var(--primary); font-weight:600;">Học sinh có thể tải về làm</span>
+          </label>
+          <div class="file-upload-zone" id="asnFileUploadZone" onclick="document.getElementById('newAsnFileInput').click()" style="padding:10px 14px;">
+            <input type="file" id="newAsnFileInput" style="display:none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.zip,.rar" onchange="App.handleAssignmentFileSelect(event)">
+            <div id="asnFileDropPrompt" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;">
+              <span style="font-size:24px;">📤</span>
+              <span style="font-size:13px; font-weight:700; color:var(--primary);">Bấm để chọn tệp đề bài hoặc kéo thả tệp vào đây</span>
+              <span style="font-size:11.5px; color:var(--text-muted);">PDF, Word (.docx, .doc), Ảnh (.png, .jpg), Tệp nén (.zip) • Tối đa 25MB</span>
+            </div>
+            <div id="asnFileSelectedCard" style="display:none; align-items:center; justify-content:space-between; background:#ffffff; border:1.5px solid #a5b4fc; border-radius:10px; padding:8px 12px; width:100%; box-shadow:var(--shadow-sm);">
+              <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
+                <span id="asnFileIcon" style="font-size:24px;">📄</span>
+                <div style="overflow:hidden; text-align:left;">
+                  <strong id="asnFileName" style="font-size:13px; color:var(--text-main); display:block; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">de_on_tap.pdf</strong>
+                  <small id="asnFileSize" style="color:var(--text-muted); font-size:11px;">1.4 MB</small>
+                </div>
+              </div>
+              <button type="button" class="btn btn-xs btn-danger" onclick="event.stopPropagation(); App.removeAssignmentAttachment()" title="Xóa tệp đính kèm" style="padding:4px 10px; border-radius:6px; font-size:12px;">
+                ✕ Hủy tệp
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label for="newAsnDeadline">Hạn chót nộp bài (Deadline)</label>
+            <input type="datetime-local" id="newAsnDeadline" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="newAsnType">Hình thức nộp bài</label>
+            <select id="newAsnType" class="form-control">
+              <option value="photo">📸 Tự luận (Chụp ảnh vở)</option>
+              <option value="quiz">⚡ Trắc nghiệm Online</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('createAssignmentModal')">Hủy bỏ</button>
+        <button class="btn btn-primary" onclick="App.saveNewAssignment()">🚀 Giao Bài Ngay</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 2: HỌC SINH NỘP BÀI ================= -->
+  <div class="modal-overlay" id="submitHomeworkModal">
+    <div class="modal-box" style="max-width:520px;">
+      <div class="modal-header">
+        <h3 id="submitModalTitle">Nộp Bài Tập</h3>
+        <button class="modal-close" onclick="App.closeModal('submitHomeworkModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+        <!-- Thanh trạng thái Giám Sát Chống Gian Lận (Real-time Proctoring) -->
+        <div id="antiCheatLiveBanner" class="anti-cheat-live-bar safe" style="display:flex;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="pulse-indicator safe"></span>
+            <span><strong>CHẾ ĐỘ GIÁM SÁT CHỐNG GIAN LẬN:</strong> Đang hoạt động • Nghiêm cấm chuyển tab / mở AI ngoài</span>
+          </div>
+          <span class="badge badge-success">✓ 0 vi phạm</span>
+        </div>
+
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; text-align:center;">
+          <div style="font-size:36px; margin-bottom:8px;">📸</div>
+          <h4 style="font-size:16px; font-weight:700; margin-bottom:4px;">Tải Lên Ảnh Bài Giải Viết Tay</h4>
+          <p style="color:var(--text-muted); font-size:13px; margin:0;">
+            Chụp hoặc chọn ảnh vở bài làm rõ nét để gia sư có thể đọc và chấm bút đỏ chi tiết.
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight:700; font-size:13px; color:#334155; margin-bottom:6px; display:block;">
+            Chọn tệp ảnh bài làm:
+          </label>
+          <input type="file" id="submitFileInput" class="form-control" accept="image/*" onchange="App.handleHomeworkFileSelect(event)">
+        </div>
+
+        <div id="submitFilePreview" style="display:none; text-align:center; background:#f1f5f9; padding:8px; border-radius:10px; border:1px solid #cbd5e1;">
+          <img id="submitPreviewImg" style="max-height:200px; max-width:100%; border-radius:6px; box-shadow:var(--shadow-sm);" />
+          <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">Ảnh bài làm đã sẵn sàng để nộp</div>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight:700; font-size:13px; color:#334155; margin-bottom:6px; display:block;">
+            Ghi chú gửi gia sư (tùy chọn):
+          </label>
+          <input type="text" id="submitHomeworkNote" class="form-control" placeholder="VD: Em làm câu 3 theo cách tính nhanh...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('submitHomeworkModal')">Hủy</button>
+        <button class="btn btn-primary" onclick="App.confirmStudentSubmission()">
+          🚀 Xác Nhận Nộp Bài
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 3: XEM BÀI ĐÃ CHẤM ================= -->
+  <div class="modal-overlay" id="reviewGradedModal">
+    <div class="modal-box" style="max-width:850px; max-height:92vh;">
+      <div class="modal-header">
+        <div>
+          <h3 id="reviewModalTitle">Kết Quả Bài Làm</h3>
+          <small style="color:var(--text-muted);">Học sinh: <strong id="reviewStudentName">Quang</strong></small>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="badge badge-success" style="font-size:15px; padding:6px 14px;" id="reviewScoreBadge">9.0/10</span>
+          <button class="modal-close" onclick="App.closeModal('reviewGradedModal')">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div style="background:#f8fafc; border-left:4px solid var(--primary); padding:14px; border-radius:8px; margin-bottom:12px;">
+          <strong style="color:var(--primary); font-size:14px;">💬 Lời nhận xét của Gia Sư:</strong>
+          <p id="reviewFeedbackText" style="font-size:14px; margin-top:4px; color:#334155;"></p>
+        </div>
+        <div style="text-align:center; background:#0f172a; padding:16px; border-radius:8px; overflow:auto;">
+          <img id="reviewPaperImg" src="" alt="Bài làm đã chấm" style="max-width:100%; height:auto; border-radius:4px; box-shadow:0 8px 20px rgba(0,0,0,0.4);">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('reviewGradedModal')">Đóng</button>
+        <button class="btn btn-primary" onclick="window.print()">🖨️ In bài làm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 4: BÀN CHẤM BÀI BÚT ĐỎ CANVAS ================= -->
+  <div class="grader-modal-overlay" id="graderModal">
+    
+    <!-- Grader Topbar -->
+    <div class="grader-topbar">
+      <div class="grader-info">
+        <h3 id="graderAssignmentTitle">Phiếu 05: Chuyên Đề Cực Trị</h3>
+        <span class="badge badge-primary" id="graderStudentName">Học sinh: Nguyễn Minh Quang</span>
+        <span id="graderCheatBadge" class="badge"></span>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="tool-btn" onclick="Grader.downloadAnnotated()">📥 Tải ảnh bài đã chấm</button>
+        <button class="tool-btn" onclick="Grader.undo()">↩️ Hoàn tác</button>
+        <button class="tool-btn" onclick="Grader.clearAll()">🗑️ Xóa nét vẽ</button>
+        <button class="btn btn-danger btn-sm" onclick="Grader.close()">✕ Đóng</button>
+      </div>
+    </div>
+
+    <!-- Grader Tools Bar -->
+    <div class="grader-tools-bar">
+      <div class="tool-group">
+        <span style="color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase;">Nét vẽ:</span>
+        <button class="tool-btn active" id="btnToolRed" onclick="Grader.setTool('red_pen')">
+          🖍️ Bút Đỏ
+        </button>
+        <button class="tool-btn" id="btnToolBlue" onclick="Grader.setTool('blue_pen')">
+          🖊️ Bút Xanh
+        </button>
+        <button class="tool-btn" id="btnToolHighlight" onclick="Grader.setTool('highlighter')">
+          ✨ Highlight
+        </button>
+        <button class="tool-btn" id="btnToolEraser" onclick="Grader.setTool('eraser')">
+          🧹 Tẩy nét
+        </button>
+        <div class="pen-size-group">
+          <button class="pen-size-btn" id="btnSizeThin" onclick="Grader.setLineWidth(2)">2px</button>
+          <button class="pen-size-btn active" id="btnSizeMedium" onclick="Grader.setLineWidth(3.5)">3.5px</button>
+          <button class="pen-size-btn" id="btnSizeThick" onclick="Grader.setLineWidth(6)">6px</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <span style="color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase;">Con dấu:</span>
+        <button class="tool-btn" onclick="Grader.setTool('stamp', '✔️')">✔️ Đúng</button>
+        <button class="tool-btn" onclick="Grader.setTool('stamp', '❌')">❌ Cần sửa</button>
+        <button class="tool-btn" onclick="Grader.setTool('stamp', '⚠️')">⚠️ Nhầm dấu</button>
+        <button class="tool-btn" onclick="Grader.setTool('stamp', '⭐')">⭐ Rất tốt</button>
+        <button class="tool-btn" onclick="Grader.setTool('stamp', '💡')">💡 Chú ý</button>
+      </div>
+    </div>
+
+    <!-- Grader Body -->
+    <div class="grader-workspace">
+      <!-- Canvas Area -->
+      <div class="canvas-viewport">
+        <div class="canvas-container">
+          <canvas id="gradingCanvas" width="800" height="1100"></canvas>
+        </div>
+      </div>
+
+      <!-- Grading Sidebar -->
+      <aside class="grader-sidebar">
+        <h4>📝 Đánh Giá & Điểm Số</h4>
+        
+        <!-- Báo cáo Giám Sát Rời Tab / Chống Gian Lận -->
+        <div id="graderCheatReportBox" style="background:#0f172a; border:1px solid #334155; border-radius:10px; padding:12px;"></div>
+
+        <div>
+          <label style="font-size:13px; color:#cbd5e1; display:block; margin-bottom:6px;">Chấm điểm (Thang 10):</label>
+          <div class="score-input-box">
+            <input type="number" id="graderScoreInput" step="0.25" min="0" max="10" value="8.5">
+            <span>/ 10</span>
+          </div>
+          <!-- Phím chọn điểm nhanh 1-Click -->
+          <div class="fast-score-grid">
+            <button class="fast-score-btn" onclick="Grader.setFastScore(10)">10</button>
+            <button class="fast-score-btn" onclick="Grader.setFastScore(9.5)">9.5</button>
+            <button class="fast-score-btn" onclick="Grader.setFastScore(9.0)">9.0</button>
+            <button class="fast-score-btn" onclick="Grader.setFastScore(8.5)">8.5</button>
+            <button class="fast-score-btn" onclick="Grader.setFastScore(8.0)">8.0</button>
+            <button class="fast-score-btn" onclick="Grader.setFastScore(7.5)">7.5</button>
+            <button class="fast-score-btn" onclick="Grader.setFastScore(7.0)">7.0</button>
+            <button class="fast-score-btn" onclick="Grader.setFastScore(6.0)">6.0</button>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size:13px; color:#cbd5e1; display:block; margin-bottom:6px;">Mẫu nhận xét nhanh:</label>
+          <div class="quick-comments">
+            <span class="quick-comment-tag" onclick="document.getElementById('graderFeedbackInput').value += 'Bài làm rất tốt, trình bày khoa học. '">Bài làm rất tốt</span>
+            <span class="quick-comment-tag" onclick="document.getElementById('graderFeedbackInput').value += 'Cần chú ý điều kiện của bài toán. '">Chú ý điều kiện</span>
+            <span class="quick-comment-tag" onclick="document.getElementById('graderFeedbackInput').value += 'Nhầm dấu ở bước rút gọn cuối cùng. '">Nhầm dấu</span>
+            <span class="quick-comment-tag" onclick="document.getElementById('graderFeedbackInput').value += 'Chữ viết sạch sẽ, dễ đọc. '">Trình bày sạch sẽ</span>
+            <span class="quick-comment-tag" onclick="document.getElementById('graderFeedbackInput').value += 'Tư duy nhanh, phát huy nhé em! '">Tư duy nhanh</span>
+          </div>
+        </div>
+
+        <div style="flex:1; display:flex; flex-direction:column;">
+          <label style="font-size:13px; color:#cbd5e1; display:block; margin-bottom:6px;">Lời phê & Nhận xét chi tiết:</label>
+          <textarea id="graderFeedbackInput" class="form-control" style="background:#0f172a; border-color:#334155; color:white; flex:1; min-height:110px;" placeholder="Ghi nhận xét cho học sinh..."></textarea>
+        </div>
+
+        <button class="btn btn-primary" style="padding:14px; font-size:15px; width:100%;" onclick="Grader.submitGrading()">
+          💾 Lưu Điểm & Trả Bài Ngay
+        </button>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 5: THÊM HỌC SINH MỚI (ĐẦY ĐỦ THÔNG TIN) ================= -->
+  <div class="modal-overlay" id="addStudentModal">
+    <div class="modal-box" style="max-width:780px;">
+      <div class="modal-header">
+        <div>
+          <h3>🎒 Thêm Học Sinh Kèm Mới</h3>
+          <small style="color:var(--text-muted);">Điền thông tin chuyên sâu để gia sư cá nhân hóa lộ trình học</small>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('addStudentModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:20px; max-height:75vh; overflow-y:auto;">
+        
+        <!-- Nhóm 1: Thông tin học sinh -->
+        <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+          <h4 style="font-size:15px; margin-bottom:12px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+            👤 1. Thông Tin Học Sinh
+          </h4>
+          <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Họ và tên học sinh <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="stdFormName" class="form-control" placeholder="VD: Nguyễn Minh Quang" required>
+            </div>
+            <div class="form-group">
+              <label>Giới tính</label>
+              <select id="stdFormGender" class="form-control">
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Ngày sinh</label>
+              <input type="date" id="stdFormDob" class="form-control" value="2008-01-01">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1.5fr 1fr 1.5fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Trường đang theo học</label>
+              <input type="text" id="stdFormSchool" class="form-control" placeholder="VD: THPT Chu Văn An">
+            </div>
+            <div class="form-group">
+              <label>Lớp / Khối</label>
+              <input type="text" id="stdFormGrade" class="form-control" placeholder="VD: Lớp 12A1" value="Lớp 12">
+            </div>
+            <div class="form-group">
+              <label>SĐT / Zalo học sinh</label>
+              <input type="text" id="stdFormPhone" class="form-control" placeholder="09xx.xxx.xxx">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
+            <div class="form-group">
+              <label>Địa chỉ nhà (hoặc nơi học)</label>
+              <input type="text" id="stdFormAddress" class="form-control" placeholder="VD: Số 28, Phố Thụy Khuê, Tây Hồ, Hà Nội">
+            </div>
+            <div class="form-group">
+              <label>👨‍🏫 Giáo Viên / Gia Sư Phụ Trách <span style="color:var(--danger)">*</span></label>
+              <select id="stdFormAssignedTutor" class="form-control" style="font-weight:600; border-color:var(--primary);">
+                <!-- Dynamic options of tutors -->
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nhóm 2: Thông tin phụ huynh -->
+        <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+          <h4 style="font-size:15px; margin-bottom:12px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+            👨‍👩‍👧 2. Thông Tin Phụ Huynh Liên Hệ
+          </h4>
+          <div style="display:grid; grid-template-columns: 1.5fr 1.5fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Họ tên phụ huynh</label>
+              <input type="text" id="stdFormParentName" class="form-control" placeholder="VD: Bác Nguyễn Văn Tuấn (Bố)">
+            </div>
+            <div class="form-group">
+              <label>SĐT phụ huynh (nhận Zalo) <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="stdFormParentPhone" class="form-control" placeholder="0909.888.999">
+            </div>
+            <div class="form-group">
+              <label>Nghề nghiệp / Ghi chú</label>
+              <input type="text" id="stdFormParentJob" class="form-control" placeholder="VD: Kỹ sư">
+            </div>
+          </div>
+        </div>
+
+        <!-- Nhóm 3: Năng lực & Mục tiêu học tập -->
+        <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+          <h4 style="font-size:15px; margin-bottom:12px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+            🎯 3. Mục Tiêu & Chẩn Đoán Lỗ Hổng Kiến Thức
+          </h4>
+          <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Môn kèm & Chuyên đề</label>
+              <input type="text" id="stdFormSubject" class="form-control" placeholder="VD: Toán Học 12 (Ôn thi THPT Quốc Gia)" value="Toán Học 12">
+            </div>
+            <div class="form-group">
+              <label>Điểm khởi điểm</label>
+              <input type="number" id="stdFormInitialScore" class="form-control" step="0.5" min="0" max="10" value="5.5">
+            </div>
+            <div class="form-group">
+              <label>Mục tiêu điểm số</label>
+              <input type="number" id="stdFormTargetScore" class="form-control" step="0.5" min="0" max="10" value="8.5">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Lỗ hổng kiến thức / Cần củng cố</label>
+              <textarea id="stdFormWeaknesses" class="form-control" style="min-height:65px;" placeholder="VD: Hổng hình không gian, hay tính nhầm dấu ở bước rút gọn..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Điểm mạnh & Thói quen</label>
+              <textarea id="stdFormStrengths" class="form-control" style="min-height:65px;" placeholder="VD: Tiếp thu nhanh, tư duy đại số tốt..."></textarea>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Định hướng thi tuyển / Ghi chú thêm</label>
+            <input type="text" id="stdFormNotes" class="form-control" placeholder="VD: Mục tiêu đỗ ĐH Bách Khoa hoặc Kinh Tế Quốc Dân">
+          </div>
+        </div>
+
+        <!-- Nhóm 4: Học phí & Lịch học kèm -->
+        <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+          <h4 style="font-size:15px; margin-bottom:12px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+            💰 4. Học Phí & Lịch Học Kèm
+          </h4>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Học phí mỗi buổi (VNĐ)</label>
+              <input type="number" id="stdFormFee" class="form-control" step="10000" value="250000">
+            </div>
+            <div class="form-group">
+              <label>Hình thức học</label>
+              <select id="stdFormMode" class="form-control">
+                <option value="1 kèm 1 tại nhà">1 kèm 1 tại nhà</option>
+                <option value="1 kèm 1 Online qua Meet/Zoom">1 kèm 1 Online (Meet/Zoom)</option>
+                <option value="Nhóm nhỏ 2 - 4 bạn">Nhóm nhỏ 2 - 4 bạn</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Lịch học cố định trong tuần</label>
+              <input type="text" id="stdFormSchedule" class="form-control" placeholder="VD: Tối Thứ 3 & Tối Thứ 6 (19h30 - 21h30)">
+            </div>
+            <div class="form-group">
+              <label>Ngày bắt đầu học</label>
+              <input type="date" id="stdFormStartDate" class="form-control">
+            </div>
+          </div>
+        </div>
+
+        <!-- Nhóm 5: Cấp tài khoản đăng nhập chính thức cho học sinh -->
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h4 style="font-size:15px; margin:0; color:#166534; display:flex; align-items:center; gap:8px;">
+              🔐 5. Cấp Tài Khoản Đăng Nhập Chính Thức
+            </h4>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13.5px; font-weight:700; color:#15803d; background:white; padding:4px 10px; border-radius:6px; border:1px solid #86efac;">
+              <input type="checkbox" id="stdFormHasAccount" checked onchange="AdminView.toggleAccountFormSection()"> Cấp tài khoản ngay
+            </label>
+          </div>
+          <p style="font-size:12.5px; color:#166534; margin-bottom:12px; line-height:1.4;">
+            🛡️ <em>Quy định hệ thống: Chỉ khi học sinh được cấp tài khoản chính thức thì mới có nút chuyển vai trò và có quyền đăng nhập vào Giao diện Học sinh để làm và nộp bài.</em>
+          </p>
+          <div id="stdFormAccountFields" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Tên đăng nhập (Username) <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="stdFormUsername" class="form-control" placeholder="std_quang">
+              <small style="color:var(--text-muted); font-size:11.5px;">Tự động tạo theo họ tên học sinh</small>
+            </div>
+            <div class="form-group">
+              <label>Mật khẩu đăng nhập <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="stdFormPassword" class="form-control" value="123456" placeholder="123456">
+              <small style="color:var(--text-muted); font-size:11.5px;">Mật khẩu khởi tạo ban đầu</small>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('addStudentModal')">Hủy bỏ</button>
+        <button class="btn btn-primary" onclick="AdminView.submitAddStudent()">💾 Lưu Hồ Sơ Học Sinh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 6: XEM HỒ SƠ CHI TIẾT HỌC SINH ================= -->
+  <div class="modal-overlay" id="studentProfileModal">
+    <div class="modal-box" style="max-width:760px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="user-avatar" id="profAvatar" style="width:44px; height:44px; font-size:16px;">MQ</div>
+          <div>
+            <h3 id="profName">Nguyễn Minh Quang</h3>
+            <div id="profUsernameSub" style="font-size:12px; font-weight:700; color:var(--primary); font-family:var(--font-mono); margin-top:1px;">TK: std_quang</div>
+            <small style="color:var(--text-muted);" id="profSubTitle">Lớp 12A1 — THPT Chu Văn An</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('studentProfileModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:16px; max-height:75vh; overflow-y:auto;" id="profContentBody">
+        <!-- Render chi tiết các nhóm thông tin -->
+      </div>
+      <div class="modal-footer" id="profFooterActions">
+        <button class="btn btn-outline" onclick="App.closeModal('studentProfileModal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 7: TẠO BÁO CÁO PHỤ HUYNH ZALO ================= -->
+  <div class="modal-overlay" id="zaloReportModal">
+    <div class="modal-box" style="max-width:680px;">
+      <div class="modal-header">
+        <div>
+          <h3>💬 Tạo Tin Nhắn Báo Cáo Phụ Huynh (Zalo)</h3>
+          <small style="color:var(--text-muted);">Tự động sinh mẫu tin nhắn chuẩn mực, gửi trong 2 giây</small>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('zaloReportModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:16px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Chọn học sinh:</label>
+            <select id="zaloStudentSelect" class="form-control" onchange="TutorView.updateZaloPreview()"></select>
+          </div>
+          <div class="form-group">
+            <label>Bài tập vừa hoàn thành:</label>
+            <select id="zaloAssignmentSelect" class="form-control" onchange="TutorView.updateZaloPreview()"></select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Đánh giá thái độ buổi học:</label>
+            <select id="zaloAttitudeSelect" class="form-control" onchange="TutorView.updateZaloPreview()">
+              <option value="Rất tập trung, chủ động đặt câu hỏi và tiếp thu nhanh">🌟 Rất tập trung & tiếp thu nhanh</option>
+              <option value="Ngoan ngoãn, hoàn thành bài tập nghiêm túc">👍 Hoàn thành bài nghiêm túc</option>
+              <option value="Cần tập trung hơn, còn đôi chút xao nhãng">⚠️ Cần tập trung hơn</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Bài tập về nhà giao thêm:</label>
+            <input type="text" id="zaloHomeworkInput" class="form-control" value="Hoàn thành phiếu bài tập số tiếp theo trước 20h00 tối Thứ 5" oninput="TutorView.updateZaloPreview()">
+          </div>
+        </div>
+
+        <div>
+          <label style="font-weight:600; font-size:13.5px; margin-bottom:6px; display:block;">
+            📱 Xem trước nội dung tin nhắn gửi Phụ huynh:
+          </label>
+          <div class="zalo-preview-box" id="zaloPreviewContent"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('zaloReportModal')">Đóng</button>
+        <button class="btn btn-primary" onclick="TutorView.copyZaloMessage()">
+          📋 Sao Chép Tin Nhắn (Copy Zalo)
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- ================= MODAL 9: CẤP & QUẢN LÝ TÀI KHOẢN HỌC SINH (ADMIN) ================= -->
+  <div class="modal-overlay" id="manageAccountModal">
+    <div class="modal-box" style="max-width:540px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:42px; height:42px; background:linear-gradient(135deg, #f59e0b, #d97706); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; color:white; box-shadow:0 4px 12px rgba(245,158,11,0.3);">
+            🔑
+          </div>
+          <div>
+            <h3 id="manageAccountStdName">Cấp Tài Khoản Học Sinh</h3>
+            <small style="color:var(--text-muted);" id="manageAccountStdSub">Kích hoạt tài khoản chính thức để mở giao diện học sinh</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('manageAccountModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:16px;">
+        <input type="hidden" id="manageAccountStdId">
+
+        <div id="manageAccountStatusBanner" style="padding:12px 14px; border-radius:10px; font-size:13px; line-height:1.5;">
+          <!-- Dynamically filled status banner -->
+        </div>
+
+        <div class="form-group">
+          <label>Tên đăng nhập (Username) <span style="color:var(--danger)">*</span></label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="manageAccountUsername" class="form-control" placeholder="VD: std_nam">
+            <button type="button" class="btn btn-outline btn-sm" onclick="AdminView.autoGenerateUsername()" title="Tự sinh username">
+              ⚡ Tự tạo
+            </button>
+          </div>
+          <small style="color:var(--text-muted); font-size:11.5px;">Dùng để học sinh đăng nhập vào hệ thống</small>
+        </div>
+
+        <div class="form-group">
+          <label>Mật khẩu đăng nhập <span style="color:var(--danger)">*</span></label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="manageAccountPassword" class="form-control" value="123456" placeholder="Mật khẩu">
+            <button type="button" class="btn btn-outline btn-sm" onclick="AdminView.autoGeneratePassword()" title="Mật khẩu ngẫu nhiên">
+              🎲 Ngẫu nhiên
+            </button>
+          </div>
+          <small style="color:var(--text-muted); font-size:11.5px;">Gia sư / Admin có thể thay đổi mật khẩu bất kỳ lúc nào</small>
+        </div>
+
+        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px;">
+          <div style="font-size:12.5px; color:#1e40af; line-height:1.5;">
+            📌 <strong>Quy định hệ thống:</strong><br>
+            • Khi tài khoản được kích hoạt: Tự động có nút <strong>🎒 HS: [Tên]</strong> trên thanh chuyển đổi vai trò và học sinh có thể đăng nhập.<br>
+            • Nếu nhấn <strong>Thu Hồi Tài Khoản</strong>: Nút của học sinh sẽ biến mất khỏi thanh menu và học sinh sẽ không thể vào giao diện học tập.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:space-between;">
+        <button class="btn btn-danger btn-sm" id="btnRevokeAccount" onclick="AdminView.revokeStudentAccount()" style="display:none;">
+          🚫 Thu Hồi / Hủy Tài Khoản
+        </button>
+        <div style="display:flex; gap:8px; margin-left:auto;">
+          <button class="btn btn-outline" onclick="App.closeModal('manageAccountModal')">Hủy</button>
+          <button class="btn btn-primary" onclick="AdminView.saveStudentAccount()">
+            💾 Lưu & Kích Hoạt Tài Khoản
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 10: CHỌN HỌC SINH ĐỂ GIÁM SÁT (ADMIN TOÀN QUYỀN) ================= -->
+  <div class="modal-overlay" id="adminPickStudentModal">
+    <div class="modal-box" style="max-width:540px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:40px; height:40px; background:#eff6ff; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px;">
+            🎒
+          </div>
+          <div>
+            <h3>Giám Sát Bàn Học Sinh</h3>
+            <small style="color:var(--text-muted);">Quyền Admin: Chọn học sinh để vào xem trực tiếp giao diện và To-Do list của em đó</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('adminPickStudentModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:10px;" id="adminPickStudentList">
+        <!-- Render danh sách học sinh -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('adminPickStudentModal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 11: CHỌN GIA SƯ ĐỂ GIÁM SÁT (ADMIN TOÀN QUYỀN) ================= -->
+  <div class="modal-overlay" id="adminPickTutorModal">
+    <div class="modal-box" style="max-width:540px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:40px; height:40px; background:#e0e7ff; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px;">
+            👨‍🏫
+          </div>
+          <div>
+            <h3>Chọn Bàn Gia Sư Giám Sát</h3>
+            <small style="color:var(--text-muted);">Quyền Admin: Chọn gia sư để kiểm tra bàn làm việc, chấm bài và học sinh phụ trách</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('adminPickTutorModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:10px;" id="adminPickTutorList">
+        <!-- Render danh sách gia sư -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('adminPickTutorModal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 12: THÊM & TẠO TÀI KHOẢN GIA SƯ MỚI (ADMIN) ================= -->
+  <div class="modal-overlay" id="addTutorModal">
+    <div class="modal-box" style="max-width:620px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:40px; height:40px; background:#e0e7ff; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:22px;">
+            👨‍🏫
+          </div>
+          <div>
+            <h3>Tạo Tài Khoản Gia Sư Mới</h3>
+            <small style="color:var(--text-muted);">Thêm giáo viên / gia sư vào hệ thống để phân công giảng dạy & chấm bài</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('addTutorModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:16px; max-height:75vh; overflow-y:auto;">
+        <!-- Thông tin cơ bản -->
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Họ và tên gia sư <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="tutorFormName" class="form-control" placeholder="VD: Thầy Nguyễn Khắc Hoàng" required>
+          </div>
+          <div class="form-group">
+            <label>Giới tính</label>
+            <select id="tutorFormGender" class="form-control">
+              <option value="Nam">Nam</option>
+              <option value="Nữ">Nữ</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Số điện thoại / Zalo <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="tutorFormPhone" class="form-control" placeholder="VD: 0912.888.999" required>
+          </div>
+          <div class="form-group">
+            <label>Email liên hệ</label>
+            <input type="email" id="tutorFormEmail" class="form-control" placeholder="VD: hoang.tutor@edutask.vn">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Môn chuyên trách <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="tutorFormSubject" class="form-control" placeholder="VD: Toán Học THPT" value="Toán Học THPT">
+          </div>
+          <div class="form-group">
+            <label>Trình độ / Bằng cấp</label>
+            <input type="text" id="tutorFormDegree" class="form-control" placeholder="VD: Cử nhân Sư Phạm Toán (5 năm KN)">
+          </div>
+        </div>
+
+        <!-- Thông tin tài khoản đăng nhập -->
+        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:16px;">
+          <h4 style="font-size:14.5px; color:#1e40af; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+            🔐 Tài Khoản Đăng Nhập Của Gia Sư
+          </h4>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Tên đăng nhập (Username) <span style="color:var(--danger)">*</span></label>
+              <div style="display:flex; gap:6px;">
+                <input type="text" id="tutorFormUsername" class="form-control" placeholder="giasu_hoang">
+                <button type="button" class="btn btn-outline btn-sm" onclick="AdminView.autoGenerateTutorUsername()" title="Tự tạo tên đăng nhập">⚡ Tự tạo</button>
+              </div>
+              <small style="color:var(--text-muted); font-size:11.5px;">Dùng để đăng nhập vào Bàn Gia Sư</small>
+            </div>
+            <div class="form-group">
+              <label>Mật khẩu đăng nhập <span style="color:var(--danger)">*</span></label>
+              <div style="display:flex; gap:6px;">
+                <input type="text" id="tutorFormPassword" class="form-control" value="123456" placeholder="123456">
+                <button type="button" class="btn btn-outline btn-sm" onclick="AdminView.autoGenerateTutorPassword()" title="Mật khẩu ngẫu nhiên">🎲 Đổi</button>
+              </div>
+              <small style="color:var(--text-muted); font-size:11.5px;">Mặc định khởi tạo: 123456</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('addTutorModal')">Hủy bỏ</button>
+        <button class="btn btn-primary" onclick="AdminView.submitAddTutor()">💾 Tạo Tài Khoản Gia Sư</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 13: ĐỔI MẬT KHẨU / QUẢN LÝ TÀI KHOẢN GIA SƯ ================= -->
+  <div class="modal-overlay" id="manageTutorAccountModal">
+    <div class="modal-box" style="max-width:520px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:40px; height:40px; background:#e0e7ff; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:22px;">
+            🔑
+          </div>
+          <div>
+            <h3 id="manageTutorNameHeading">Quản Lý Tài Khoản Gia Sư</h3>
+            <small style="color:var(--text-muted);" id="manageTutorUsernameSub">Cập nhật mật khẩu và thông tin đăng nhập</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('manageTutorAccountModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:14px;">
+        <input type="hidden" id="manageTutorId">
+        <div class="form-group">
+          <label>Tên đăng nhập (Username):</label>
+          <input type="text" id="manageTutorUsernameInput" class="form-control" readonly style="background:#f1f5f9; font-weight:700;">
+        </div>
+        <div class="form-group">
+          <label>Mật khẩu mới <span style="color:var(--danger)">*</span>:</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="manageTutorPasswordInput" class="form-control" placeholder="Nhập mật khẩu mới...">
+            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('manageTutorPasswordInput').value = Math.random().toString(36).slice(-6)" title="Tạo ngẫu nhiên">🎲 Ngẫu nhiên</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('manageTutorAccountModal')">Hủy</button>
+        <button class="btn btn-primary" onclick="AdminView.saveTutorAccountPassword()">💾 Lưu Mật Khẩu Mới</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 14: ĐĂNG KÝ / TẠO TÀI KHOẢN MỚI TỪ TRANG ĐĂNG NHẬP ================= -->
+  <div class="modal-overlay" id="registerAccountModal">
+    <div class="modal-box" style="max-width:640px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:42px; height:42px; background:linear-gradient(135deg, #10b981, #059669); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; color:white; box-shadow:0 4px 12px rgba(16,185,129,0.3);">
+            ✨
+          </div>
+          <div>
+            <h3>Đăng Ký / Tạo Tài Khoản Mới</h3>
+            <small style="color:var(--text-muted);">Tạo tài khoản chính thức để bắt đầu học tập hoặc giảng dạy ngay</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('registerAccountModal')">&times;</button>
+      </div>
+
+      <!-- Tab chọn vai trò đăng ký -->
+      <div style="padding:14px 24px 0 24px; background:#f8fafc; border-bottom:1px solid var(--border-color);">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <button type="button" id="tabRegStudent" class="btn btn-primary" style="padding:10px; border-radius:8px 8px 0 0;" onclick="GatewayView.switchRegisterTab('student')">
+            🎒 Tôi Là Học Sinh
+          </button>
+          <button type="button" id="tabRegTutor" class="btn btn-outline" style="padding:10px; border-radius:8px 8px 0 0;" onclick="GatewayView.switchRegisterTab('tutor')">
+            👨‍🏫 Tôi Là Gia Sư
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="gap:14px; max-height:70vh; overflow-y:auto;">
+        
+        <!-- FORM ĐĂNG KÝ HỌC SINH -->
+        <div id="formRegStudent">
+          <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Họ và tên học sinh <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="regStdName" class="form-control" placeholder="VD: Lê Hoàng Nam" oninput="GatewayView.handleStudentRegNameInput(this.value)">
+            </div>
+            <div class="form-group">
+              <label>Khối / Lớp</label>
+              <select id="regStdGrade" class="form-control">
+                <option value="Lớp 12">Lớp 12</option>
+                <option value="Lớp 11">Lớp 11</option>
+                <option value="Lớp 10">Lớp 10</option>
+                <option value="Lớp 9">Lớp 9</option>
+                <option value="Lớp 8">Lớp 8</option>
+                <option value="Lớp 7">Lớp 7</option>
+                <option value="Lớp 6">Lớp 6</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Trường đang theo học</label>
+              <input type="text" id="regStdSchool" class="form-control" placeholder="VD: THPT Chu Văn An">
+            </div>
+            <div class="form-group">
+              <label>SĐT liên hệ <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="regStdPhone" class="form-control" placeholder="09xx.xxx.xxx">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>👨‍🏫 Chọn Gia Sư phụ trách muốn theo học:</label>
+            <select id="regStdTutorSelect" class="form-control" style="font-weight:600; color:var(--primary);"></select>
+          </div>
+
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px;">
+            <div style="font-size:13px; font-weight:700; color:#1e40af; margin-bottom:8px;">🔐 Thông Tin Đăng Nhập Học Sinh:</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+              <div class="form-group">
+                <label>Tên đăng nhập (Username) <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="regStdUsername" class="form-control" placeholder="std_nam">
+              </div>
+              <div class="form-group">
+                <label>Mật khẩu <span style="color:var(--danger)">*</span></label>
+                <input type="password" id="regStdPassword" class="form-control" placeholder="Tối thiểu 6 ký tự">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FORM ĐĂNG KÝ GIA SƯ -->
+        <div id="formRegTutor" style="display:none;">
+          <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Họ và tên gia sư <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="regTutorName" class="form-control" placeholder="VD: Thầy Trần Anh Quân" oninput="GatewayView.handleTutorRegNameInput(this.value)">
+            </div>
+            <div class="form-group">
+              <label>Giới tính</label>
+              <select id="regTutorGender" class="form-control">
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Môn giảng dạy chuyên trách <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="regTutorSubject" class="form-control" placeholder="VD: Toán Học THPT" value="Toán Học THPT">
+            </div>
+            <div class="form-group">
+              <label>Số điện thoại / Zalo <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="regTutorPhone" class="form-control" placeholder="09xx.xxx.xxx">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Trình độ / Kinh nghiệm:</label>
+            <input type="text" id="regTutorDegree" class="form-control" placeholder="VD: Tốt nghiệp ĐH Sư Phạm, 4 năm kinh nghiệm luyện thi">
+          </div>
+
+          <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:10px; padding:12px;">
+            <div style="font-size:13px; font-weight:700; color:#5b21b6; margin-bottom:8px;">🔐 Thông Tin Đăng Nhập Gia Sư:</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+              <div class="form-group">
+                <label>Tên đăng nhập (Username) <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="regTutorUsername" class="form-control" placeholder="giasu_quan">
+              </div>
+              <div class="form-group">
+                <label>Mật khẩu <span style="color:var(--danger)">*</span></label>
+                <input type="password" id="regTutorPassword" class="form-control" placeholder="Tối thiểu 6 ký tự">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('registerAccountModal')">Hủy bỏ</button>
+        <button class="btn btn-primary" id="btnSubmitRegister" onclick="GatewayView.submitRegister()">
+          🚀 Hoàn Tất & Tạo Tài Khoản
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: CẢNH BÁO VI PHẠM RỜI TAB / GIAN LẬN (HỌC SINH) ================= -->
+  <div class="modal-overlay" id="antiCheatWarningModal" style="z-index: 9999;">
+    <div class="modal-box" style="max-width: 500px; background: #ffffff; border: 2px solid #ef4444; box-shadow: 0 25px 60px rgba(239, 68, 68, 0.35);">
+      <div class="modal-header" style="background: linear-gradient(135deg, #7f1d1d, #991b1b); color: white;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:26px;">🚨</span>
+          <div>
+            <h3 style="color:white; margin:0;">CẢNH BÁO: RỜI MÀN HÌNH BÀI LÀM!</h3>
+            <small style="color:#fecaca;">Phát hiện chuyển tab hoặc mở ứng dụng ngoài</small>
+          </div>
+        </div>
+      </div>
+      <div class="modal-body" style="gap:14px; padding:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px 14px;">
+          <div>
+            <div style="font-size:12px; color:#991b1b; font-weight:700; text-transform:uppercase;">Số lần rời màn hình:</div>
+            <strong id="antiCheatViolationCountBadge" style="font-size:22px; color:#7f1d1d; font-weight:800;">LẦN THỨ 1</strong>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:12px; color:#991b1b; font-weight:700; text-transform:uppercase;">Thời gian ra ngoài:</div>
+            <strong id="antiCheatDurationText" style="font-size:20px; color:#b91c1c;">15 giây</strong>
+          </div>
+        </div>
+
+        <div style="font-size:13.5px; color:#334155; line-height:1.6;">
+          ⚠️ <strong>Hành vi nghi vấn:</strong> Học sinh vừa chuyển sang tab khác (để tra cứu tài liệu, sử dụng AI như <em>ChatGPT, Claude</em>) hoặc mở cửa sổ ứng dụng ngoài bài làm lúc <strong id="antiCheatTimeText">16:40:15</strong>.
+        </div>
+
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px 12px; font-size:12.5px; color:#92400e;">
+          📌 <strong>Lưu ý kỷ luật:</strong> Mốc thời gian và số giây rời màn hình đã được lưu tự động vào <strong>Biên bản Giám sát</strong> và sẽ gửi trực tiếp đến Gia Sư & Quản Trị Viên khi nộp bài!
+        </div>
+
+        <div style="text-align:center;">
+          <span id="antiCheatSeverityBadge" class="badge badge-danger">Mức độ: Nhắc nhở lần đầu</span>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:center;">
+        <button class="btn btn-primary" onclick="AntiCheat.closeWarningModal()" style="width:100%; font-weight:800; background:linear-gradient(135deg, #b91c1c, #991b1b);">
+          🛡️ Tôi Đã Hiểu & Cam Kết Làm Bài Trung Thực
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: XEM CHI TIẾT NHẬT KÝ RỜI TAB (ANTI-CHEAT LOG) ================= -->
+  <div class="modal-overlay" id="cheatLogDetailModal" style="z-index: 3000;">
+    <div class="modal-box" style="max-width: 660px; background: #ffffff;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:40px; height:40px; background:linear-gradient(135deg, #ef4444, #b91c1c); border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-size:20px;">
+            🛡️
+          </div>
+          <div>
+            <h3 id="cheatLogModalTitle">Nhật Ký Giám Sát Chống Gian Lận</h3>
+            <small style="color:var(--text-muted);" id="cheatLogModalSub">Biên bản phát hiện chuyển tab & mở task ngoài</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('cheatLogDetailModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:16px;">
+        <div id="cheatLogSummaryBox"></div>
+
+        <div style="border:1px solid var(--border-color); border-radius:10px; overflow:hidden;">
+          <table class="data-table" style="margin:0; font-size:13px;">
+            <thead>
+              <tr style="background:#f8fafc;">
+                <th style="width:60px; text-align:center;">Lần</th>
+                <th>Thời Điểm</th>
+                <th>Thời Gian Rời</th>
+                <th>Hành Vi Nghi Vấn</th>
+              </tr>
+            </thead>
+            <tbody id="cheatLogTableBody">
+              <!-- Render dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('cheatLogDetailModal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- JavaScript Modules -->
+  <script src="js/store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/gateway.js"></script>
+  <script src="js/anticheat.js"></script>
+  <script src="js/grader.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/tutor.js"></script>
+  <script src="js/student.js"></script>
+  <script src="js/parent.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

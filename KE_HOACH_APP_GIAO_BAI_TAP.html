@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kế Hoạch: Ứng Dụng Giao Bài Tập Phân Cấp — EduTask Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #eef2ff;
+      --secondary: #0ea5e9;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius-lg: 16px;
+      --radius-md: 10px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.65;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #312e81 0%, #4f46e5 50%, #06b6d4 100%);
+      color: #ffffff;
+      padding: 48px 36px;
+      border-radius: var(--radius-lg);
+      margin-bottom: 32px;
+      box-shadow: 0 20px 30px -10px rgba(79, 70, 229, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::after {
+      content: "📚";
+      position: absolute;
+      right: 25px;
+      bottom: -15px;
+      font-size: 130px;
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    .badge-tag {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      color: #ffffff;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 12px;
+    }
+
+    .header p {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.9);
+      max-width: 720px;
+    }
+
+    .actions-bar {
+      margin-top: 24px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-white {
+      background: #ffffff;
+      color: var(--primary);
+    }
+    .btn-white:hover {
+      background: #f1f5f9;
+      transform: translateY(-1px);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin-bottom: 28px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .card-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #1e293b;
+      border-bottom: 2px solid var(--primary-light);
+      padding-bottom: 12px;
+    }
+
+    .card-title .icon {
+      font-size: 24px;
+      background: var(--primary-light);
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+    }
+
+    /* Role Cards Hierarchy */
+    .role-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .role-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 22px;
+      background: #ffffff;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .role-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    .role-level {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+    .lvl-1 { background: #fee2e2; color: #991b1b; }
+    .lvl-2 { background: #e0e7ff; color: #3730a3; }
+    .lvl-3 { background: #dcfce7; color: #166534; }
+    .lvl-4 { background: #fef3c7; color: #92400e; }
+
+    .role-card h4 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #1e293b;
+    }
+
+    .role-card ul {
+      list-style: none;
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+
+    .role-card ul li {
+      margin-bottom: 6px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .role-card ul li::before {
+      content: "•";
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    /* Flow Steps */
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .flow-step {
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+      background: #f8fafc;
+      border-radius: var(--radius-md);
+      border-left: 4px solid var(--primary);
+      align-items: flex-start;
+    }
+
+    .step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .step-content h5 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #1e293b;
+    }
+
+    .step-content p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* Assignment Types */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .feature-box {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      background: #fafafa;
+    }
+
+    .feature-box h4 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .feature-box p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+
+    /* Print styles */
+    @media print {
+      body { padding: 0; background: white; }
+      .actions-bar { display: none; }
+      .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Header Section -->
+    <header class="header">
+      <span class="badge-tag">Hệ Thống Phân Cấp & Cá Nhân Hóa</span>
+      <h1>EDUTASK PRO</h1>
+      <p>Ứng Dụng Giao Bài Tập Từ Gia Sư Cho Từng Học Sinh — Phân Cấp Quản Lý Đa Tầng (Admin - Gia Sư - Học Sinh - Phụ Huynh)</p>
+      <div class="actions-bar">
+        <button class="btn btn-white" onclick="window.print()">🖨️ In / Lưu file PDF</button>
+      </div>
+    </header>
+
+    <!-- 1. Mô hình phân cấp quản lý -->
+    <section class="card">
+      <h2 class="card-title">
+        <span class="icon">🏛️</span>
+        1. 4 Cấp Bậc Phân Quyền Quản Lý (Hierarchical Roles)
+      </h2>
+      <p style="color: var(--text-muted); font-size: 14.5px;">
+        Hệ thống phân định quyền hạn minh bạch, giúp trung tâm hoặc nhóm gia sư dễ dàng phân bổ học sinh và giám sát chất lượng:
+      </p>
+
+      <div class="role-grid">
+        <div class="role-card">
+          <span class="role-level lvl-1">Cấp 1 • Toàn quyền</span>
+          <h4>👑 Quản Trị / Chủ TT</h4>
+          <ul>
+            <li>Quản lý danh sách Gia sư & Học sinh</li>
+            <li>Phân công: Gia sư nào dạy học sinh nào</li>
+            <li>Giám sát tiến độ giao & chấm bài của Gia sư</li>
+            <li>Quản lý biểu phí & báo cáo tổng quan</li>
+          </ul>
+        </div>
+
+        <div class="role-card">
+          <span class="role-level lvl-2">Cấp 2 • Chuyên môn</span>
+          <h4>👨‍🏫 Gia Sư Phụ Trách</h4>
+          <ul>
+            <li>Chỉ thấy học sinh được Quản lý phân công</li>
+            <li><strong>Giao bài riêng cho từng em theo năng lực</strong></li>
+            <li>Chấm bài tự luận (vẽ bút đỏ) + trắc nghiệm</li>
+            <li>Nhắc nộp bài & nhận xét sau mỗi buổi</li>
+          </ul>
+        </div>
+
+        <div class="role-card">
+          <span class="role-level lvl-3">Cấp 3 • Học tập</span>
+          <h4>🎒 Học Sinh</h4>
+          <ul>
+            <li>Xem To-Do List bài tập được giao riêng</li>
+            <li>Nộp bài trắc nghiệm hoặc chụp ảnh vở</li>
+            <li>Xem điểm số, nhận xét và lời phê của thầy cô</li>
+            <li>Theo dõi chuỗi hoàn thành bài (Streak)</li>
+          </ul>
+        </div>
+
+        <div class="role-card">
+          <span class="role-level lvl-4">Cấp 4 • Đồng hành</span>
+          <h4>👨‍👩‍👧 Phụ Huynh</h4>
+          <ul>
+            <li>Nhận thông báo khi con có bài tập mới</li>
+            <li>Xem bài con đã làm / bài chưa hoàn thành</li>
+            <li>Xem kết quả chấm điểm & lời phê chi tiết</li>
+            <li>Minh bạch kết quả học tập không cần hỏi dồn</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Cơ chế giao bài tập cá nhân hóa -->
+    <section class="card">
+      <h2 class="card-title">
+        <span class="icon">🎯</span>
+        2. Cơ Chế Giao Bài Tập Cá Nhân Hóa (Targeted Assignments)
+      </h2>
+
+      <div class="feature-grid">
+        <div class="feature-box">
+          <h4>👤 Giao Đích Danh 1-1 Cho Từng Em</h4>
+          <p>Gia sư chọn đích danh học sinh (VD: em Nguyễn Minh Quang) để giao bài tập đúng phần em đang hổng. Các học sinh khác sẽ không thấy bài này.</p>
+        </div>
+
+        <div class="feature-box">
+          <h4>📶 Phân Hóa Nhóm Trình Độ</h4>
+          <p>Giao bài theo nhóm: Nhóm cần bồi dưỡng mất gốc nhận bài củng cố; Nhóm khá/giỏi nhận phiếu bài tập nâng cao, mở rộng.</p>
+        </div>
+
+        <div class="feature-box">
+          <h4>📸 Nộp Bài Qua Ảnh Chụp Vở Viết Tay</h4>
+          <p>Học sinh chụp ảnh nhiều trang vở bài làm từ điện thoại nộp lên trong 30 giây. Không bắt buộc phải gõ máy tính phức tạp.</p>
+        </div>
+
+        <div class="feature-box">
+          <h4>🖊️ Bàn Chấm Bút Đỏ Trực Quan</h4>
+          <p>Gia sư mở bài nộp, dùng công cụ vẽ bút đỏ khoanh vùng lỗi sai, đóng dấu Đúng/Sai, viết ghi chú và trả bài kèm lời động viên.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Luồng nghiệp vụ từ A đến Z -->
+    <section class="card">
+      <h2 class="card-title">
+        <span class="icon">🔄</span>
+        3. Quy Trình Vận Hành Toàn Trình (End-to-End Workflow)
+      </h2>
+
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h5>Quản Lý Phân Bổ Học Sinh Cho Gia Sư</h5>
+            <p>Admin ghép cặp Gia sư Thầy An phụ trách học sinh Nguyễn Minh Quang (môn Toán 12).</p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h5>Gia Sư Tạo & Giao Bài Tập Cá Nhân Hóa</h5>
+            <p>Thầy An chọn học sinh Quang $\rightarrow$ Tạo bài "Chuyên đề Bất đẳng thức" $\rightarrow$ Đặt hạn nộp 21h00 Chủ Nhật.</p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h5>Học Sinh Nhận Bài & Nộp Ảnh Bài Giải</h5>
+            <p>Quang nhận thông báo bài tập mới trên điện thoại $\rightarrow$ Làm ra vở và chụp 2 ảnh nộp lên trước hạn.</p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h5>Gia Sư Chấm Bài Với Bút Đỏ & Cho Điểm</h5>
+            <p>Thầy An chấm trực tiếp trên ảnh bài làm: Khoanh tròn bước giải nhầm dấu $\rightarrow$ Chấm 8.5/10 $\rightarrow$ Trả bài.</p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <h5>Hệ Thống Tự Động Cập Nhật Cho Phụ Huynh & Quản Trị</h5>
+            <p>Điểm số lưu vào biểu đồ của học sinh; Phụ huynh nhận thông báo kết quả; Quản lý ghi nhận Gia sư đã hoàn thành nhiệm vụ chấm bài.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Lộ trình phát triển -->
+    <section class="card">
+      <h2 class="card-title">
+        <span class="icon">🚀</span>
+        4. Lộ Trình Triển Khai 3 Giai Đoạn
+      </h2>
+
+      <div class="flow-steps">
+        <div class="flow-step" style="border-left-color: #4f46e5;">
+          <div class="step-num" style="background:#4f46e5;">P1</div>
+          <div class="step-content">
+            <h5>Giai Đoạn 1: Phân Quyền & Giao Bài Cá Nhân Hóa (Tuần 1)</h5>
+            <p>Đăng nhập 4 vai trò (Admin, Gia sư, Học sinh, Phụ huynh) + Phân công học sinh + Gia sư chọn học sinh giao bài có Deadline.</p>
+          </div>
+        </div>
+
+        <div class="flow-step" style="border-left-color: #0ea5e9;">
+          <div class="step-num" style="background:#0ea5e9;">P2</div>
+          <div class="step-content">
+            <h5>Giai Đoạn 2: Nộp Bài Bằng Ảnh & Bàn Chấm Bút Đỏ (Tuần 2)</h5>
+            <p>Học sinh chụp ảnh bài làm nộp lên + Gia sư có công cụ vẽ bút đỏ chữa bài + Chấm điểm và trả kết quả.</p>
+          </div>
+        </div>
+
+        <div class="flow-step" style="border-left-color: #10b981;">
+          <div class="step-num" style="background:#10b981;">P3</div>
+          <div class="step-content">
+            <h5>Giai Đoạn 3: Dashboard Quản Lý & Cổng Phụ Huynh (Tuần 3)</h5>
+            <p>Màn hình giám sát KPI của Quản lý + Cổng tra cứu tiến độ cho Phụ huynh + Tự động nhắc nhở nộp bài.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Temporary screenshot and test files
+*.png
+*.jpg
+*.jpeg
+test_*.html
+test_*.png
+test_*.js
+recap.ps1
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and system artifacts
+*.log
