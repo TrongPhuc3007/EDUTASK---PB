@@ -118,13 +118,7 @@ const App = {
       if (subEl) subEl.textContent = 'Hệ Thống Đăng Nhập Tập Trung';
       if (navEl) navEl.innerHTML = '';
       if (actionsEl) {
-        actionsEl.innerHTML = `
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span class="badge" style="background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; font-size:12px; padding:5px 12px; font-weight:700;">
-              🔒 Hệ Thống Bảo Mật
-            </span>
-          </div>
-        `;
+        actionsEl.innerHTML = '';
       }
       if (banner) banner.style.display = 'none';
       return;

@@ -2650,4 +2650,95 @@ button, a, input, select, textarea, .btn, .student-chip, .tool-btn, .fast-score-
   }
 }
 
+/* ================= SLEEK LIVE STATUS INDICATOR (MINIMALIST GREEN DOT) ================= */
+.live-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.live-status-indicator:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.live-status-indicator:active {
+  transform: scale(0.95);
+}
+
+.live-status-indicator .status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: pulseLiveGreen 2.2s infinite;
+  display: block;
+}
+
+@keyframes pulseLiveGreen {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.live-status-indicator.syncing .status-dot {
+  background: #0284c7;
+  animation: pulseLiveBlue 1.2s infinite;
+}
+
+@keyframes pulseLiveBlue {
+  0% {
+    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.8);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(2, 132, 199, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0);
+  }
+}
+
+.live-status-indicator.waiting .status-dot {
+  background: #f59e0b;
+  animation: none;
+}
+
+.live-status-indicator.error .status-dot {
+  background: #ef4444;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  animation: pulseLiveRed 1.6s infinite;
+}
+
+@keyframes pulseLiveRed {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+
 

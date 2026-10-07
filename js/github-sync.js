@@ -478,32 +478,35 @@ const GitHubSync = {
     return merged;
   },
 
-  // Cập nhật trạng thái hiển thị trên Header
+  // Cập nhật trạng thái hiển thị trên Header (Chấm xanh kết nối tối giản)
   renderHeaderIndicator(stateOverride) {
-    const btn = document.getElementById('githubSyncHeaderBtn');
-    if (!btn) return;
+    const indicator = document.getElementById('connectionStatusIndicator') || document.getElementById('githubSyncHeaderBtn');
+    if (!indicator) return;
 
     let state = stateOverride || this.lastSyncStatus;
-    let icon = '🟢';
-    let text = 'Kho GitHub: Đã Lưu';
-    let title = 'Kho dữ liệu trung tâm GitHub đang hoạt động tốt. Dữ liệu đã lưu tự động.';
+    let title = 'Hệ thống trực tuyến • Dữ liệu tự động đồng bộ thời gian thực';
+    let statusClass = 'online';
 
     if (state === 'syncing') {
-      icon = '⚡';
-      text = 'Đang Đồng Bộ...';
-      title = 'Hệ thống đang tự động đồng bộ thay đổi lên GitHub repository...';
+      title = '⚡ Đang tự động đồng bộ dữ liệu...';
+      statusClass = 'syncing';
     } else if (state === 'waiting') {
-      icon = '⏳';
-      text = 'Chuẩn Bị Lưu...';
-      title = 'Có thay đổi mới, đang tự động lưu lên GitHub...';
+      title = '⏳ Đang chuẩn bị lưu thay đổi...';
+      statusClass = 'waiting';
     } else if (state === 'error') {
-      icon = '🔴';
-      text = 'Kho GitHub: Kiểm Tra';
-      title = `Lỗi đồng bộ GitHub: ${this.statusMessage || 'Vui lòng kiểm tra kết nối'}`;
+      title = `🔴 Gián đoạn kết nối: ${this.statusMessage || 'Kiểm tra kết nối Internet'}`;
+      statusClass = 'error';
     }
 
-    btn.innerHTML = `<span style="font-size:13px;">${icon}</span> <span class="sync-pill-text" style="font-weight:700;">${text}</span>`;
-    btn.title = title;
+    if (indicator.classList.contains('live-status-indicator')) {
+      indicator.className = `live-status-indicator ${statusClass}`;
+      indicator.title = title;
+      indicator.innerHTML = '<span class="status-dot"></span>';
+    } else {
+      let icon = state === 'syncing' ? '⚡' : state === 'waiting' ? '⏳' : state === 'error' ? '🔴' : '🟢';
+      indicator.innerHTML = `<span style="font-size:13px;">${icon}</span> <span class="sync-pill-text" style="font-weight:700;">Kho GitHub: Đã Lưu</span>`;
+      indicator.title = title;
+    }
   },
 
   // Mở modal quản lý
