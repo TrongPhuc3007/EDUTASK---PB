@@ -275,8 +275,8 @@
   "assignments": [
     {
       "id": "asn_001",
-      "title": "Phiếu 05: Chuyên Đề Cực Trị & Bất Đẳng Thức",
-      "description": "Làm chi tiết bài 1, 2, 3 ra vở viết tay, chụp ảnh nộp trước buổi học tới.",
+      "title": "Phi?u 05: Chuy�n D? C?c Tr? & B?t D?ng Th?c",
+      "description": "L�m chi ti?t b�i 1, 2, 3 ra v? vi?t tay, ch?p ?nh n?p tru?c bu?i h?c t?i.",
       "targetType": "individual",
       "targetStudentIds": [
         "u_std_quang",
@@ -294,8 +294,8 @@
     },
     {
       "id": "asn_002",
-      "title": "Phiếu 04: Khảo Sát Đồ Thị Hàm Số Phân Thức",
-      "description": "Bài tập rèn luyện kỹ năng vẽ bảng biến thiên và tiệm cận.",
+      "title": "Phi?u 04: Kh?o S�t D? Th? H�m S? Ph�n Th?c",
+      "description": "B�i t?p r�n luy?n k? nang v? b?ng bi?n thi�n v� ti?m c?n.",
       "targetType": "individual",
       "targetStudentIds": [
         "u_std_maianh",
@@ -313,8 +313,8 @@
     },
     {
       "id": "asn_003",
-      "title": "Phiếu 03: Phương Trình Lượng Giác Cơ Bản",
-      "description": "Ôn tập 10 công thức lượng giác và giải các phương trình sin, cos.",
+      "title": "Phi?u 03: Phuong Tr�nh Lu?ng Gi�c Co B?n",
+      "description": "�n t?p 10 c�ng th?c lu?ng gi�c v� gi?i c�c phuong tr�nh sin, cos.",
       "targetType": "all",
       "targetStudentIds": [
         "u_std_nam",
