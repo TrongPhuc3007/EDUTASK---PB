@@ -179,9 +179,12 @@ const AdminView = {
                       <strong style="color:var(--primary);">${total.toLocaleString('vi-VN')} đ</strong>
                     </td>
                     <td style="text-align:center;">
-                      <div style="display:inline-flex; gap:6px;">
+                      <div style="display:inline-flex; gap:6px; flex-wrap:wrap; justify-content:center;">
                         <button class="btn btn-sm btn-outline" title="Xem hồ sơ chi tiết" onclick="AdminView.openStudentProfileModal('${std.id}')">
                           👁️ Hồ Sơ
+                        </button>
+                        <button class="btn btn-sm btn-secondary" title="Chỉnh sửa thông tin học sinh (Tên, học phí, mục tiêu...)" onclick="AdminView.openEditStudentModal('${std.id}')">
+                          ✏️ Sửa
                         </button>
                         <button class="btn btn-sm btn-primary" title="Toàn quyền Admin: Xem trực tiếp bàn học sinh này" onclick="Auth.adminSupervise('${std.id}')">
                           🎒 Bàn Học
@@ -476,6 +479,16 @@ const AdminView = {
     const cheatSummary = Store.getStudentCheatSummary ? Store.getStudentCheatSummary(studentId) : { totalViolations: 0, totalDuration: 0, submissionsWithCheating: 0 };
     const body = document.getElementById('profContentBody');
     body.innerHTML = `
+      <!-- Dải Banner Hành Động Nhanh -->
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:10px 16px; border-radius:10px; border:1px solid var(--border-color); flex-wrap:wrap; gap:8px;">
+        <span style="font-size:13px; color:var(--text-main);">
+          👤 Hồ sơ học sinh: <strong style="color:var(--primary); font-size:14px;">${std.name}</strong> (${std.grade})
+        </span>
+        <button class="btn btn-sm btn-secondary" onclick="AdminView.openEditStudentModal('${std.id}')" title="Chỉnh sửa họ tên, học phí, mục tiêu...">
+          ✏️ Chỉnh Sửa Thông Tin
+        </button>
+      </div>
+
       <!-- Thẻ Tóm Tắt Nhanh -->
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
         <div style="background:#eef2ff; border-radius:10px; padding:12px; border:1px solid #c7d2fe;">
@@ -630,6 +643,9 @@ const AdminView = {
     const footer = document.getElementById('profFooterActions');
     footer.innerHTML = `
       <button class="btn btn-outline" onclick="App.closeModal('studentProfileModal')">Đóng</button>
+      <button class="btn btn-secondary" onclick="AdminView.openEditStudentModal('${std.id}')" title="Chỉnh sửa họ tên, học phí, mục tiêu, lịch học...">
+        ✏️ Chỉnh Sửa Hồ Sơ
+      </button>
       ${isRealAdmin ? `
         <button class="btn btn-outline" onclick="App.closeModal('studentProfileModal'); AdminView.openManageAccountModal('${std.id}')">
           🔑 Quản Lý Tài Khoản
@@ -652,6 +668,125 @@ const AdminView = {
 
     const modal = document.getElementById('studentProfileModal');
     if (modal) modal.classList.add('active');
+  },
+
+  openEditStudentModal(studentId) {
+    const std = Store.getUserById(studentId);
+    if (!std) {
+      App.showToast('Không tìm thấy thông tin học sinh!', 'error');
+      return;
+    }
+
+    // Đóng modal profile nếu đang mở
+    App.closeModal('studentProfileModal');
+
+    // Nạp danh sách gia sư vào dropdown
+    const tutorSelect = document.getElementById('editStdAssignedTutor');
+    if (tutorSelect) {
+      tutorSelect.innerHTML = Store.getTutors().map(t => `
+        <option value="${t.id}" ${t.id === std.assignedTutorId ? 'selected' : ''}>
+          ${t.name} (${t.subjects ? t.subjects.join(', ') : 'Gia Sư'})
+        </option>
+      `).join('');
+    }
+
+    // Gán dữ liệu học sinh vào form chỉnh sửa
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = (val !== undefined && val !== null) ? val : '';
+    };
+
+    setVal('editStdId', std.id);
+    setVal('editStdName', std.name);
+    setVal('editStdGender', std.gender || 'Nam');
+    setVal('editStdDob', std.dob || '');
+    setVal('editStdSchool', std.school || '');
+    setVal('editStdGrade', std.grade || 'Lớp 12');
+    setVal('editStdPhone', (std.phone && std.phone !== 'Chưa cập nhật') ? std.phone : '');
+    setVal('editStdAddress', std.address || '');
+
+    // Phụ huynh
+    setVal('editStdParentName', std.parentName || '');
+    setVal('editStdParentPhone', std.parentPhone || '');
+    setVal('editStdParentJob', std.parentJob || '');
+
+    // Mục tiêu & Học tập
+    setVal('editStdSubject', std.subject || 'Toán Học');
+    setVal('editStdInitialScore', std.initialScore ?? 5.0);
+    setVal('editStdTargetScore', std.targetScore ?? 8.5);
+    setVal('editStdCurrentScore', std.currentScore ?? std.initialScore ?? 5.0);
+    setVal('editStdWeaknesses', std.weaknesses || '');
+    setVal('editStdStrengths', std.strengths || '');
+    setVal('editStdNotes', std.notes || '');
+
+    // Học phí & Lịch
+    setVal('editStdFee', std.feePerSession ?? 250000);
+    setVal('editStdSessions', std.totalSessions ?? 0);
+    setVal('editStdMode', std.learningMode || '1 kèm 1 tại nhà');
+    setVal('editStdSchedule', std.schedule || '');
+    setVal('editStdStartDate', std.startDate || '');
+
+    const modal = document.getElementById('editStudentModal');
+    if (modal) modal.classList.add('active');
+  },
+
+  submitEditStudent() {
+    const studentId = document.getElementById('editStdId')?.value;
+    const name = document.getElementById('editStdName')?.value.trim();
+    const parentPhone = document.getElementById('editStdParentPhone')?.value.trim();
+
+    if (!studentId) return;
+
+    if (!name) {
+      App.showToast('Vui lòng nhập họ và tên học sinh!', 'error');
+      return;
+    }
+    if (!parentPhone) {
+      App.showToast('Vui lòng nhập số điện thoại phụ huynh để liên hệ!', 'error');
+      return;
+    }
+
+    const assignedTutorId = document.getElementById('editStdAssignedTutor')?.value || 'u_tutor';
+    const tutor = Store.getUserById(assignedTutorId);
+    const assignedTutorName = tutor ? tutor.name : 'Gia Sư Phụ Trách';
+
+    const updatedData = {
+      name: name,
+      gender: document.getElementById('editStdGender')?.value || 'Nam',
+      dob: document.getElementById('editStdDob')?.value || '',
+      school: document.getElementById('editStdSchool')?.value.trim() || '',
+      grade: document.getElementById('editStdGrade')?.value.trim() || 'Lớp 12',
+      phone: document.getElementById('editStdPhone')?.value.trim() || 'Chưa cập nhật',
+      address: document.getElementById('editStdAddress')?.value.trim() || '',
+      assignedTutorId: assignedTutorId,
+      assignedTutorName: assignedTutorName,
+
+      parentName: document.getElementById('editStdParentName')?.value.trim() || '',
+      parentPhone: parentPhone,
+      parentJob: document.getElementById('editStdParentJob')?.value.trim() || '',
+
+      subject: document.getElementById('editStdSubject')?.value.trim() || 'Toán Học',
+      initialScore: parseFloat(document.getElementById('editStdInitialScore')?.value) || 5.0,
+      targetScore: parseFloat(document.getElementById('editStdTargetScore')?.value) || 8.5,
+      currentScore: parseFloat(document.getElementById('editStdCurrentScore')?.value) || 5.0,
+      weaknesses: document.getElementById('editStdWeaknesses')?.value.trim() || '',
+      strengths: document.getElementById('editStdStrengths')?.value.trim() || '',
+      notes: document.getElementById('editStdNotes')?.value.trim() || '',
+
+      feePerSession: parseInt(document.getElementById('editStdFee')?.value) || 250000,
+      totalSessions: parseInt(document.getElementById('editStdSessions')?.value) || 0,
+      learningMode: document.getElementById('editStdMode')?.value || '1 kèm 1 tại nhà',
+      schedule: document.getElementById('editStdSchedule')?.value.trim() || '',
+      startDate: document.getElementById('editStdStartDate')?.value || ''
+    };
+
+    Store.updateStudent(studentId, updatedData);
+
+    App.closeModal('editStudentModal');
+    App.updateHeaderProfile();
+    App.renderCurrentView();
+
+    App.showToast(`✓ Đã cập nhật thành công hồ sơ của học sinh "${name}"!`, 'success');
   },
 
   openManageAccountModal(studentId) {

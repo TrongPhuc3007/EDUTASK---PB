@@ -610,6 +610,177 @@
     </div>
   </div>
 
+  <!-- ================= MODAL 5B: CHỈNH SỬA THÔNG TIN HỌC SINH ================= -->
+  <div class="modal-overlay" id="editStudentModal">
+    <div class="modal-box" style="max-width:780px;">
+      <div class="modal-header">
+        <div>
+          <h3>✏️ Chỉnh Sửa Hồ Sơ Học Sinh</h3>
+          <small style="color:var(--text-muted);">Cập nhật tên, học phí, mục tiêu điểm số, phụ huynh, lịch học và gia sư phụ trách</small>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('editStudentModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:20px; max-height:75vh; overflow-y:auto;">
+        <input type="hidden" id="editStdId">
+        
+        <!-- Nhóm 1: Thông tin học sinh -->
+        <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+          <h4 style="font-size:15px; margin-bottom:12px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+            👤 1. Thông Tin Học Sinh
+          </h4>
+          <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Họ và tên học sinh <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="editStdName" class="form-control" placeholder="VD: Nguyễn Minh Quang" required>
+            </div>
+            <div class="form-group">
+              <label>Giới tính</label>
+              <select id="editStdGender" class="form-control">
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Ngày sinh</label>
+              <input type="date" id="editStdDob" class="form-control">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1.5fr 1fr 1.5fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Trường đang theo học</label>
+              <input type="text" id="editStdSchool" class="form-control" placeholder="VD: THPT Chu Văn An">
+            </div>
+            <div class="form-group">
+              <label>Lớp / Khối</label>
+              <input type="text" id="editStdGrade" class="form-control" placeholder="VD: Lớp 12A1">
+            </div>
+            <div class="form-group">
+              <label>SĐT / Zalo học sinh</label>
+              <input type="text" id="editStdPhone" class="form-control" placeholder="09xx.xxx.xxx">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
+            <div class="form-group">
+              <label>Địa chỉ nhà (hoặc nơi học)</label>
+              <input type="text" id="editStdAddress" class="form-control" placeholder="VD: Số 28, Phố Thụy Khuê, Tây Hồ, Hà Nội">
+            </div>
+            <div class="form-group">
+              <label>👨‍🏫 Giáo Viên / Gia Sư Phụ Trách <span style="color:var(--danger)">*</span></label>
+              <select id="editStdAssignedTutor" class="form-control" style="font-weight:600; border-color:var(--primary);">
+                <!-- Dynamic options -->
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nhóm 2: Thông tin phụ huynh -->
+        <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+          <h4 style="font-size:15px; margin-bottom:12px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+            👨‍👩‍👧 2. Thông Tin Phụ Huynh Liên Hệ
+          </h4>
+          <div style="display:grid; grid-template-columns: 1.5fr 1.5fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Họ tên phụ huynh</label>
+              <input type="text" id="editStdParentName" class="form-control" placeholder="VD: Bác Nguyễn Văn Tuấn (Bố)">
+            </div>
+            <div class="form-group">
+              <label>SĐT phụ huynh (nhận Zalo) <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="editStdParentPhone" class="form-control" placeholder="0909.888.999">
+            </div>
+            <div class="form-group">
+              <label>Nghề nghiệp / Ghi chú</label>
+              <input type="text" id="editStdParentJob" class="form-control" placeholder="VD: Kỹ sư">
+            </div>
+          </div>
+        </div>
+
+        <!-- Nhóm 3: Mục tiêu & Năng lực học tập -->
+        <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+          <h4 style="font-size:15px; margin-bottom:12px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+            🎯 3. Mục Tiêu & Năng Lực Học Tập
+          </h4>
+          <div style="display:grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Môn kèm & Chuyên đề</label>
+              <input type="text" id="editStdSubject" class="form-control" placeholder="VD: Toán Học 12">
+            </div>
+            <div class="form-group">
+              <label>Điểm khởi điểm</label>
+              <input type="number" id="editStdInitialScore" class="form-control" step="0.5" min="0" max="10">
+            </div>
+            <div class="form-group">
+              <label>Mục tiêu điểm số</label>
+              <input type="number" id="editStdTargetScore" class="form-control" step="0.5" min="0" max="10">
+            </div>
+            <div class="form-group">
+              <label>Điểm hiện tại</label>
+              <input type="number" id="editStdCurrentScore" class="form-control" step="0.5" min="0" max="10">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Lỗ hổng kiến thức / Cần củng cố</label>
+              <textarea id="editStdWeaknesses" class="form-control" style="min-height:65px;" placeholder="VD: Hổng hình không gian, hay tính nhầm dấu..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Điểm mạnh & Thói quen</label>
+              <textarea id="editStdStrengths" class="form-control" style="min-height:65px;" placeholder="VD: Tiếp thu nhanh, tư duy đại số tốt..."></textarea>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Định hướng thi tuyển / Ghi chú thêm</label>
+            <input type="text" id="editStdNotes" class="form-control" placeholder="VD: Mục tiêu thi đỗ ĐH Y Dược / Bách Khoa">
+          </div>
+        </div>
+
+        <!-- Nhóm 4: Học phí & Lịch học kèm -->
+        <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+          <h4 style="font-size:15px; margin-bottom:12px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+            💰 4. Học Phí & Lịch Học Kèm
+          </h4>
+          <div style="display:grid; grid-template-columns: 1.2fr 1fr 1.2fr; gap:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label>Học phí mỗi buổi (VNĐ) <span style="color:var(--danger)">*</span></label>
+              <input type="number" id="editStdFee" class="form-control" step="10000" placeholder="250000">
+            </div>
+            <div class="form-group">
+              <label>Số buổi đã học</label>
+              <input type="number" id="editStdSessions" class="form-control" min="0" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label>Hình thức học</label>
+              <select id="editStdMode" class="form-control">
+                <option value="1 kèm 1 tại nhà">1 kèm 1 tại nhà</option>
+                <option value="1 kèm 1 Online qua Meet/Zoom">1 kèm 1 Online (Meet/Zoom)</option>
+                <option value="Nhóm nhỏ 2 - 4 bạn">Nhóm nhỏ 2 - 4 bạn</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Lịch học cố định trong tuần</label>
+              <input type="text" id="editStdSchedule" class="form-control" placeholder="VD: Tối Thứ 2 & Thứ 5 (19h30 - 21h30)">
+            </div>
+            <div class="form-group">
+              <label>Ngày bắt đầu học</label>
+              <input type="date" id="editStdStartDate" class="form-control">
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('editStudentModal')">Hủy bỏ</button>
+        <button class="btn btn-primary" onclick="AdminView.submitEditStudent()">💾 Lưu Thay Đổi</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= MODAL 6: XEM HỒ SƠ CHI TIẾT HỌC SINH ================= -->
   <div class="modal-overlay" id="studentProfileModal">
     <div class="modal-box" style="max-width:760px;">
@@ -1293,18 +1464,18 @@
   </nav>
 
   <!-- JavaScript Modules -->
-  <script src="js/cloud-sync.js?v=11.9"></script>
-  <script src="js/github-sync.js?v=11.9"></script>
-  <script src="js/store.js?v=11.9"></script>
-  <script src="js/auth.js?v=11.9"></script>
-  <script src="js/gateway.js?v=11.9"></script>
-  <script src="js/anticheat.js?v=11.9"></script>
-  <script src="js/grader.js?v=11.9"></script>
-  <script src="js/admin.js?v=11.9"></script>
-  <script src="js/tutor.js?v=11.9"></script>
-  <script src="js/student.js?v=11.9"></script>
-  <script src="js/parent.js?v=11.9"></script>
-  <script src="js/app.js?v=11.9"></script>
+  <script src="js/cloud-sync.js?v=12.0"></script>
+  <script src="js/github-sync.js?v=12.0"></script>
+  <script src="js/store.js?v=12.0"></script>
+  <script src="js/auth.js?v=12.0"></script>
+  <script src="js/gateway.js?v=12.0"></script>
+  <script src="js/anticheat.js?v=12.0"></script>
+  <script src="js/grader.js?v=12.0"></script>
+  <script src="js/admin.js?v=12.0"></script>
+  <script src="js/tutor.js?v=12.0"></script>
+  <script src="js/student.js?v=12.0"></script>
+  <script src="js/parent.js?v=12.0"></script>
+  <script src="js/app.js?v=12.0"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
@@ -1318,7 +1489,7 @@
             if (installing) {
               installing.onstatechange = () => {
                 if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[PWA] Đã phát hiện bản cập nhật mới v11.9! Đang làm mới trang...');
+                  console.log('[PWA] Đã phát hiện bản cập nhật mới v12.0! Đang làm mới trang...');
                   window.location.reload();
                 }
               };

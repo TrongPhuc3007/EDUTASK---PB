@@ -264,9 +264,12 @@ const TutorView = {
                   </div>
                 </div>
 
-                <div style="display:flex; gap:6px; margin-top:auto; padding-top:6px; align-items:center;">
+                <div style="display:flex; gap:6px; margin-top:auto; padding-top:6px; align-items:center; flex-wrap:wrap;">
                   <button class="btn btn-outline btn-sm" onclick="AdminView.openStudentProfileModal('${std.id}')" title="Xem hồ sơ chi tiết">
                     👁️ Hồ Sơ
+                  </button>
+                  <button class="btn btn-secondary btn-sm" onclick="AdminView.openEditStudentModal('${std.id}')" title="Chỉnh sửa thông tin học sinh (Tên, học phí, mục tiêu...)">
+                    ✏️ Sửa
                   </button>
                   <button class="btn ${isFilterActive ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="TutorView.setStudentFilter('${std.id}')" title="Lọc xem riêng bài tập em này" style="flex:1;">
                     ${isFilterActive ? '✓ Đang xem bài' : '🔍 Xem bài em này'}

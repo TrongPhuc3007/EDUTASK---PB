@@ -1190,11 +1190,34 @@ const Store = {
   },
 
   updateStudent(studentId, updatedData) {
+    if (!this.data || !Array.isArray(this.data.users)) return false;
     const index = this.data.users.findIndex(u => u.id === studentId);
     if (index >= 0) {
-      this.data.users[index] = { ...this.data.users[index], ...updatedData };
-      this.save();
+      const current = this.data.users[index];
+      const merged = { ...current, ...updatedData };
+
+      // Cập nhật avatarText nếu tên thay đổi
+      if (updatedData.name) {
+        const words = updatedData.name.trim().split(/\s+/).filter(Boolean);
+        merged.avatarText = words.length > 1 ? (words[0][0] + words[words.length - 1][0]).toUpperCase() : words[0].slice(0, 2).toUpperCase();
+      }
+
+      this.data.users[index] = merged;
+
+      // Đồng bộ tên học sinh mới vào các bài nộp cũ
+      if (updatedData.name && Array.isArray(this.data.submissions)) {
+        this.data.submissions.forEach(sub => {
+          if (sub.studentId === studentId) {
+            sub.studentName = updatedData.name;
+          }
+        });
+      }
+
+      // Lưu ngay lập tức và đẩy đồng bộ lên Cloud & GitHub
+      this.save(false, true);
+      return true;
     }
+    return false;
   },
 
   // Danh sách học sinh đã được cấp tài khoản chính thức (có quyền truy cập giao diện học sinh)
