@@ -279,7 +279,6 @@
       "description": "Lêm chi ti?t b�i 1, 2, 3 ra v? vi?t tay, ch?p ?nh Nữp tru?c bu?i Học t?i.",
       "targetType": "individual",
       "targetStudentIds": [
-        "u_std_quang",
         "u_std_1791342637918"
       ],
       "deadline": "2026-10-08T21:00",
@@ -320,7 +319,6 @@
       "targetType": "all",
       "targetStudentIds": [
         "u_std_nam",
-        "u_std_quang",
         "u_std_1791342637918"
       ],
       "deadline": "2026-10-10T23:59",
