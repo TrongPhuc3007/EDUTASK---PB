@@ -256,11 +256,11 @@ const Store = {
       this.resetDefault();
     }
 
-    if (window.CloudSync && typeof CloudSync.init === 'function') {
+    if (typeof CloudSync !== 'undefined' && typeof CloudSync.init === 'function') {
       CloudSync.init();
     }
 
-    if (window.GitHubSync && typeof GitHubSync.init === 'function') {
+    if (typeof GitHubSync !== 'undefined' && typeof GitHubSync.init === 'function') {
       GitHubSync.init();
     }
 
@@ -341,13 +341,15 @@ const Store = {
     }
 
     // Tự động đẩy lên Firebase nếu có cấu hình
-    if (!skipCloudPush && window.CloudSync && typeof CloudSync.schedulePush === 'function') {
-      CloudSync.schedulePush();
+    const cs = window.CloudSync || (typeof CloudSync !== 'undefined' ? CloudSync : null);
+    if (!skipCloudPush && cs && typeof cs.schedulePush === 'function') {
+      cs.schedulePush();
     }
 
     // Tự động đẩy lên Kho dữ liệu trung tâm GitHub
-    if (!skipCloudPush && window.GitHubSync && typeof GitHubSync.schedulePush === 'function') {
-      return GitHubSync.schedulePush(immediate);
+    const gs = window.GitHubSync || (typeof GitHubSync !== 'undefined' ? GitHubSync : null);
+    if (!skipCloudPush && gs && typeof gs.schedulePush === 'function') {
+      return gs.schedulePush(immediate);
     }
     return Promise.resolve();
   },
@@ -966,3 +968,8 @@ const Store = {
     };
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.Store = Store;
+}
+

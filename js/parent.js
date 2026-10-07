@@ -140,3 +140,8 @@ const ParentView = {
     `;
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.ParentView = ParentView;
+}
+

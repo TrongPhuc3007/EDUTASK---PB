@@ -1000,6 +1000,10 @@ const App = {
   }
 };
 
+if (typeof window !== 'undefined') {
+  window.App = App;
+}
+
 // Khởi chạy khi tài liệu tải xong (hỗ trợ cả trường hợp DOM đã tải trước)
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
@@ -1008,3 +1012,4 @@ if (document.readyState === 'loading') {
 } else {
   App.init();
 }
+

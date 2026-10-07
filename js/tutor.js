@@ -721,3 +721,8 @@ Thầy/Cô Gia Sư — Trân trọng cảm ơn Quý phụ huynh đã đồng hà
     App.showToast('📋 Đã sao chép tin nhắn Zalo thành công!', 'success');
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.TutorView = TutorView;
+}
+

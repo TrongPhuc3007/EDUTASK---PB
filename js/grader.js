@@ -395,3 +395,8 @@ const Grader = {
     App.renderCurrentView();
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.Grader = Grader;
+}
+

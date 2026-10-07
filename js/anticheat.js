@@ -306,7 +306,12 @@ const AntiCheat = {
   }
 };
 
+if (typeof window !== 'undefined') {
+  window.AntiCheat = AntiCheat;
+}
+
 // Tự động khởi tạo engine
 document.addEventListener('DOMContentLoaded', () => {
   AntiCheat.init();
 });
+

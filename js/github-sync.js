@@ -648,3 +648,8 @@ const GitHubSync = {
     `;
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.GitHubSync = GitHubSync;
+}
+

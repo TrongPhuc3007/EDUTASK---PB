@@ -952,3 +952,8 @@ const AdminView = {
     this.render(document.getElementById('viewContainer'));
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.AdminView = AdminView;
+}
+

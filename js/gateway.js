@@ -891,3 +891,8 @@ const GatewayView = {
     }
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.GatewayView = GatewayView;
+}
+

@@ -1104,3 +1104,10 @@ const CloudSync = {
     }
   }
 };
+
+// Đăng ký toàn cục vào window để mọi module và trình duyệt đa nền tảng đều truy cập được
+if (typeof window !== 'undefined') {
+  window.CloudSync = CloudSync;
+  CloudSync.init();
+}
+

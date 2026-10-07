@@ -220,3 +220,8 @@ const StudentView = {
     }).join('');
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.StudentView = StudentView;
+}
+

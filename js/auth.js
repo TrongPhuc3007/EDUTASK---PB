@@ -229,3 +229,8 @@ const Auth = {
     return true;
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.Auth = Auth;
+}
+
