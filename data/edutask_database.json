@@ -276,9 +276,10 @@
     {
       "id": "asn_001",
       "title": "Phiếu 05: Chuyên Đề Cực Trị & Bất Đẳng Thức",
-      "description": "Lêm chi ti?t b�i 1, 2, 3 ra v? vi?t tay, ch?p ?nh Nữp tru?c bu?i Học t?i.",
+      "description": "Làm chi tiết bài 1, 2, 3 ra vở viết tay, chụp ảnh nộp trước buổi học tới.",
       "targetType": "individual",
       "targetStudentIds": [
+        "u_std_quang",
         "u_std_1791342637918"
       ],
       "deadline": "2026-10-08T21:00",
@@ -295,7 +296,7 @@
     {
       "id": "asn_002",
       "title": "Phiếu 04: Khảo Sát Đồ Thị Hàm Số Phân Thức",
-      "description": "B�i t?p r�n luy?n k? nang v? b?ng bi?n thi�n v� ti?m Côn.",
+      "description": "Bài tập rèn luyện kỹ năng vẽ bảng biến thiên và tiệm cận.",
       "targetType": "individual",
       "targetStudentIds": [
         "u_std_maianh",
@@ -315,10 +316,11 @@
     {
       "id": "asn_003",
       "title": "Phiếu 03: Phương Trình Lượng Giác Cơ Bản",
-      "description": "�n t?p 10 Công Thức Lượng Giác v� gi?i Côc phuong Trịnh sin, cos.",
+      "description": "Ôn tập 10 công thức lượng giác và giải các phương trình sin, cos.",
       "targetType": "all",
       "targetStudentIds": [
         "u_std_nam",
+        "u_std_quang",
         "u_std_1791342637918"
       ],
       "deadline": "2026-10-10T23:59",
