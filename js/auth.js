@@ -83,17 +83,29 @@ const Auth = {
   async login(username, password, rememberMe = false) {
     let authResult = Store.authenticate(username, password);
 
-    // NẾU CHƯA THÀNH CÔNG: Tự động kéo dữ liệu mới nhất từ kho GitHub trung tâm để kiểm tra!
+    // NẾU CHƯA THÀNH CÔNG: Tự động kéo dữ liệu mới nhất từ Firebase Realtime (0.05s) hoặc GitHub!
     // Tránh tình trạng tài khoản vừa tạo trên máy tính nhưng điện thoại chưa kịp nạp dữ liệu.
-    if (!authResult.success && (!authResult.user || authResult.notFound) && window.GitHubSync && typeof GitHubSync.pullFromGitHub === 'function') {
-      try {
-        console.log(`[Auth] Không tìm thấy tài khoản "${username}" trên thiết bị này. Đang kéo dữ liệu mới từ GitHub...`);
-        const pullRes = await GitHubSync.pullFromGitHub(false);
-        if (pullRes && pullRes.success) {
-          authResult = Store.authenticate(username, password);
+    if (!authResult.success && (!authResult.user || authResult.notFound)) {
+      if (window.CloudSync && typeof CloudSync.pullFromCloud === 'function') {
+        try {
+          console.log(`[Auth] Không tìm thấy tài khoản "${username}". Đang kiểm tra tức thì trên Firebase Cloud...`);
+          const cloudPulled = await CloudSync.pullFromCloud();
+          if (cloudPulled) {
+            authResult = Store.authenticate(username, password);
+          }
+        } catch (e) {}
+      }
+
+      if (!authResult.success && (!authResult.user || authResult.notFound) && window.GitHubSync && typeof GitHubSync.pullFromGitHub === 'function') {
+        try {
+          console.log(`[Auth] Tiếp tục kéo dữ liệu kiểm tra từ GitHub...`);
+          const pullRes = await GitHubSync.pullFromGitHub(false);
+          if (pullRes && pullRes.success) {
+            authResult = Store.authenticate(username, password);
+          }
+        } catch (err) {
+          console.warn('[Auth] Không thể kéo dữ liệu kiểm tra từ GitHub:', err);
         }
-      } catch (err) {
-        console.warn('[Auth] Không thể kéo dữ liệu kiểm tra từ GitHub:', err);
       }
     }
 

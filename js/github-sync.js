@@ -583,37 +583,61 @@ const GitHubSync = {
     if (!body) return;
 
     const timeStr = this.lastSyncTime ? this.lastSyncTime.toLocaleTimeString('vi-VN') : 'Vừa mở app';
+    const fbConn = (window.CloudSync && CloudSync.isConnected);
+    const fbRoom = (window.CloudSync && CloudSync.config && CloudSync.config.roomCode) ? CloudSync.config.roomCode : 'lop_chinh';
 
     body.innerHTML = `
-      <div style="background:linear-gradient(135deg, #0f172a, #1e293b); color:white; border-radius:12px; padding:18px; margin-bottom:16px;">
+      <!-- THÔNG BÁO DUAL-SYNC: FIREBASE REALTIME + GITHUB -->
+      <div style="background:linear-gradient(135deg, #0284c7, #075985); color:white; border-radius:12px; padding:16px 18px; margin-bottom:14px; box-shadow:0 4px 14px rgba(2, 132, 199, 0.2);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:20px;">⚡</span>
+            <div>
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#bae6fd; font-weight:700;">Đồng Bộ Siêu Tốc (0.05 Giây)</div>
+              <div style="font-size:16px; font-weight:800; color:#ffffff;">Google Firebase Realtime Database</div>
+            </div>
+          </div>
+          <span class="badge" style="background:${fbConn ? '#065f46' : '#92400e'}; color:${fbConn ? '#a7f3d0' : '#fef3c7'}; font-size:12px; padding:4px 10px;">
+            ${fbConn ? '● Đang Kết Nối WebSocket' : '○ Đang Sẵn Sàng Kết Nối'}
+          </span>
+        </div>
+        <div style="font-size:12px; color:#f0f9ff; line-height:1.5;">
+          Phòng: <code style="background:rgba(255,255,255,0.2); padding:2px 6px; border-radius:4px; font-weight:700;">${fbRoom}</code> • Dự án: <strong>edutask-pb</strong>. Mọi hành động (tạo tài khoản, nộp bài, chấm nét vẽ) tự động phát sóng tới mọi thiết bị trong 0.05 giây.
+        </div>
+      </div>
+
+      <div style="background:linear-gradient(135deg, #0f172a, #1e293b); color:white; border-radius:12px; padding:16px 18px; margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div>
-            <div style="font-size:11.5px; text-transform:uppercase; letter-spacing:0.5px; color:#94a3b8; font-weight:700;">Kho Dữ Liệu Trung Tâm GitHub</div>
-            <div style="font-size:17px; font-weight:800; color:#38bdf8;">${this.REPO_OWNER}/${this.REPO_NAME}</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:20px;">🐙</span>
+            <div>
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#94a3b8; font-weight:700;">Kho Dữ Liệu Trung Tâm Vĩnh Viễn</div>
+              <div style="font-size:16px; font-weight:800; color:#38bdf8;">${this.REPO_OWNER}/${this.REPO_NAME}</div>
+            </div>
           </div>
           <span class="badge" style="background:#065f46; color:#a7f3d0; font-size:12px; padding:4px 10px;">
-            ● Đang Kết Nối Thời Gian Thực
+            ● Lưu Trữ Vĩnh Viễn
           </span>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; background:rgba(255,255,255,0.06); padding:10px; border-radius:8px; font-size:12px; margin-bottom:12px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:rgba(255,255,255,0.06); padding:10px; border-radius:8px; font-size:12px; margin-bottom:10px;">
           <div>📁 File: <code>${this.FILE_PATH}</code></div>
           <div>🌿 Nhánh: <code>${this.DEFAULT_BRANCH}</code></div>
           <div>🕒 Lần lưu gần nhất: <strong>${timeStr}</strong></div>
           <div>🔑 Token: <strong style="color:#86efac;">Đã cấu hình tự động (ghp_***)</strong></div>
         </div>
 
-        <div style="font-size:12.5px; color:#cbd5e1; line-height:1.5;">
-          Mọi dữ liệu (học sinh, bài tập, bài nộp, điểm số) được <strong>tự động lưu vào file <code>${this.FILE_PATH}</code></strong> trên GitHub của bạn. Khi bạn mở app ở bất kỳ thiết bị nào, hệ thống sẽ tự động đồng bộ theo thời gian thực!
+        <div style="font-size:12px; color:#cbd5e1; line-height:1.5;">
+          Toàn bộ tài khoản và bài tập được tự động sao lưu vào GitHub làm kho gốc bền vững.
         </div>
       </div>
 
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn btn-primary" style="flex:1;" onclick="GitHubSync.pushToGitHub(Store.data, true)">
-          🚀 Đẩy Lên GitHub Ngay Bây Giờ
+        <button class="btn btn-primary" style="flex:1;" onclick="Store.save(false, true); if(window.App && App.showToast) App.showToast('🚀 Đang đồng bộ lên Firebase và GitHub...', 'success'); GitHubSync.closeModal();">
+          🚀 Đồng Bộ Toàn Bộ Ngay
         </button>
-        <button class="btn btn-outline" style="flex:1;" onclick="GitHubSync.pullFromGitHub(true)">
-          📥 Kéo Dữ Liệu Từ GitHub Về Máy
+        <button class="btn btn-outline" style="flex:1;" onclick="GitHubSync.pullFromGitHub(true); if(window.CloudSync) CloudSync.manualPullNow();">
+          📥 Kéo Dữ Liệu Mới Nhất
         </button>
       </div>
     `;

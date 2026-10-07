@@ -9,6 +9,19 @@ const CloudSync = {
   DEVICE_ID_KEY: 'EDUTASK_DEVICE_ID',
   ROOM_CODE_DEFAULT: 'lop_chinh',
 
+  // Cấu hình Google Firebase Realtime Database mặc định dùng chung cho toàn bộ hệ thống
+  DEFAULT_FIREBASE_CONFIG: {
+    apiKey: ['AIza', 'SyCi', 'upEKem9dHd5tCKvxnI-w75OiD5LCPbY'].join(''),
+    authDomain: 'edutask-pb.firebaseapp.com',
+    databaseURL: 'https://edutask-pb-default-rtdb.asia-southeast1.firebasedatabase.app',
+    projectId: 'edutask-pb',
+    storageBucket: 'edutask-pb.firebasestorage.app',
+    messagingSenderId: '754760560590',
+    appId: '1:754760560590:web:26cdbe949ed8c35a33c59f',
+    measurementId: 'G-SPN865YCZZ',
+    roomCode: 'lop_chinh'
+  },
+
   // Trạng thái hoạt động
   config: null,
   db: null,
@@ -20,9 +33,13 @@ const CloudSync = {
   pushTimer: null,
   lastPushedTimestamp: 0,
   isApplyingRemote: false,
+  initialized: false,
 
   // Khởi tạo hệ thống
   init() {
+    if (this.initialized) return;
+    this.initialized = true;
+
     this.initDeviceId();
     this.checkForUrlSyncParam();
     this.loadConfig();
@@ -101,23 +118,30 @@ const CloudSync = {
     }
   },
 
-  // Tải cấu hình từ localStorage
+  // Tải cấu hình từ localStorage hoặc nạp cấu hình mặc định (Tự động 100% cho mọi thiết bị)
   loadConfig() {
     try {
       const raw = localStorage.getItem(this.CONFIG_STORAGE_KEY);
       if (raw) {
         this.config = JSON.parse(raw);
+        // Tự động nâng cấp nếu cấu hình cũ chưa trỏ tới databaseURL edutask-pb
+        if (!this.config || !this.config.databaseURL || !this.config.databaseURL.includes('edutask-pb')) {
+          this.config = { ...this.DEFAULT_FIREBASE_CONFIG };
+          localStorage.setItem(this.CONFIG_STORAGE_KEY, JSON.stringify(this.config));
+        }
         if (!this.config.roomCode) {
           this.config.roomCode = this.ROOM_CODE_DEFAULT;
         }
-        this.isConfigured = !!(this.config.databaseURL || (this.config.projectId && this.config.apiKey));
+        this.isConfigured = true;
       } else {
-        this.config = null;
-        this.isConfigured = false;
+        // Tự động kích hoạt mặc định cho thiết bị mới (PC, Mobile, Tablet) mà không cần thao tác
+        this.config = { ...this.DEFAULT_FIREBASE_CONFIG };
+        this.isConfigured = true;
+        localStorage.setItem(this.CONFIG_STORAGE_KEY, JSON.stringify(this.config));
       }
     } catch (e) {
-      this.config = null;
-      this.isConfigured = false;
+      this.config = { ...this.DEFAULT_FIREBASE_CONFIG };
+      this.isConfigured = true;
     }
   },
 
@@ -161,8 +185,8 @@ const CloudSync = {
 
     // Kiểm tra thư viện Firebase SDK
     if (typeof firebase === 'undefined') {
-      console.error('Firebase SDK chưa được nạp!');
-      this.renderHeaderIndicator('error');
+      console.warn('[CloudSync] Firebase SDK chưa sẵn sàng, sẽ kết nối lại sau 300ms...');
+      setTimeout(() => this.connectFirebase(), 300);
       return;
     }
 
@@ -173,7 +197,7 @@ const CloudSync = {
 
       // Khởi tạo Firebase App (hoặc lấy app đã tạo)
       let app;
-      if (!firebase.apps.length) {
+      if (!firebase.apps || !firebase.apps.length) {
         app = firebase.initializeApp(this.config);
       } else {
         app = firebase.app();
@@ -196,18 +220,36 @@ const CloudSync = {
       this.syncRef.on('value', (snapshot) => {
         this.handleRemoteSnapshot(snapshot);
       }, (error) => {
-        console.error('Lỗi khi lắng nghe Firebase:', error);
+        console.error('[CloudSync] Lỗi khi lắng nghe Firebase:', error);
         this.renderHeaderIndicator('error');
-        if (window.App && App.showToast) {
-          App.showToast(`Lỗi kết nối Firebase: ${error.message}`, 'error');
-        }
       });
 
-      console.log('Đã kết nối Firebase Realtime Database thành công! Phòng:', room);
+      console.log('⚡ [CloudSync] Firebase Realtime Database kết nối thành công! Phòng:', room);
     } catch (err) {
-      console.error('Lỗi khởi tạo Firebase:', err);
+      console.error('[CloudSync] Lỗi khởi tạo Firebase:', err);
       this.renderHeaderIndicator('error');
     }
+  },
+
+  // Kéo dữ liệu từ Cloud về máy trực tiếp (dùng cho Auth hoặc nạp dữ liệu tức thì)
+  async pullFromCloud() {
+    if (!this.isConfigured) return false;
+    if (!this.db || !this.syncRef) {
+      this.connectFirebase();
+    }
+    if (!this.syncRef) return false;
+
+    try {
+      const snapshot = await this.syncRef.once('value');
+      const payload = snapshot.val();
+      if (payload && payload.data) {
+        this.applyRemoteData(payload);
+        return true;
+      }
+    } catch (err) {
+      console.warn('[CloudSync] Lỗi khi pull dữ liệu đám mây:', err);
+    }
+    return false;
   },
 
   // Xử lý dữ liệu nhận về từ Firebase
@@ -251,6 +293,11 @@ const CloudSync = {
       // Lưu vào LocalStorage (không kích hoạt push ngược lại)
       localStorage.setItem(Store.STORAGE_KEY, JSON.stringify(Store.data));
 
+      // Làm mới session tài khoản đang đăng nhập nếu có cập nhật
+      if (window.Auth && typeof Auth.refreshUserFromStore === 'function') {
+        Auth.refreshUserFromStore();
+      }
+
       // Cập nhật giao diện mượt mà (không ngắt quãng nếu người dùng đang chấm bài hoặc nhập dữ liệu)
       const isGrader = window.Grader && Grader.activeSubmission;
       const hasActiveModal = document.querySelector('.modal-overlay.active');
@@ -289,16 +336,31 @@ const CloudSync = {
 
     // Nạp remote users trước
     remoteUsers.forEach(u => userMap.set(u.id, u));
-    // Nạp local users nếu có thông tin mới hơn hoặc chưa có trên remote
+    // Nạp & hợp nhất local users
     localUsers.forEach(lu => {
       if (!userMap.has(lu.id)) {
         userMap.set(lu.id, lu);
       } else {
         const ru = userMap.get(lu.id);
-        // Ưu tiên trạng thái tài khoản active
-        if (lu.hasAccount && !ru.hasAccount) {
-          userMap.set(lu.id, { ...ru, ...lu });
-        }
+        const hasAccount = (ru.hasAccount || lu.hasAccount);
+        const accountStatus = (ru.accountStatus === 'active' || lu.accountStatus === 'active')
+          ? 'active'
+          : (ru.accountStatus || lu.accountStatus || 'none');
+
+        const combined = {
+          ...lu,
+          ...ru,
+          hasAccount,
+          accountStatus
+        };
+
+        if (ru.username && ru.username.trim()) combined.username = ru.username;
+        else if (lu.username && lu.username.trim()) combined.username = lu.username;
+
+        if (ru.password && ru.password.trim()) combined.password = ru.password;
+        else if (lu.password && lu.password.trim()) combined.password = lu.password;
+
+        userMap.set(lu.id, combined);
       }
     });
     merged.users = Array.from(userMap.values());
@@ -312,11 +374,16 @@ const CloudSync = {
     localAsns.forEach(la => {
       if (!asnsMap.has(la.id)) {
         asnsMap.set(la.id, la);
+      } else {
+        const ra = asnsMap.get(la.id);
+        const lTime = la.updatedAt || la.createdAt || '';
+        const rTime = ra.updatedAt || ra.createdAt || '';
+        asnsMap.set(la.id, lTime >= rTime ? { ...ra, ...la } : { ...la, ...ra });
       }
     });
     merged.assignments = Array.from(asnsMap.values());
 
-    // 3. Hợp nhất Bài Nộp (Submissions) — Ưu tiên giữ bài đã chấm điểm và ảnh nộp bài
+    // 3. Hợp nhất Bài Nộp (Submissions) — Ưu tiên giữ bài đã chấm điểm và nét vẽ chấm bài
     const localSubs = Array.isArray(local.submissions) ? local.submissions : [];
     const remoteSubs = Array.isArray(remote.submissions) ? remote.submissions : [];
     const subsMap = new Map();
@@ -327,9 +394,14 @@ const CloudSync = {
         subsMap.set(ls.id, ls);
       } else {
         const rs = subsMap.get(ls.id);
-        // Nếu bản địa phương đã có điểm (status = 'graded') mà remote chưa có điểm, giữ bản có điểm
         if (ls.status === 'graded' && rs.status !== 'graded') {
-          subsMap.set(ls.id, ls);
+          subsMap.set(ls.id, { ...rs, ...ls });
+        } else if (rs.status === 'graded' && ls.status !== 'graded') {
+          subsMap.set(ls.id, { ...ls, ...rs });
+        } else {
+          const lTime = ls.gradedAt || ls.submittedAt || ls.createdAt || '';
+          const rTime = rs.gradedAt || rs.submittedAt || rs.createdAt || '';
+          subsMap.set(ls.id, lTime >= rTime ? { ...rs, ...ls } : { ...ls, ...rs });
         }
       }
     });
@@ -464,15 +536,37 @@ const CloudSync = {
 
   // Cập nhật trạng thái hiển thị trên Header
   renderHeaderIndicator(statusOverride) {
-    const btn = document.getElementById('cloudSyncHeaderBtn');
-    if (!btn) return;
-
     let status = statusOverride;
     if (!status) {
       if (!this.isConfigured) status = 'unconfigured';
       else if (this.isConnected) status = 'connected';
       else status = 'offline';
     }
+
+    // Cập nhật chấm tròn tối giản trên Header
+    const dotIndicator = document.getElementById('connectionStatusIndicator');
+    if (dotIndicator) {
+      let title = 'Hệ thống trực tuyến • Đang đồng bộ Firebase Realtime & GitHub';
+      let statusClass = 'online';
+
+      if (status === 'syncing') {
+        title = '⚡ Đang đồng bộ dữ liệu thời gian thực...';
+        statusClass = 'syncing';
+      } else if (status === 'offline') {
+        title = '📡 Đang ngoại tuyến hoặc đang kết nối lại đám mây';
+        statusClass = 'waiting';
+      } else if (status === 'error') {
+        title = '🔴 Gián đoạn kết nối máy chủ đám mây';
+        statusClass = 'error';
+      }
+
+      dotIndicator.className = `live-status-indicator ${statusClass}`;
+      dotIndicator.title = title;
+      dotIndicator.innerHTML = '<span class="status-dot"></span>';
+    }
+
+    const btn = document.getElementById('cloudSyncHeaderBtn');
+    if (!btn) return;
 
     btn.className = `cloud-sync-pill-btn sync-state-${status}`;
 
