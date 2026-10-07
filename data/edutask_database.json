@@ -305,17 +305,17 @@
       "cheatLogs": [
         {
           "count": 1,
-          "time": "11:15:20",
           "duration": 15,
-          "type": "Chuyển tab ngoài",
-          "reason": "Nghi vấn mở tab tra cứu công cụ AI (ChatGPT, Claude...)"
+          "reason": "Nghi vấn mở tab tra cứu công cụ AI (ChatGPT, Claude...)",
+          "time": "11:15:20",
+          "type": "Chuyển tab ngoài"
         },
         {
           "count": 2,
-          "time": "11:32:04",
           "duration": 20,
-          "type": "Mất tiêu điểm cửa sổ",
-          "reason": "Mở cửa sổ ứng dụng ngoài bài làm"
+          "reason": "Mở cửa sổ ứng dụng ngoài bài làm",
+          "time": "11:32:04",
+          "type": "Mất tiêu điểm cửa sổ"
         }
       ],
       "feedback": "",
@@ -330,7 +330,7 @@
       "annotatedPhoto": null
     },
     {
-      "annotatedPhoto": null,
+      "annotatedPhoto": "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"800\" height=\"1100\" viewBox=\"0 0 800 1100\">\n    <rect width=\"800\" height=\"1100\" fill=\"%23fffef8\"/>\n    <!-- Notebook lines -->\n    <line x1=\"50\" y1=\"50\" x2=\"750\" y2=\"50\" stroke=\"%23e2e8f0\" stroke-width=\"1\"/>\n    <line x1=\"100\" y1=\"0\" x2=\"100\" y2=\"1100\" stroke=\"%23fecaca\" stroke-width=\"1.5\"/>\n    <g stroke=\"%23e2e8f0\" stroke-width=\"1\">\n      <line x1=\"50\" y1=\"120\" x2=\"750\" y2=\"120\"/>\n      <line x1=\"50\" y1=\"170\" x2=\"750\" y2=\"170\"/>\n      <line x1=\"50\" y1=\"220\" x2=\"750\" y2=\"220\"/>\n      <line x1=\"50\" y1=\"270\" x2=\"750\" y2=\"270\"/>\n      <line x1=\"50\" y1=\"320\" x2=\"750\" y2=\"320\"/>\n      <line x1=\"50\" y1=\"370\" x2=\"750\" y2=\"370\"/>\n      <line x1=\"50\" y1=\"420\" x2=\"750\" y2=\"420\"/>\n      <line x1=\"50\" y1=\"470\" x2=\"750\" y2=\"470\"/>\n      <line x1=\"50\" y1=\"520\" x2=\"750\" y2=\"520\"/>\n      <line x1=\"50\" y1=\"570\" x2=\"750\" y2=\"570\"/>\n      <line x1=\"50\" y1=\"620\" x2=\"750\" y2=\"620\"/>\n      <line x1=\"50\" y1=\"670\" x2=\"750\" y2=\"670\"/>\n      <line x1=\"50\" y1=\"720\" x2=\"750\" y2=\"720\"/>\n      <line x1=\"50\" y1=\"770\" x2=\"750\" y2=\"770\"/>\n      <line x1=\"50\" y1=\"820\" x2=\"750\" y2=\"820\"/>\n      <line x1=\"50\" y1=\"870\" x2=\"750\" y2=\"870\"/>\n      <line x1=\"50\" y1=\"920\" x2=\"750\" y2=\"920\"/>\n    </g>\n    <!-- Handwritten text simulation -->\n    <text x=\"120\" y=\"90\" font-family=\"sans-serif\" font-weight=\"bold\" font-size=\"20\" fill=\"%231e293b\">BÀI TẬP VỀ NHÀ: CHUYÊN ĐỀ CỰC TRỊ VÀ BẤT ĐẲNG THỨC</text>\n    <text x=\"120\" y=\"115\" font-family=\"sans-serif\" font-size=\"14\" fill=\"%2364748b\">Học sinh: Nguyễn Minh Quang — Lớp: 12A1</text>\n    \n    <text x=\"120\" y=\"160\" font-family=\"monospace\" font-weight=\"bold\" font-size=\"16\" fill=\"%230f172a\">Bài 1: Tìm cực trị của hàm số y = x^3 - 3x^2 + 2</text>\n    <text x=\"130\" y=\"210\" font-family=\"cursive, sans-serif\" font-size=\"16\" fill=\"%231e3a8a\">TXĐ: D = R. Ta có y' = 3x^2 - 6x = 3x(x - 2)</text>\n    <text x=\"130\" y=\"260\" font-family=\"cursive, sans-serif\" font-size=\"16\" fill=\"%231e3a8a\">y' = 0 &lt;=&gt; x = 0 hoặc x = 2.</text>\n    <text x=\"130\" y=\"310\" font-family=\"cursive, sans-serif\" font-size=\"16\" fill=\"%231e3a8a\">Bảng biến thiên: Hàm số đạt CĐ tại x = 0, y_CD = 2.</text>\n    <text x=\"130\" y=\"360\" font-family=\"cursive, sans-serif\" font-size=\"16\" fill=\"%231e3a8a\">Hàm số đạt CT tại x = 2, y_CT = -2. (Đúng đáp số)</text>\n\n    <text x=\"120\" y=\"460\" font-family=\"monospace\" font-weight=\"bold\" font-size=\"16\" fill=\"%230f172a\">Bài 2: Cho a, b > 0. Chứng minh (a + b)(1/a + 1/b) &gt;= 4</text>\n    <text x=\"130\" y=\"510\" font-family=\"cursive, sans-serif\" font-size=\"16\" fill=\"%231e3a8a\">Áp dụng BĐT Cauchy cho 2 số dương a, b:</text>\n    <text x=\"140\" y=\"560\" font-family=\"cursive, sans-serif\" font-size=\"16\" fill=\"%231e3a8a\">a + b &gt;= 2*sqrt(ab)  (1)</text>\n    <text x=\"140\" y=\"610\" font-family=\"cursive, sans-serif\" font-size=\"16\" fill=\"%231e3a8a\">1/a + 1/b &gt;= 2*sqrt(1/(ab))  (2)</text>\n    <text x=\"130\" y=\"660\" font-family=\"cursive, sans-serif\" font-size=\"16\" fill=\"%231e3a8a\">Nhân vế theo vế (1) và (2) ta được:</text>\n    <text x=\"140\" y=\"710\" font-family=\"cursive, sans-serif\" font-size=\"16\" fill=\"%231e3a8a\">(a + b)(1/a + 1/b) &gt;= 2*sqrt(ab) * 2/sqrt(ab) = 4.</text>\n    <text x=\"130\" y=\"760\" font-family=\"cursive, sans-serif\" font-size=\"16\" fill=\"%231e3a8a\">Dấu \"=\" xảy ra khi a = b.</text>\n\n    <text x=\"120\" y=\"860\" font-family=\"monospace\" font-weight=\"bold\" font-size=\"16\" fill=\"%230f172a\">Bài 3: Tìm GTLN của P = x/(x^2 + 1) với x > 0</text>\n    <text x=\"130\" y=\"910\" font-family=\"cursive, sans-serif\" font-size=\"16\" fill=\"%231e3a8a\">Chia cả tử và mẫu cho x: P = 1 / (x + 1/x)</text>\n    <text x=\"130\" y=\"960\" font-family=\"cursive, sans-serif\" font-size=\"16\" fill=\"%231e3a8a\">Do x + 1/x &gt;= 2 nên P &lt;= 1/2. Max P = 1/2 khi x = 1.</text>\n  </svg>",
       "assignmentId": "asn_002",
       "cheatCount": 0,
       "cheatDuration": 0,
