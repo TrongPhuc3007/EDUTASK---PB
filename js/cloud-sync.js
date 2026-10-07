@@ -406,21 +406,12 @@ const CloudSync = {
         }
       }
 
-      // Hiển thị thông báo khi có tài khoản mới từ thiết bị khác
+      // Nếu người dùng đang ở cổng Học Sinh và có tài khoản mới từ thiết bị khác, tự điền tên đăng nhập
       if (newUsers.length > 0) {
         const firstNew = newUsers[0];
-        if (window.App && App.showToast) {
-          App.showToast(`🎉 Đã nhận tài khoản mới từ thiết bị khác: "${firstNew.name}" (TK: ${firstNew.username})!`, 'success');
-        }
-        // Nếu người dùng đang ở cổng Học Sinh, tự điền tên tài khoản mới vào ô đăng nhập
         const uField = document.getElementById('loginUsername');
         if (uField && !uField.value && firstNew.username) {
           uField.value = firstNew.username;
-        }
-      } else {
-        const authorText = remotePayload.author ? `từ ${remotePayload.author}` : 'từ thiết bị khác';
-        if (window.App && App.showToast) {
-          App.showToast(`⚡ Đã đồng bộ dữ liệu mới ${authorText}!`, 'info');
         }
       }
     } catch (e) {

@@ -790,23 +790,39 @@ const App = {
     this.showToast('Đang tải ảnh bài chấm bút đỏ về thiết bị!', 'success');
   },
 
-  // ================= TOAST THÔNG BÁO =================
+  // ================= TOAST THÔNG BÁO TỐI GIẢN (CHỐNG TRÙNG LẶP & KHÔNG CHE GIAO DIỆN) =================
   showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
+
+    const cleanMsg = (message || '').replace(/<[^>]*>/g, '').trim();
+
+    // 1. Chống lặp thông báo: Nếu cùng nội dung đang hiện trên màn hình thì không tạo thêm
+    const existing = Array.from(container.querySelectorAll('.toast'));
+    if (existing.some(t => t.textContent.includes(cleanMsg))) {
+      return;
+    }
+
+    // 2. Giới hạn tối đa 2 thông báo trên màn hình: Xóa bớt thông báo cũ nhất
+    if (existing.length >= 2) {
+      existing[0].remove();
+    }
 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
     toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+    toast.style.cursor = 'pointer';
+    toast.title = 'Nhấp để đóng nhanh';
+    toast.onclick = () => toast.remove();
 
     container.appendChild(toast);
     setTimeout(() => {
       toast.style.opacity = '0';
       toast.style.transform = 'translateY(10px)';
-      toast.style.transition = 'all 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
-    }, 3200);
+      toast.style.transition = 'all 0.25s ease';
+      setTimeout(() => toast.remove(), 250);
+    }, 2400);
   },
 
   // ================= TƯƠNG TÁC ĐA THIẾT BỊ: MÃ QR CHO ĐIỆN THOẠI =================
