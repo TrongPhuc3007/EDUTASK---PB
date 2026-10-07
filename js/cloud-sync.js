@@ -48,15 +48,20 @@ const CloudSync = {
 
     if (this.isConfigured) {
       this.connectFirebase();
+      // Kéo dữ liệu mới nhất ngay khi mở trang
+      setTimeout(() => this.pullFromCloud(false), 200);
+      // Kích hoạt nhịp tim kiểm tra thay đổi liên tục từ các thiết bị khác
+      this.startHeartbeat();
     }
   },
 
-  // Giám sát trạng thái mạng online / offline
+  // Giám sát trạng thái mạng online / offline và chuyển tab
   initNetworkListeners() {
     window.addEventListener('online', () => {
       console.log('Mạng Internet đã phục hồi!');
       if (this.isConfigured) {
         this.connectFirebase();
+        this.pullFromCloud(false);
         this.schedulePush();
         if (window.App && App.showToast) {
           App.showToast('🌐 Đã khôi phục kết nối Internet! Dữ liệu đang được đồng bộ đám mây.', 'info');
@@ -70,6 +75,19 @@ const CloudSync = {
       this.renderHeaderIndicator('offline');
       if (window.App && App.showToast) {
         App.showToast('📡 Thiết bị đang ngoại tuyến. Dữ liệu sẽ lưu cục bộ và tự đồng bộ khi có mạng.', 'warning');
+      }
+    });
+
+    // Khi người dùng chuyển tab hoặc quay lại máy tính -> Kéo và kiểm tra NGAY LẬP TỨC
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this.isConfigured) {
+        this.checkCloudChanges();
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      if (this.isConfigured) {
+        this.checkCloudChanges();
       }
     });
   },
@@ -231,35 +249,94 @@ const CloudSync = {
     }
   },
 
-  // Kéo dữ liệu từ Cloud về máy trực tiếp (dùng cho Auth hoặc nạp dữ liệu tức thì)
-  async pullFromCloud() {
-    if (!this.isConfigured) return false;
-    if (!this.db || !this.syncRef) {
-      this.connectFirebase();
-    }
-    if (!this.syncRef) return false;
+  // Trả về URL REST API chuẩn của Firebase Realtime Database
+  getRestUrl() {
+    const room = (this.config && this.config.roomCode) ? this.config.roomCode : this.ROOM_CODE_DEFAULT;
+    const dbUrl = (this.config && this.config.databaseURL) ? this.config.databaseURL : this.DEFAULT_FIREBASE_CONFIG.databaseURL;
+    const cleanRoom = room.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    return `${dbUrl}/edutask_data/rooms/${cleanRoom}.json`;
+  },
 
+  // Kéo dữ liệu từ Cloud về máy trực tiếp (dùng cho Auth hoặc nạp dữ liệu tức thì đa thiết bị)
+  async pullFromCloud(isManual = false) {
+    if (!this.isConfigured) return false;
+
+    // 1. Kéo trực tiếp qua Firebase REST API (100% tin cậy, không phụ thuộc trạng thái WebSocket)
     try {
-      const snapshot = await this.syncRef.once('value');
-      const payload = snapshot.val();
-      if (payload && payload.data) {
-        this.applyRemoteData(payload);
-        return true;
+      const url = `${this.getRestUrl()}?t=${Date.now()}`;
+      const response = await fetch(url, { cache: 'no-store' });
+      if (response.ok) {
+        const payload = await response.json();
+        if (payload && payload.data) {
+          this.applyRemoteData(payload);
+          if (isManual && window.App && App.showToast) {
+            const count = payload.data.users ? payload.data.users.length : 0;
+            App.showToast(`✅ Đã đồng bộ thành công với Cloud (${count} tài khoản hiện có)!`, 'success');
+          }
+          return true;
+        }
       }
-    } catch (err) {
-      console.warn('[CloudSync] Lỗi khi pull dữ liệu đám mây:', err);
+    } catch (restErr) {
+      console.warn('[CloudSync] REST pull warning:', restErr);
+    }
+
+    // 2. Dự phòng qua Firebase SDK nếu có sẵn
+    if (this.syncRef) {
+      try {
+        const snapshot = await this.syncRef.once('value');
+        const payload = snapshot.val();
+        if (payload && payload.data) {
+          this.applyRemoteData(payload);
+          return true;
+        }
+      } catch (err) {
+        console.warn('[CloudSync] SDK pull warning:', err);
+      }
     }
     return false;
   },
 
-  // Xử lý dữ liệu nhận về từ Firebase
+  // Kiểm tra định kỳ xem có thay đổi từ thiết bị khác không
+  async checkCloudChanges() {
+    if (this.isApplyingRemote || !this.isConfigured) return;
+    try {
+      const url = `${this.getRestUrl()}?t=${Date.now()}`;
+      const response = await fetch(url, { cache: 'no-store' });
+      if (response.ok) {
+        const payload = await response.json();
+        if (payload && payload.data && Array.isArray(payload.data.users)) {
+          const remoteTime = payload.lastUpdated || 0;
+          const isFromOther = payload.deviceId !== this.myDeviceId;
+          const currentUsersCount = (Store.data && Store.data.users) ? Store.data.users.length : 0;
+          const remoteUsersCount = payload.data.users.length;
+          const hasDifferentUsers = remoteUsersCount !== currentUsersCount;
+
+          if (isFromOther && (remoteTime > this.lastPushedTimestamp || hasDifferentUsers)) {
+            console.log(`[CloudSync] ⚡ Phát hiện thay đổi từ thiết bị khác (${payload.author || payload.deviceId}), nạp ngay!`);
+            this.applyRemoteData(payload);
+          }
+        }
+      }
+    } catch (e) {}
+  },
+
+  // Nhịp tim đồng bộ kiểm tra thay đổi liên tục mỗi 2.5 giây
+  heartbeatTimer: null,
+  startHeartbeat() {
+    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+    this.heartbeatTimer = setInterval(() => {
+      if (document.hidden) return;
+      this.checkCloudChanges();
+    }, 2500);
+  },
+
+  // Xử lý dữ liệu nhận về từ Firebase SDK WebSocket
   handleRemoteSnapshot(snapshot) {
     if (this.isApplyingRemote) return;
 
     const payload = snapshot.val();
 
     // Trường hợp 1: Trên Cloud chưa có gì (lần đầu tiên thiết lập dự án)
-    // -> Tự động đẩy dữ liệu hiện tại của máy tính lên Cloud để các máy khác dùng ngay
     if (!payload || !payload.data) {
       console.log('Đám mây phòng này chưa có dữ liệu. Đang đẩy dữ liệu khởi tạo lên Cloud...');
       this.pushData(Store.data, true);
@@ -267,7 +344,6 @@ const CloudSync = {
     }
 
     // Trường hợp 2: Dữ liệu này do chính thiết bị này vừa đẩy lên
-    // -> Bỏ qua không nạp lại để tránh nhấp nháy giao diện
     if (payload.deviceId === this.myDeviceId) {
       return;
     }
@@ -286,8 +362,11 @@ const CloudSync = {
         return;
       }
 
-      // Hợp nhất dữ liệu thông minh giữa Local và Remote
+      // Xác định các tài khoản mới xuất hiện từ thiết bị khác
+      const oldUserIds = (Store.data && Store.data.users) ? Store.data.users.map(u => u.id) : [];
       const mergedData = this.smartMerge(Store.data, remoteData);
+      const newUsers = mergedData.users.filter(u => !oldUserIds.includes(u.id));
+
       Store.data = mergedData;
 
       // Lưu vào LocalStorage (không kích hoạt push ngược lại)
@@ -314,22 +393,33 @@ const CloudSync = {
         setTimeout(() => this.pushData(mergedData, true), 600);
       }
 
-      // Cập nhật giao diện mượt mà (không ngắt quãng nếu người dùng đang chấm bài hoặc nhập dữ liệu)
+      // Cập nhật giao diện tức thì
       const isGrader = window.Grader && Grader.activeSubmission;
       const hasActiveModal = document.querySelector('.modal-overlay.active');
-      const isTyping = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
 
-      if (!isGrader && !hasActiveModal && !isTyping) {
+      if (!isGrader && !hasActiveModal) {
         if (window.App && typeof App.renderCurrentView === 'function') {
           App.updateHeaderProfile();
           App.renderCurrentView();
         }
       }
 
-      // Hiển thị thông báo ngắn cho người dùng
-      const authorText = remotePayload.author ? `từ ${remotePayload.author}` : 'từ thiết bị khác';
-      if (window.App && App.showToast) {
-        App.showToast(`⚡ Đã đồng bộ dữ liệu mới ${authorText}!`, 'success');
+      // Hiển thị thông báo khi có tài khoản mới từ thiết bị khác
+      if (newUsers.length > 0) {
+        const firstNew = newUsers[0];
+        if (window.App && App.showToast) {
+          App.showToast(`🎉 Đã nhận tài khoản mới từ thiết bị khác: "${firstNew.name}" (TK: ${firstNew.username})!`, 'success');
+        }
+        // Nếu người dùng đang ở cổng Học Sinh, tự điền tên tài khoản mới vào ô đăng nhập
+        const uField = document.getElementById('loginUsername');
+        if (uField && !uField.value && firstNew.username) {
+          uField.value = firstNew.username;
+        }
+      } else {
+        const authorText = remotePayload.author ? `từ ${remotePayload.author}` : 'từ thiết bị khác';
+        if (window.App && App.showToast) {
+          App.showToast(`⚡ Đã đồng bộ dữ liệu mới ${authorText}!`, 'info');
+        }
       }
     } catch (e) {
       console.error('Lỗi khi áp dụng dữ liệu đám mây:', e);
@@ -428,7 +518,7 @@ const CloudSync = {
 
   // Đẩy dữ liệu lên Cloud (Có Debounce chống dồn lệnh)
   schedulePush() {
-    if (!this.isConfigured || !this.syncRef || this.isApplyingRemote) return;
+    if (!this.isConfigured || this.isApplyingRemote) return;
 
     if (this.pushTimer) clearTimeout(this.pushTimer);
     this.pushTimer = setTimeout(() => {
@@ -436,9 +526,9 @@ const CloudSync = {
     }, 350);
   },
 
-  // Thực hiện đẩy dữ liệu
-  pushData(dataToPush, immediate = false) {
-    if (!this.isConfigured || !this.syncRef) return;
+  // Thực hiện đẩy dữ liệu (Đa kênh: HTTP REST API độc lập + Firebase SDK WebSocket)
+  async pushData(dataToPush, immediate = false) {
+    if (!this.isConfigured) return false;
 
     const authorName = (window.Auth && Auth.getCurrentUser()) ? Auth.getCurrentUser().name : 'EduTask';
     const payload = {
@@ -450,16 +540,48 @@ const CloudSync = {
     };
 
     this.renderHeaderIndicator('syncing');
+    let pushSuccess = false;
 
-    this.syncRef.set(payload, (error) => {
-      if (error) {
-        console.error('Lỗi khi đẩy dữ liệu lên Firebase:', error);
-        this.renderHeaderIndicator('error');
-      } else {
-        this.lastPushedTimestamp = Date.now();
+    // 1. Kênh REST API trực tiếp: Đảm bảo 100% dữ liệu đến Firebase ngay lập tức cả trên mobile lẫn PC
+    try {
+      const restUrl = this.getRestUrl();
+      const res = await fetch(restUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        pushSuccess = true;
+        this.lastPushedTimestamp = payload.lastUpdated;
         this.renderHeaderIndicator('connected');
+        console.log('[CloudSync] ⚡ Đẩy dữ liệu lên Firebase qua REST API thành công!');
       }
-    });
+    } catch (restErr) {
+      console.warn('[CloudSync] REST push warning:', restErr);
+    }
+
+    // 2. Kênh Firebase SDK song song: Báo tức thì cho các thiết bị đang kết nối WebSocket
+    if (this.syncRef) {
+      try {
+        this.syncRef.set(payload, (error) => {
+          if (error) {
+            console.warn('[CloudSync] SDK push warning:', error);
+            if (!pushSuccess) this.renderHeaderIndicator('error');
+          } else {
+            this.lastPushedTimestamp = payload.lastUpdated;
+            this.renderHeaderIndicator('connected');
+          }
+        });
+      } catch (sdkErr) {
+        console.warn('[CloudSync] SDK push error:', sdkErr);
+      }
+    }
+
+    if (!pushSuccess && !this.syncRef) {
+      this.renderHeaderIndicator('error');
+    }
+
+    return pushSuccess;
   },
 
   // Phân tích thông minh chuỗi cấu hình do người dùng dán vào (chấp nhận cả JS snippet và JSON)
@@ -915,30 +1037,18 @@ const CloudSync = {
     }, 500);
   },
 
-  // Tải dữ liệu từ Cloud về máy thủ công
-  manualPullNow() {
-    if (!this.syncRef) return;
+  // Tải dữ liệu từ Cloud về máy thủ công (Đa kênh REST + SDK)
+  async manualPullNow() {
     if (window.App && App.showToast) {
-      App.showToast('📥 Đang tải dữ liệu từ Cloud...', 'info');
+      App.showToast('📥 Đang kiểm tra và nạp dữ liệu từ Cloud...', 'info');
     }
-    this.syncRef.once('value').then(snapshot => {
-      const payload = snapshot.val();
-      if (payload && payload.data) {
-        this.applyRemoteData(payload);
-        if (window.App && App.showToast) {
-          App.showToast('✅ Đã nạp thành công dữ liệu từ Cloud về máy!', 'success');
-        }
-      } else {
-        if (window.App && App.showToast) {
-          App.showToast('Đám mây hiện chưa có dữ liệu nào.', 'warning');
-        }
-      }
-      this.openModal('status');
-    }).catch(err => {
+    const success = await this.pullFromCloud(true);
+    if (!success) {
       if (window.App && App.showToast) {
-        App.showToast(`Lỗi khi nạp dữ liệu: ${err.message}`, 'error');
+        App.showToast('Chưa thể lấy dữ liệu mới từ Cloud hoặc mạng bị gián đoạn.', 'warning');
       }
-    });
+    }
+    this.openModal('status');
   },
 
   // Kiểm tra kết nối nhanh (Ping Test)

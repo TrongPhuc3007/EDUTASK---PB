@@ -40,7 +40,10 @@ const GatewayView = {
   render(container) {
     if (!container) return;
 
+    const existingUsername = document.getElementById('loginUsername')?.value || '';
     const currentRoleInfo = this.roleInfoMap[this.currentRole];
+    const studentList = (window.Store && typeof Store.getStudents === 'function') ? Store.getStudents() : [];
+    const tutorList = (window.Store && typeof Store.getTutors === 'function') ? Store.getTutors() : [];
 
     container.innerHTML = `
       <div class="login-page-wrapper">
@@ -152,7 +155,7 @@ const GatewayView = {
                     id="loginUsername" 
                     class="login-input-field" 
                     placeholder="${currentRoleInfo.placeholder}..." 
-                    value="" 
+                    value="${existingUsername}" 
                     autocomplete="username"
                     required
                   >
@@ -222,15 +225,39 @@ const GatewayView = {
 
             </form>
 
+            <!-- Danh sách tài khoản Học sinh đã kết nối trên Cloud -->
+            <div id="syncedAccountsBox" style="${this.currentRole === 'student' ? 'display:block;' : 'display:none;'} margin-top:14px; padding:10px 12px; background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:12px; font-size:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-weight:700; color:#1e293b; display:flex; align-items:center; gap:5px;">
+                  <span>👥</span> <span>Tài khoản học sinh sẵn sàng (${studentList.length}):</span>
+                </span>
+                <span style="font-size:11px; color:#059669; font-weight:700;">⚡ Chạm để điền nhanh</span>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px; max-height:95px; overflow-y:auto; padding:2px;">
+                ${studentList.map(s => `
+                  <button type="button" onclick="GatewayView.fillAccount('${s.username}', '${s.password || '123456'}')" style="background:#fff; border:1px solid #cbd5e1; border-radius:8px; padding:4px 9px; font-size:11.5px; cursor:pointer; color:#0f172a; font-weight:600; display:flex; align-items:center; gap:5px; box-shadow:0 1px 3px rgba(0,0,0,0.05); transition:all 0.15s ease;" title="Chạm để tự điền tài khoản em ${s.name}">
+                    <span>🎒</span> <span>${s.name}</span> <span style="color:#64748b; font-size:10px; font-weight:500;">(${s.username})</span>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
             <!-- Trạng thái Đồng Bộ Tự Động 100% Không Cần Thao Tác -->
-            <div style="margin-top:16px; padding:10px 14px; background:linear-gradient(135deg, #f0fdf4, #ecfdf5); border:1px solid #bbf7d0; border-radius:10px; display:flex; align-items:center; justify-content:space-between; font-size:12.5px;">
+            <div style="margin-top:14px; padding:10px 14px; background:linear-gradient(135deg, #f0fdf4, #ecfdf5); border:1px solid #bbf7d0; border-radius:10px; display:flex; align-items:center; justify-content:space-between; font-size:12.5px; flex-wrap:wrap; gap:8px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,0.25);"></span>
                 <span style="color:#166534; font-weight:600;">
-                  Đồng bộ tự động thời gian thực (Zero-touch)
+                  Đồng bộ đa thiết bị (${studentList.length} HS • ${tutorList.length} Gia Sư)
                 </span>
               </div>
-              <span style="color:#059669; font-weight:700; font-size:11.5px;">Đang hoạt động ✓</span>
+              <button 
+                type="button" 
+                onclick="GatewayView.triggerManualSync(this)" 
+                style="background:#059669; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 2px 4px rgba(5,150,105,0.2);"
+                title="Kiểm tra và tải dữ liệu mới nhất từ Cloud ngay lập tức"
+              >
+                🔄 Đồng Bộ Ngay
+              </button>
             </div>
 
             <div class="login-card-footer-note">
@@ -370,6 +397,11 @@ const GatewayView = {
     const uInput = document.getElementById('loginUsername');
     if (uInput) {
       uInput.placeholder = `${info.placeholder}...`;
+    }
+
+    const syncedBox = document.getElementById('syncedAccountsBox');
+    if (syncedBox) {
+      syncedBox.style.display = role === 'student' ? 'block' : 'none';
     }
 
     this.dismissAlert();
@@ -821,6 +853,41 @@ const GatewayView = {
         btn.disabled = false;
         btn.innerHTML = originalText;
       }
+    }
+  },
+
+  // Điền nhanh tài khoản học sinh đã đồng bộ
+  fillAccount(username, password) {
+    const uField = document.getElementById('loginUsername');
+    const pField = document.getElementById('loginPassword');
+    if (uField) uField.value = username;
+    if (pField && password) pField.value = password;
+    this.dismissAlert();
+    if (window.App && App.showToast) {
+      App.showToast(`Đã chọn tài khoản "${username}". Nhấn "Đăng Nhập" để vào bàn học!`, 'info');
+    }
+  },
+
+  // Kích hoạt đồng bộ thủ công từ Cloud ngay trên màn hình đăng nhập
+  async triggerManualSync(btn) {
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Đang đồng bộ...</span>';
+    }
+    try {
+      if (window.CloudSync && typeof CloudSync.pullFromCloud === 'function') {
+        await CloudSync.pullFromCloud(true);
+      }
+    } catch (e) {
+      console.warn('Lỗi khi kích hoạt đồng bộ:', e);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+      const c = document.getElementById('viewContainer');
+      if (c) this.render(c);
     }
   }
 };
