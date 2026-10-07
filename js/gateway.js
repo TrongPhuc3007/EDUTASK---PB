@@ -104,6 +104,30 @@ const GatewayView = {
               </div>
             </div>
 
+            <!-- Khối Nổi Bật: Đăng Ký Tài Khoản Nhanh Cho Học Sinh / Gia Sư Mới -->
+            <div id="roleRegisterCtaBox" style="${this.currentRole === 'student' ? 'display:flex;' : (this.currentRole === 'tutor' ? 'display:flex;' : 'display:none;')} align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-radius:12px; ${this.currentRole === 'student' ? 'background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border:1.5px solid #10b981; box-shadow:0 4px 12px rgba(16,185,129,0.12);' : 'background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border:1.5px solid #3b82f6;'}; margin-top:-8px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:24px;">${this.currentRole === 'student' ? '🎒' : '👨‍🏫'}</span>
+                <div>
+                  <div style="font-weight:800; font-size:13.5px; color:${this.currentRole === 'student' ? '#065f46' : '#1e40af'};" id="roleRegisterCtaTitle">
+                    ${this.currentRole === 'student' ? 'Em là Học Sinh Mới?' : 'Thầy/Cô là Gia Sư Mới?'}
+                  </div>
+                  <div style="font-size:12px; color:${this.currentRole === 'student' ? '#047857' : '#1d4ed8'};" id="roleRegisterCtaSub">
+                    ${this.currentRole === 'student' ? 'Chưa có tài khoản làm bài tập 1 kèm 1?' : 'Đăng ký nhận lớp và giao bài 1 kèm 1?'}
+                  </div>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                class="btn btn-primary btn-sm" 
+                onclick="GatewayView.openRegisterModal('${this.currentRole === 'tutor' ? 'tutor' : 'student'}')"
+                id="btnRoleRegisterCta"
+                style="${this.currentRole === 'student' ? 'background:#059669; border-color:#059669;' : 'background:#2563eb; border-color:#2563eb;'} font-weight:700; font-size:12.5px; padding:7px 14px; border-radius:8px; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.15); cursor:pointer;"
+              >
+                ✨ Đăng Ký Ngay
+              </button>
+            </div>
+
             <!-- Inline Alert Thông Báo Lỗi -->
             <div class="login-alert-banner" id="loginAlert">
               <div style="font-size: 18px; line-height: 1;">⚠️</div>
@@ -178,11 +202,21 @@ const GatewayView = {
                 <span>🔐</span> <span>ĐĂNG NHẬP VÀO HỆ THỐNG</span> <span class="submit-arrow">→</span>
               </button>
 
-              <!-- Liên kết Tạo tài khoản mới -->
-              <div style="text-align:center; margin:14px 0 6px 0; padding-top:12px; border-top:1px dashed #e2e8f0;">
-                <span style="font-size:13px; color:#64748b;">Chưa có tài khoản? </span>
-                <button type="button" onclick="GatewayView.openRegisterModal()" style="background:none; border:none; color:var(--primary); font-size:13px; font-weight:700; cursor:pointer; text-decoration:underline;">
-                  ✨ Tạo tài khoản Học Sinh / Gia Sư
+              <!-- Khối Nút Tạo Tài Khoản Nổi Bật -->
+              <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px; color: #94a3b8; font-size: 11.5px; font-weight: 700; text-transform: uppercase;">
+                  <span style="flex: 1; height: 1px; background: #e2e8f0;"></span>
+                  <span id="gatewayOrDividerText">${this.currentRole === 'student' ? 'HOẶC DÀNH CHO HỌC SINH MỚI' : (this.currentRole === 'tutor' ? 'HOẶC DÀNH CHO GIA SƯ MỚI' : 'HOẶC TẠO TÀI KHOẢN MỚI')}</span>
+                  <span style="flex: 1; height: 1px; background: #e2e8f0;"></span>
+                </div>
+                <button 
+                  type="button" 
+                  id="btnQuickRegisterFromGateway"
+                  class="btn" 
+                  onclick="GatewayView.openRegisterModal(GatewayView.currentRole === 'tutor' ? 'tutor' : 'student')"
+                  style="width: 100%; padding: 12px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; border: 1.5px solid ${this.currentRole === 'tutor' ? '#3b82f6' : '#10b981'}; color: ${this.currentRole === 'tutor' ? '#1e40af' : '#065f46'}; background: ${this.currentRole === 'tutor' ? '#eff6ff' : '#ecfdf5'}; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.06);"
+                >
+                  <span>✨</span> <span id="quickRegisterBtnText">${this.currentRole === 'tutor' ? 'Tạo Tài Khoản Gia Sư Mới' : 'Tạo Tài Khoản Học Sinh Mới'}</span> <span style="font-size:16px;">→</span>
                 </button>
               </div>
 
@@ -245,6 +279,92 @@ const GatewayView = {
           </div>
         </div>
       `;
+    }
+
+    // Cập nhật banner CTA đăng ký nổi bật
+    const ctaBox = document.getElementById('roleRegisterCtaBox');
+    if (ctaBox) {
+      if (role === 'student') {
+        ctaBox.style.display = 'flex';
+        ctaBox.style.background = 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)';
+        ctaBox.style.borderColor = '#10b981';
+        ctaBox.style.boxShadow = '0 4px 12px rgba(16,185,129,0.12)';
+        ctaBox.innerHTML = `
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:24px;">🎒</span>
+            <div>
+              <div style="font-weight:800; font-size:13.5px; color:#065f46;" id="roleRegisterCtaTitle">
+                Em là Học Sinh Mới?
+              </div>
+              <div style="font-size:12px; color:#047857;" id="roleRegisterCtaSub">
+                Chưa có tài khoản làm bài tập 1 kèm 1?
+              </div>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            class="btn btn-primary btn-sm" 
+            onclick="GatewayView.openRegisterModal('student')" 
+            style="background:#059669; border-color:#059669; font-weight:700; font-size:12.5px; padding:7px 14px; border-radius:8px; white-space:nowrap; box-shadow:0 2px 8px rgba(5,150,105,0.3); cursor:pointer;"
+          >
+            ✨ Đăng Ký Ngay
+          </button>
+        `;
+      } else if (role === 'tutor') {
+        ctaBox.style.display = 'flex';
+        ctaBox.style.background = 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)';
+        ctaBox.style.borderColor = '#3b82f6';
+        ctaBox.style.boxShadow = '0 4px 12px rgba(59,130,246,0.12)';
+        ctaBox.innerHTML = `
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:24px;">👨‍🏫</span>
+            <div>
+              <div style="font-weight:800; font-size:13.5px; color:#1e40af;" id="roleRegisterCtaTitle">
+                Thầy/Cô là Gia Sư Mới?
+              </div>
+              <div style="font-size:12px; color:#1d4ed8;" id="roleRegisterCtaSub">
+                Đăng ký nhận lớp và giao bài 1 kèm 1?
+              </div>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            class="btn btn-primary btn-sm" 
+            onclick="GatewayView.openRegisterModal('tutor')" 
+            style="background:#2563eb; border-color:#2563eb; font-weight:700; font-size:12.5px; padding:7px 14px; border-radius:8px; white-space:nowrap; box-shadow:0 2px 8px rgba(37,99,235,0.3); cursor:pointer;"
+          >
+            ✨ Đăng Ký Gia Sư
+          </button>
+        `;
+      } else {
+        ctaBox.style.display = 'none';
+      }
+    }
+
+    // Cập nhật nút tạo tài khoản phía dưới form
+    const orText = document.getElementById('gatewayOrDividerText');
+    const quickBtnText = document.getElementById('quickRegisterBtnText');
+    const quickBtn = document.getElementById('btnQuickRegisterFromGateway');
+    if (quickBtnText && orText && quickBtn) {
+      if (role === 'student') {
+        orText.textContent = 'HOẶC DÀNH CHO HỌC SINH MỚI';
+        quickBtnText.textContent = 'Tạo Tài Khoản Học Sinh Mới';
+        quickBtn.style.background = '#ecfdf5';
+        quickBtn.style.color = '#065f46';
+        quickBtn.style.borderColor = '#10b981';
+      } else if (role === 'tutor') {
+        orText.textContent = 'HOẶC DÀNH CHO GIA SƯ MỚI';
+        quickBtnText.textContent = 'Tạo Tài Khoản Gia Sư Mới';
+        quickBtn.style.background = '#eff6ff';
+        quickBtn.style.color = '#1e40af';
+        quickBtn.style.borderColor = '#3b82f6';
+      } else {
+        orText.textContent = 'HOẶC TẠO TÀI KHOẢN MỚI';
+        quickBtnText.textContent = 'Tạo Tài Khoản Học Sinh Mới';
+        quickBtn.style.background = '#ecfdf5';
+        quickBtn.style.color = '#065f46';
+        quickBtn.style.borderColor = '#10b981';
+      }
     }
 
     const uInput = document.getElementById('loginUsername');
@@ -367,6 +487,18 @@ const GatewayView = {
     );
   },
 
+  // Sinh username chuẩn theo họ tên tiếng Việt
+  generateUsernameFromName(fullName, prefix = 'std_') {
+    if (!fullName || !fullName.trim()) return prefix + Math.floor(Math.random() * 900 + 100);
+    const clean = fullName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/đ/g, "d");
+    const words = clean.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return prefix + Date.now().toString().slice(-4);
+    if (words.length === 1) return prefix + words[0];
+    const lastName = words[words.length - 1];
+    const initials = words.slice(0, -1).map(w => w[0]).join('');
+    return prefix + initials + lastName;
+  },
+
   // ================= ĐĂNG KÝ / TẠO TÀI KHOẢN MỚI TỪ LOGIN =================
   currentRegisterRole: 'student',
 
@@ -378,7 +510,7 @@ const GatewayView = {
     if (tutorSelect) {
       const tutors = Store.getTutors();
       tutorSelect.innerHTML = tutors.map(t => `
-        <option value="${t.id}">${t.name} (${t.phone || 'Gia Sư'})</option>
+        <option value="${t.id}">${t.name} (${t.phone || 'Gia Sư Phụ Trách'})</option>
       `).join('');
     }
 
@@ -390,9 +522,12 @@ const GatewayView = {
     const stdPhone = document.getElementById('regStdPhone');
     if (stdPhone) stdPhone.value = '';
     const stdU = document.getElementById('regStdUsername');
-    if (stdU) stdU.value = '';
+    if (stdU) {
+      stdU.value = '';
+      delete stdU.dataset.customized;
+    }
     const stdP = document.getElementById('regStdPassword');
-    if (stdP) stdP.value = '';
+    if (stdP) stdP.value = '123456';
 
     // Reset các trường gia sư
     const tutName = document.getElementById('regTutorName');
@@ -404,14 +539,25 @@ const GatewayView = {
     const tutDegree = document.getElementById('regTutorDegree');
     if (tutDegree) tutDegree.value = '';
     const tutU = document.getElementById('regTutorUsername');
-    if (tutU) tutU.value = '';
+    if (tutU) {
+      tutU.value = '';
+      delete tutU.dataset.customized;
+    }
     const tutP = document.getElementById('regTutorPassword');
-    if (tutP) tutP.value = '';
+    if (tutP) tutP.value = '123456';
 
     this.switchRegisterTab(role);
 
     const modal = document.getElementById('registerAccountModal');
     if (modal) modal.classList.add('active');
+
+    setTimeout(() => {
+      if (role === 'student') {
+        if (stdName) stdName.focus();
+      } else {
+        if (tutName) tutName.focus();
+      }
+    }, 150);
   },
 
   switchRegisterTab(role) {
@@ -438,13 +584,7 @@ const GatewayView = {
     const uField = document.getElementById('regStdUsername');
     if (uField && !uField.dataset.customized) {
       if (!name || !name.trim()) { uField.value = ''; return; }
-      const clean = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/đ/g, "d");
-      const words = clean.trim().split(/\s+/).filter(Boolean);
-      if (words.length > 0) {
-        const lastName = words[words.length - 1];
-        const initials = words.slice(0, -1).map(w => w[0]).join('');
-        uField.value = 'std_' + initials + lastName;
-      }
+      uField.value = this.generateUsernameFromName(name, 'std_');
     }
   },
 
@@ -462,147 +602,225 @@ const GatewayView = {
   },
 
   async submitRegister() {
-    if (this.currentRegisterRole === 'student') {
-      const name = document.getElementById('regStdName')?.value.trim();
-      const grade = document.getElementById('regStdGrade')?.value || 'Lớp 12';
-      const school = document.getElementById('regStdSchool')?.value.trim() || '';
-      const phone = document.getElementById('regStdPhone')?.value.trim();
-      const tutorId = document.getElementById('regStdTutorSelect')?.value || 'u_tutor';
-      let username = document.getElementById('regStdUsername')?.value.trim();
-      const password = document.getElementById('regStdPassword')?.value.trim();
+    const btn = document.getElementById('btnSubmitRegister');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> <span>Đang khởi tạo & đồng bộ tài khoản...</span>';
+    }
 
-      if (!name) {
-        App.showToast('Vui lòng nhập họ và tên học sinh!', 'error');
-        return;
+    try {
+      if (this.currentRegisterRole === 'student') {
+        const name = document.getElementById('regStdName')?.value.trim();
+        const grade = document.getElementById('regStdGrade')?.value || 'Lớp 12';
+        const school = document.getElementById('regStdSchool')?.value.trim() || 'THPT';
+        const phone = document.getElementById('regStdPhone')?.value.trim();
+        const tutorId = document.getElementById('regStdTutorSelect')?.value || 'u_tutor';
+        let username = document.getElementById('regStdUsername')?.value.trim();
+        let password = document.getElementById('regStdPassword')?.value.trim() || '123456';
+
+        if (!name) {
+          App.showToast('Vui lòng nhập họ và tên học sinh!', 'error');
+          return;
+        }
+
+        const finalPhone = phone || 'Chưa cập nhật';
+
+        if (!username) {
+          username = this.generateUsernameFromName(name, 'std_');
+        }
+
+        if (password.length < 4) {
+          App.showToast('Mật khẩu phải có ít nhất 4 ký tự!', 'error');
+          return;
+        }
+
+        if (Store.isUsernameTaken(username)) {
+          username = username + Math.floor(Math.random() * 90 + 10);
+        }
+
+        const tutor = Store.getUserById(tutorId) || Store.getTutors()[0];
+        const tutorIdFinal = tutor ? tutor.id : 'u_tutor';
+        const tutorNameFinal = tutor ? tutor.name : 'Thầy Minh Đức';
+
+        const words = name.trim().split(/\s+/).filter(Boolean);
+        const avatarText = words.length > 1 
+          ? (words[0][0] + words[words.length - 1][0]).toUpperCase()
+          : words[0].slice(0, 2).toUpperCase();
+
+        const newStudent = {
+          id: 'u_std_' + Date.now(),
+          hasAccount: true,
+          accountStatus: 'active',
+          username: username,
+          password: password,
+          accountCreatedAt: new Date().toISOString(),
+          name: name,
+          role: 'student',
+          roleName: 'Học Sinh',
+          assignedTutorId: tutorIdFinal,
+          assignedTutorName: tutorNameFinal,
+          gender: 'Nam',
+          dob: '2008-01-01',
+          school: school,
+          grade: grade,
+          phone: finalPhone,
+          address: 'Chưa cập nhật',
+          parentName: 'Phụ huynh em ' + name,
+          parentPhone: finalPhone,
+          parentJob: '',
+          subject: 'Toán Học ' + grade.replace('Lớp ', ''),
+          initialScore: 6.5,
+          currentScore: 6.5,
+          targetScore: 9.0,
+          feePerSession: 250000,
+          totalSessions: 0,
+          learningMode: '1 kèm 1',
+          schedule: 'Theo thỏa thuận với gia sư',
+          startDate: new Date().toISOString().slice(0, 10),
+          strengths: 'Chăm chỉ, sẵn sàng rèn luyện',
+          weaknesses: 'Cần củng cố kiến thức phương pháp',
+          notes: 'Đăng ký tài khoản trực tuyến',
+          avatarText: avatarText
+        };
+
+        Store.addStudent(newStudent);
+
+        // Đẩy tức thì lên Firebase Realtime Database
+        if (window.CloudSync && typeof CloudSync.pushData === 'function') {
+          try {
+            await CloudSync.pushData(Store.data, true);
+          } catch (e) {
+            console.warn('Lỗi push Firebase:', e);
+          }
+        }
+
+        // Đẩy song song lên GitHub
+        if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
+          GitHubSync.pushToGitHub(Store.data, false).catch(e => console.warn('Lỗi push GitHub:', e));
+        }
+
+        App.closeModal('registerAccountModal');
+
+        const isAlreadyLoggedIn = Auth.getCurrentUser() !== null;
+        if (isAlreadyLoggedIn) {
+          App.showToast(`🎉 Đã thêm học sinh "${name}" (TK: ${username}) thành công và đồng bộ dữ liệu!`, 'success');
+          App.updateHeaderProfile();
+          App.renderCurrentView();
+        } else {
+          // Điền trước thông tin đăng nhập
+          this.switchRole('student');
+          const uField = document.getElementById('loginUsername');
+          const pField = document.getElementById('loginPassword');
+          if (uField) uField.value = username;
+          if (pField) pField.value = password;
+
+          App.showToast(`🎉 Chúc mừng ${name}! Đang tự động vào bàn học cá nhân...`, 'success');
+
+          // TỰ ĐỘNG ĐĂNG NHẬP NGAY LẬP TỨC
+          await Auth.login(username, password, true);
+
+          window.scrollTo(0, 0);
+          if (document.body) document.body.scrollTop = 0;
+          if (document.documentElement) document.documentElement.scrollTop = 0;
+        }
+
+      } else {
+        const name = document.getElementById('regTutorName')?.value.trim();
+        const gender = document.getElementById('regTutorGender')?.value || 'Nam';
+        const subject = document.getElementById('regTutorSubject')?.value.trim() || 'Toán Học THPT';
+        const phone = document.getElementById('regTutorPhone')?.value.trim();
+        const degree = document.getElementById('regTutorDegree')?.value.trim();
+        let username = document.getElementById('regTutorUsername')?.value.trim();
+        let password = document.getElementById('regTutorPassword')?.value.trim() || '123456';
+
+        if (!name) {
+          App.showToast('Vui lòng nhập họ và tên gia sư!', 'error');
+          return;
+        }
+
+        const finalPhone = phone || 'Chưa cập nhật';
+
+        if (!username) {
+          const clean = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/đ/g, "d");
+          const words = clean.trim().split(/\s+/).filter(Boolean);
+          const lastName = words.length > 0 ? words[words.length - 1] : 'gs';
+          username = 'giasu_' + lastName;
+        }
+
+        if (password.length < 4) {
+          App.showToast('Mật khẩu phải có ít nhất 4 ký tự!', 'error');
+          return;
+        }
+
+        if (Store.isUsernameTaken(username)) {
+          username = username + Math.floor(Math.random() * 90 + 10);
+        }
+
+        const words = name.trim().split(/\s+/).filter(Boolean);
+        const avatarText = words.length > 1 
+          ? (words[0][0] + words[words.length - 1][0]).toUpperCase()
+          : words[0].slice(0, 2).toUpperCase();
+
+        const newTutor = {
+          id: 'u_tutor_' + Date.now(),
+          username: username,
+          password: password,
+          name: name,
+          gender: gender,
+          phone: finalPhone,
+          role: 'tutor',
+          roleName: 'Gia Sư Phụ Trách',
+          subjects: [subject],
+          degree: degree || 'Giáo viên dạy kèm chuyên môn',
+          avatarText: avatarText
+        };
+
+        Store.addTutor(newTutor);
+
+        // Đẩy tức thì lên Firebase Realtime Database
+        if (window.CloudSync && typeof CloudSync.pushData === 'function') {
+          try {
+            await CloudSync.pushData(Store.data, true);
+          } catch (e) {
+            console.warn('Lỗi push Firebase:', e);
+          }
+        }
+
+        // Đẩy song song lên GitHub
+        if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
+          GitHubSync.pushToGitHub(Store.data, false).catch(e => console.warn('Lỗi push GitHub:', e));
+        }
+
+        App.closeModal('registerAccountModal');
+
+        const isAlreadyLoggedIn = Auth.getCurrentUser() !== null;
+        if (isAlreadyLoggedIn) {
+          App.showToast(`🎉 Đã thêm Gia Sư "${name}" (TK: ${username}) thành công và đồng bộ dữ liệu!`, 'success');
+          App.updateHeaderProfile();
+          App.renderCurrentView();
+        } else {
+          this.switchRole('tutor');
+          const uField = document.getElementById('loginUsername');
+          const pField = document.getElementById('loginPassword');
+          if (uField) uField.value = username;
+          if (pField) pField.value = password;
+
+          App.showToast(`🎉 Chào mừng Thầy/Cô ${name}! Đang tự động vào bàn làm việc...`, 'success');
+
+          // TỰ ĐỘNG ĐĂNG NHẬP NGAY LẬP TỨC
+          await Auth.login(username, password, true);
+
+          window.scrollTo(0, 0);
+          if (document.body) document.body.scrollTop = 0;
+          if (document.documentElement) document.documentElement.scrollTop = 0;
+        }
       }
-      if (!phone) {
-        App.showToast('Vui lòng nhập số điện thoại liên hệ!', 'error');
-        return;
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
       }
-      if (!username) {
-        App.showToast('Vui lòng nhập tên đăng nhập!', 'error');
-        return;
-      }
-      if (!password || password.length < 4) {
-        App.showToast('Mật khẩu phải có ít nhất 4 ký tự!', 'error');
-        return;
-      }
-
-      if (Store.isUsernameTaken(username)) {
-        App.showToast(`Tên đăng nhập "${username}" đã có người sử dụng. Vui lòng chọn tên khác!`, 'error');
-        return;
-      }
-
-      const tutor = Store.getUserById(tutorId);
-      const tutorName = tutor ? tutor.name : 'Thầy Minh Đức';
-
-      const newStudent = {
-        id: 'u_std_' + Date.now(),
-        hasAccount: true,
-        accountStatus: 'active',
-        username: username,
-        password: password,
-        accountCreatedAt: new Date().toISOString(),
-        name: name,
-        role: 'student',
-        roleName: 'Học Sinh',
-        assignedTutorId: tutorId,
-        assignedTutorName: tutorName,
-        gender: 'Nam',
-        dob: '2008-01-01',
-        school: school,
-        grade: grade,
-        phone: phone,
-        parentName: 'Phụ huynh ' + name,
-        parentPhone: phone,
-        currentScore: 7.0,
-        targetScore: 9.0,
-        subject: 'Toán THPT',
-        feePerSession: 250000,
-        totalSessions: 0,
-        learningMode: '1 kèm 1',
-        schedule: 'Theo thỏa thuận với gia sư'
-      };
-
-      Store.data.users.push(newStudent);
-      Store.save();
-
-      // Đẩy ngay lập tức lên GitHub để các thiết bị khác (như Điện thoại) nhận ngay tài khoản!
-      if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
-        App.showToast('☁️ Đang đồng bộ tài khoản mới lên kho GitHub trung tâm...', 'info');
-        await GitHubSync.pushToGitHub(Store.data, false);
-      }
-
-      App.closeModal('registerAccountModal');
-      this.switchRole('student');
-      
-      const uField = document.getElementById('loginUsername');
-      const pField = document.getElementById('loginPassword');
-      if (uField) uField.value = username;
-      if (pField) pField.value = password;
-
-      App.showToast(`🎉 Tạo tài khoản thành công! Tên đăng nhập: "${username}" đã sẵn sàng trên mọi thiết bị.`, 'success');
-    } else {
-      const name = document.getElementById('regTutorName')?.value.trim();
-      const gender = document.getElementById('regTutorGender')?.value || 'Nam';
-      const subject = document.getElementById('regTutorSubject')?.value.trim() || 'Toán Học THPT';
-      const phone = document.getElementById('regTutorPhone')?.value.trim();
-      const degree = document.getElementById('regTutorDegree')?.value.trim();
-      let username = document.getElementById('regTutorUsername')?.value.trim();
-      const password = document.getElementById('regTutorPassword')?.value.trim();
-
-      if (!name) {
-        App.showToast('Vui lòng nhập họ và tên gia sư!', 'error');
-        return;
-      }
-      if (!phone) {
-        App.showToast('Vui lòng nhập số điện thoại / Zalo!', 'error');
-        return;
-      }
-      if (!username) {
-        App.showToast('Vui lòng nhập tên đăng nhập!', 'error');
-        return;
-      }
-      if (!password || password.length < 4) {
-        App.showToast('Mật khẩu phải có ít nhất 4 ký tự!', 'error');
-        return;
-      }
-
-      if (Store.isUsernameTaken(username)) {
-        App.showToast(`Tên đăng nhập "${username}" đã có người sử dụng. Vui lòng chọn tên khác!`, 'error');
-        return;
-      }
-
-      const newTutor = {
-        id: 'u_tutor_' + Date.now(),
-        username: username,
-        password: password,
-        name: name,
-        gender: gender,
-        phone: phone,
-        role: 'tutor',
-        roleName: 'Gia Sư Phụ Trách',
-        subjects: [subject],
-        degree: degree || 'Giáo viên dạy kèm chuyên môn'
-      };
-
-      Store.addTutor(newTutor);
-
-      // Đẩy ngay lập tức lên kho GitHub
-      if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
-        App.showToast('☁️ Đang đồng bộ tài khoản mới lên kho GitHub trung tâm...', 'info');
-        await GitHubSync.pushToGitHub(Store.data, false);
-      }
-
-      App.closeModal('registerAccountModal');
-      this.switchRole('tutor');
-
-      const uField = document.getElementById('loginUsername');
-      const pField = document.getElementById('loginPassword');
-      if (uField) uField.value = username;
-      if (pField) pField.value = password;
-
-      App.showToast(`🎉 Tạo tài khoản Gia Sư thành công! Tên đăng nhập: "${username}" đã sẵn sàng trên mọi thiết bị.`, 'success');
     }
   }
 };

@@ -23,8 +23,8 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230f2b5c'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z' fill='%231e40af'/%3E%3C/svg%3E">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css?v=9.0">
-  <link rel="stylesheet" href="css/canvas.css?v=9.0">
+  <link rel="stylesheet" href="css/style.css?v=11.2">
+  <link rel="stylesheet" href="css/canvas.css?v=11.2">
 </head>
 <body>
 
@@ -990,17 +990,25 @@
             <select id="regStdTutorSelect" class="form-control" style="font-weight:600; color:var(--primary);"></select>
           </div>
 
-          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px;">
-            <div style="font-size:13px; font-weight:700; color:#1e40af; margin-bottom:8px;">🔐 Thông Tin Đăng Nhập Học Sinh:</div>
+          <div style="background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:12px; padding:14px;">
+            <div style="font-size:13.5px; font-weight:800; color:#1e40af; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+              <span>🔐</span> <span>Thông Tin Đăng Nhập Học Sinh:</span>
+            </div>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
               <div class="form-group">
                 <label>Tên đăng nhập (Username) <span style="color:var(--danger)">*</span></label>
-                <input type="text" id="regStdUsername" class="form-control" placeholder="std_nam">
+                <input type="text" id="regStdUsername" class="form-control" placeholder="std_nam" oninput="this.dataset.customized = 'true'">
               </div>
               <div class="form-group">
                 <label>Mật khẩu <span style="color:var(--danger)">*</span></label>
-                <input type="password" id="regStdPassword" class="form-control" placeholder="Tối thiểu 6 ký tự">
+                <div style="position:relative; display:flex; align-items:center;">
+                  <input type="password" id="regStdPassword" class="form-control" value="123456" placeholder="Mặc định: 123456" style="padding-right:36px;">
+                  <button type="button" onclick="const p = document.getElementById('regStdPassword'); p.type = p.type === 'password' ? 'text' : 'password';" style="position:absolute; right:8px; background:none; border:none; cursor:pointer; font-size:15px; color:#64748b;" title="Ẩn/hiện mật khẩu">👁️</button>
+                </div>
               </div>
+            </div>
+            <div style="font-size:12px; color:#1d4ed8; margin-top:8px; display:flex; align-items:center; gap:5px;">
+              <span>💡</span> <span>Tên đăng nhập tự động điền theo họ tên. Mật khẩu khởi tạo là <strong>123456</strong> (em có thể đổi sau).</span>
             </div>
           </div>
         </div>
@@ -1037,17 +1045,25 @@
             <input type="text" id="regTutorDegree" class="form-control" placeholder="VD: Tốt nghiệp ĐH Sư Phạm, 4 năm kinh nghiệm luyện thi">
           </div>
 
-          <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:10px; padding:12px;">
-            <div style="font-size:13px; font-weight:700; color:#5b21b6; margin-bottom:8px;">🔐 Thông Tin Đăng Nhập Gia Sư:</div>
+          <div style="background:#f5f3ff; border:1.5px solid #ddd6fe; border-radius:12px; padding:14px;">
+            <div style="font-size:13.5px; font-weight:800; color:#5b21b6; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+              <span>🔐</span> <span>Thông Tin Đăng Nhập Gia Sư:</span>
+            </div>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
               <div class="form-group">
                 <label>Tên đăng nhập (Username) <span style="color:var(--danger)">*</span></label>
-                <input type="text" id="regTutorUsername" class="form-control" placeholder="giasu_quan">
+                <input type="text" id="regTutorUsername" class="form-control" placeholder="giasu_quan" oninput="this.dataset.customized = 'true'">
               </div>
               <div class="form-group">
                 <label>Mật khẩu <span style="color:var(--danger)">*</span></label>
-                <input type="password" id="regTutorPassword" class="form-control" placeholder="Tối thiểu 6 ký tự">
+                <div style="position:relative; display:flex; align-items:center;">
+                  <input type="password" id="regTutorPassword" class="form-control" value="123456" placeholder="Mặc định: 123456" style="padding-right:36px;">
+                  <button type="button" onclick="const p = document.getElementById('regTutorPassword'); p.type = p.type === 'password' ? 'text' : 'password';" style="position:absolute; right:8px; background:none; border:none; cursor:pointer; font-size:15px; color:#64748b;" title="Ẩn/hiện mật khẩu">👁️</button>
+                </div>
               </div>
+            </div>
+            <div style="font-size:12px; color:#6d28d9; margin-top:8px; display:flex; align-items:center; gap:5px;">
+              <span>💡</span> <span>Tên đăng nhập tự động điền theo họ tên. Mật khẩu khởi tạo mặc định là <strong>123456</strong>.</span>
             </div>
           </div>
         </div>
@@ -1056,8 +1072,8 @@
 
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="App.closeModal('registerAccountModal')">Hủy bỏ</button>
-        <button class="btn btn-primary" id="btnSubmitRegister" onclick="GatewayView.submitRegister()">
-          🚀 Hoàn Tất & Tạo Tài Khoản
+        <button class="btn btn-primary" id="btnSubmitRegister" onclick="GatewayView.submitRegister()" style="background:#059669; border-color:#059669; font-weight:700; padding:10px 20px;">
+          🚀 Hoàn Tất & Vào Bàn Học Ngay →
         </button>
       </div>
     </div>
@@ -1255,18 +1271,18 @@
   </nav>
 
   <!-- JavaScript Modules -->
-  <script src="js/cloud-sync.js?v=11.1"></script>
-  <script src="js/github-sync.js?v=11.1"></script>
-  <script src="js/store.js?v=11.1"></script>
-  <script src="js/auth.js?v=11.1"></script>
-  <script src="js/gateway.js?v=11.1"></script>
-  <script src="js/anticheat.js?v=11.1"></script>
-  <script src="js/grader.js?v=11.1"></script>
-  <script src="js/admin.js?v=11.1"></script>
-  <script src="js/tutor.js?v=11.1"></script>
-  <script src="js/student.js?v=11.1"></script>
-  <script src="js/parent.js?v=11.1"></script>
-  <script src="js/app.js?v=11.1"></script>
+  <script src="js/cloud-sync.js?v=11.2"></script>
+  <script src="js/github-sync.js?v=11.2"></script>
+  <script src="js/store.js?v=11.2"></script>
+  <script src="js/auth.js?v=11.2"></script>
+  <script src="js/gateway.js?v=11.2"></script>
+  <script src="js/anticheat.js?v=11.2"></script>
+  <script src="js/grader.js?v=11.2"></script>
+  <script src="js/admin.js?v=11.2"></script>
+  <script src="js/tutor.js?v=11.2"></script>
+  <script src="js/student.js?v=11.2"></script>
+  <script src="js/parent.js?v=11.2"></script>
+  <script src="js/app.js?v=11.2"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
@@ -1280,7 +1296,7 @@
             if (installing) {
               installing.onstatechange = () => {
                 if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[PWA] Đã phát hiện bản cập nhật mới v11.1! Đang làm mới trang...');
+                  console.log('[PWA] Đã phát hiện bản cập nhật mới v11.2! Đang làm mới trang...');
                   window.location.reload();
                 }
               };

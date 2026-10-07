@@ -147,6 +147,9 @@ const TutorView = {
           <button class="btn btn-white" id="btnTutorCreateAssignment" onclick="App.openCreateAssignmentModal()">
             ➕ Giao Bài Cá Nhân Hóa (1-1)
           </button>
+          <button class="btn btn-secondary" onclick="GatewayView.openRegisterModal('student')" title="Tạo tài khoản học sinh mới vào lớp kèm 1-1">
+            🎒 ➕ Thêm Học Sinh Mới
+          </button>
           <button class="btn btn-secondary" onclick="TutorView.openZaloModal()">
             💬 Báo Cáo Zalo Phụ Huynh
           </button>

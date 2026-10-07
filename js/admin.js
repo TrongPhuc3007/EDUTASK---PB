@@ -443,6 +443,9 @@ const AdminView = {
     };
 
     Store.addStudent(newStudent);
+    if (window.CloudSync && typeof CloudSync.pushData === 'function') {
+      CloudSync.pushData(Store.data, true);
+    }
     if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
       GitHubSync.pushToGitHub(Store.data, false);
     }

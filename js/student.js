@@ -63,9 +63,15 @@ const StudentView = {
   renderStudentAssignmentCards(assignments, studentId) {
     if (assignments.length === 0) {
       return `
-        <div style="grid-column: 1 / -1; text-align:center; padding:40px; color:var(--text-muted);">
-          <div style="font-size:36px; margin-bottom:8px;">🎉</div>
-          <p>Tuyệt vời! Bạn đã hoàn thành toàn bộ bài tập được giao.</p>
+        <div style="grid-column: 1 / -1; text-align:center; padding:48px 20px; background:#f8fafc; border:2px dashed #cbd5e1; border-radius:16px;">
+          <div style="font-size:42px; margin-bottom:12px;">🎒</div>
+          <h4 style="color:#1e293b; margin-bottom:6px; font-weight:700;">Bàn học cá nhân đã sẵn sàng!</h4>
+          <p style="color:#64748b; font-size:14px; max-width:440px; margin:0 auto 16px auto;">
+            Hiện tại Gia sư chưa giao bài tập mới hoặc bạn đã hoàn thành tất cả bài tập. Hãy đợi thông báo từ gia sư phụ trách nhé!
+          </p>
+          <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 14px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:20px; color:#065f46; font-size:12.5px; font-weight:600;">
+            <span>✨</span> <span>Tài khoản đã kích hoạt & đồng bộ tự động đa thiết bị</span>
+          </div>
         </div>
       `;
     }
