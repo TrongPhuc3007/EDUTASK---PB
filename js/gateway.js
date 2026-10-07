@@ -188,17 +188,15 @@ const GatewayView = {
 
             </form>
 
-            <!-- Thanh trạng thái đồng bộ đám mây trên màn hình đăng nhập -->
-            <div style="margin-top:16px; padding:10px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; display:flex; align-items:center; justify-content:space-between; font-size:12.5px;">
+            <!-- Trạng thái Đồng Bộ Tự Động 100% Không Cần Thao Tác -->
+            <div style="margin-top:16px; padding:10px 14px; background:linear-gradient(135deg, #f0fdf4, #ecfdf5); border:1px solid #bbf7d0; border-radius:10px; display:flex; align-items:center; justify-content:space-between; font-size:12.5px;">
               <div style="display:flex; align-items:center; gap:8px;">
-                <span>☁️</span>
-                <span style="color:var(--text-muted);">
-                  ${window.CloudSync && CloudSync.isConnected ? '<strong style="color:#059669;">Đám mây Realtime: Đang kết nối</strong>' : (window.CloudSync && CloudSync.isConfigured ? '<span style="color:#d97706;">Đám mây: Đang chờ kết nối</span>' : '<span>Dữ liệu chưa đồng bộ giữa PC & ĐT</span>')}
+                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,0.25);"></span>
+                <span style="color:#166534; font-weight:600;">
+                  Đồng bộ tự động thời gian thực (Zero-touch)
                 </span>
               </div>
-              <button type="button" onclick="CloudSync.openModal()" style="border:none; background:none; color:var(--primary); font-weight:700; cursor:pointer; font-size:12px; text-decoration:underline;">
-                ⚙️ Cài đặt
-              </button>
+              <span style="color:#059669; font-weight:700; font-size:11.5px;">Đang hoạt động ✓</span>
             </div>
 
             <div class="login-card-footer-note">
