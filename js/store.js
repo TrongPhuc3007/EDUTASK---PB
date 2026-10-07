@@ -202,6 +202,10 @@ const Store = {
       CloudSync.init();
     }
 
+    if (window.GitHubSync && typeof GitHubSync.init === 'function') {
+      GitHubSync.init();
+    }
+
     this.initSyncChannel();
   },
 
@@ -278,8 +282,14 @@ const Store = {
       } catch (e) {}
     }
 
+    // Tự động đẩy lên Firebase nếu có cấu hình
     if (!skipCloudPush && window.CloudSync && typeof CloudSync.schedulePush === 'function') {
       CloudSync.schedulePush();
+    }
+
+    // Tự động đẩy lên Kho dữ liệu trung tâm GitHub
+    if (!skipCloudPush && window.GitHubSync && typeof GitHubSync.schedulePush === 'function') {
+      GitHubSync.schedulePush();
     }
   },
 

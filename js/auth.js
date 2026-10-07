@@ -13,12 +13,31 @@ const Auth = {
   activeUser: null,     // Tài khoản đang hiển thị giao diện
 
   init() {
-    // Quy định bảo mật: Luôn bắt buộc đăng nhập lại mỗi khi vào web, không lưu phiên tự động
-    this.sessionUser = null;
-    this.activeUser = null;
-    localStorage.removeItem(this.SESSION_KEY);
-    localStorage.removeItem(this.SUPERVISE_KEY);
-    localStorage.removeItem(this.REMEMBER_KEY);
+    // Tự động khôi phục phiên đăng nhập gần nhất (tiện dụng tối đa, không cần đăng nhập lại)
+    const savedUserId = localStorage.getItem(this.SESSION_KEY);
+    if (savedUserId && window.Store) {
+      const user = Store.getUserById(savedUserId);
+      if (user) {
+        this.sessionUser = user;
+        this.activeUser = user;
+        const superviseId = localStorage.getItem(this.SUPERVISE_KEY);
+        if (superviseId && user.role === 'admin') {
+          const target = Store.getUserById(superviseId);
+          if (target) this.activeUser = target;
+        }
+        console.log(`[Auth] Tự động khôi phục phiên: ${user.name} (${user.role})`);
+        return;
+      }
+    }
+
+    // Nếu là lần đầu tiên mở ứng dụng: Tự động vào thẳng Gia Sư Thầy Minh Đức
+    const defaultUser = (window.Store && Store.getUserById) ? Store.getUserById('u_tutor') : null;
+    if (defaultUser) {
+      this.sessionUser = defaultUser;
+      this.activeUser = defaultUser;
+      localStorage.setItem(this.SESSION_KEY, defaultUser.id);
+      console.log(`[Auth] Vào thẳng bàn làm việc mặc định: ${defaultUser.name}`);
+    }
   },
 
   isAuthenticated() {
@@ -43,6 +62,27 @@ const Auth = {
     return this.isRealAdmin() && this.activeUser && this.activeUser.id !== this.sessionUser.id;
   },
 
+  // Đổi vai trò 1-chạm siêu nhanh (không cần gõ lại mật khẩu)
+  quickSwitch(userId) {
+    const user = Store.getUserById(userId);
+    if (!user) return false;
+
+    this.sessionUser = user;
+    this.activeUser = user;
+    localStorage.setItem(this.SESSION_KEY, user.id);
+    localStorage.removeItem(this.SUPERVISE_KEY);
+
+    window.dispatchEvent(new CustomEvent('auth:user_changed', { detail: user }));
+    if (typeof App !== 'undefined') {
+      if (App.showToast) {
+        App.showToast(`⚡ Đã chuyển nhanh sang: ${user.name} (${user.roleName || user.role})`, 'success');
+      }
+      if (App.updateHeaderProfile) App.updateHeaderProfile();
+      if (App.renderCurrentView) App.renderCurrentView();
+    }
+    return true;
+  },
+
   // Phương thức đăng nhập chính thức bằng Tên đăng nhập (tk) và Mật khẩu (mk)
   login(username, password) {
     const authResult = Store.authenticate(username, password);
@@ -54,10 +94,10 @@ const Auth = {
     this.sessionUser = user;
     this.activeUser = user;
 
-    // Không lưu phiên vào localStorage để mỗi lần mở lại web đều phải đăng nhập lại
-    localStorage.removeItem(this.SESSION_KEY);
+    // Lưu phiên vĩnh viễn vào localStorage để không phải đăng nhập lại mỗi lần mở web!
+    localStorage.setItem(this.SESSION_KEY, user.id);
     localStorage.removeItem(this.SUPERVISE_KEY);
-    localStorage.removeItem(this.REMEMBER_KEY);
+    localStorage.setItem(this.REMEMBER_KEY, user.username);
 
     window.dispatchEvent(new CustomEvent('auth:user_changed', { detail: user }));
 

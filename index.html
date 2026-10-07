@@ -61,11 +61,22 @@
       </div>
 
       <!-- Khu vực điều khiển đồng bộ đám mây và tài khoản -->
-      <div style="display:flex; align-items:center; gap:10px;">
-        <!-- Nút Đồng Bộ Đám Mây (Realtime Cloud Sync) -->
-        <button id="cloudSyncHeaderBtn" class="cloud-sync-pill-btn sync-state-unconfigured" onclick="CloudSync.openModal()" title="Cài đặt & Giám sát Đồng bộ Đám mây giữa Máy tính và Điện thoại">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <!-- Nút Kho Dữ Liệu Trung Tâm GitHub -->
+        <button id="githubSyncHeaderBtn" class="cloud-sync-pill-btn" onclick="GitHubSync.openModal()" title="Kho dữ liệu trung tâm lưu tự động trên GitHub Repository của bạn" style="background:#0f172a; color:#f8fafc; border:1px solid #334155;">
+          <span>🐙</span>
+          <span class="sync-pill-text" style="font-weight:700;">Kho GitHub: Đã Lưu</span>
+        </button>
+
+        <!-- Nút Đồng Bộ Đám Mây Firebase (Tùy chọn) -->
+        <button id="cloudSyncHeaderBtn" class="cloud-sync-pill-btn sync-state-unconfigured" onclick="CloudSync.openModal()" title="Đồng bộ thời gian thực qua Firebase (Realtime)">
           <span class="sync-dot dot-unconfigured"></span>
-          <span class="sync-pill-text">Cài Đặt Đám Mây ☁️</span>
+          <span class="sync-pill-text">Đám Mây ☁️</span>
+        </button>
+
+        <!-- Nút Đổi Vai Trò Nhanh 1-Chạm (Không cần gõ mật khẩu) -->
+        <button type="button" class="btn btn-xs btn-outline" onclick="App.openQuickSwitchModal()" title="Chuyển nhanh giữa Gia sư, Admin và Học sinh 1-chạm" style="font-weight:700; border-radius:20px; padding:6px 12px; border-color:#cbd5e1; background:#ffffff;">
+          🔄 Đổi Vai Trò
         </button>
 
         <!-- Khu vực tài khoản & Nút Đăng Xuất -->
@@ -1146,8 +1157,55 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
+  <!-- ================= MODAL: QUẢN LÝ KHO DỮ LIỆU GITHUB ================= -->
+  <div class="modal-overlay" id="githubSyncModal" style="z-index: 3600;">
+    <div class="modal-box" style="max-width: 660px; max-height: 94vh; background: #ffffff;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:40px; height:40px; background:linear-gradient(135deg, #0f172a, #334155); border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-size:22px;">
+            🐙
+          </div>
+          <div>
+            <h3>Kho Dữ Liệu Trung Tâm GitHub</h3>
+            <small style="color:var(--text-muted);">Tự động lưu vĩnh viễn trên Repository của bạn (data/edutask_database.json)</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="GitHubSync.closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="githubSyncModalBody" style="gap:16px;">
+        <!-- Render động qua GitHubSync.renderModalContent() -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="GitHubSync.closeModal()">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: CHUYỂN ĐỔI VAI TRÒ NHANH 1-CHẠM ================= -->
+  <div class="modal-overlay" id="quickSwitchModal" style="z-index: 3700;">
+    <div class="modal-box" style="max-width: 520px; background: #ffffff;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-size:24px;">🔄</div>
+          <div>
+            <h3>Chuyển Đổi Vai Trò Nhanh (1-Chạm)</h3>
+            <small style="color:var(--text-muted);">Vào thẳng bàn làm việc mà không cần gõ lại mật khẩu</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('quickSwitchModal')">&times;</button>
+      </div>
+      <div class="modal-body" id="quickSwitchModalBody" style="gap:10px; padding:16px;">
+        <!-- Render động qua App.renderQuickSwitchList() -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('quickSwitchModal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
   <!-- JavaScript Modules -->
   <script src="js/cloud-sync.js"></script>
+  <script src="js/github-sync.js"></script>
   <script src="js/store.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/gateway.js"></script>
