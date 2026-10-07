@@ -174,19 +174,6 @@ const GatewayView = {
                 <span>🔐</span> <span>ĐĂNG NHẬP VÀO HỆ THỐNG</span> <span class="submit-arrow">→</span>
               </button>
 
-              <!-- Phím Chọn Nhanh 1-Chạm (Không cần gõ mật khẩu) -->
-              <div style="margin-top:14px; padding:12px 10px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; text-align:center;">
-                <div style="font-size:11.5px; font-weight:800; color:#0369a1; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.3px;">
-                  ⚡ Vào nhanh 1-chạm (Không cần nhập mật khẩu):
-                </div>
-                <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
-                  <button type="button" class="btn btn-xs btn-primary" onclick="Auth.quickSwitch('u_tutor')" style="font-size:11.5px; padding:5px 9px;">👨‍🏫 Thầy Minh Đức</button>
-                  <button type="button" class="btn btn-xs btn-secondary" onclick="Auth.quickSwitch('u_tutor_linh')" style="font-size:11.5px; padding:5px 9px;">👩‍🏫 Cô Linh</button>
-                  <button type="button" class="btn btn-xs btn-white" onclick="Auth.quickSwitch('u_admin')" style="font-size:11.5px; padding:5px 9px; border:1px solid #cbd5e1;">👑 Admin</button>
-                  <button type="button" class="btn btn-xs btn-outline" onclick="Auth.quickSwitch('u_std_quang')" style="font-size:11.5px; padding:5px 9px;">🎒 Em Quang</button>
-                </div>
-              </div>
-
               <!-- Liên kết Tạo tài khoản mới -->
               <div style="text-align:center; margin:14px 0 6px 0; padding-top:12px; border-top:1px dashed #e2e8f0;">
                 <span style="font-size:13px; color:#64748b;">Chưa có tài khoản? </span>

@@ -30,14 +30,7 @@ const Auth = {
       }
     }
 
-    // Nếu là lần đầu tiên mở ứng dụng: Tự động vào thẳng Gia Sư Thầy Minh Đức
-    const defaultUser = (window.Store && Store.getUserById) ? Store.getUserById('u_tutor') : null;
-    if (defaultUser) {
-      this.sessionUser = defaultUser;
-      this.activeUser = defaultUser;
-      localStorage.setItem(this.SESSION_KEY, defaultUser.id);
-      console.log(`[Auth] Vào thẳng bàn làm việc mặc định: ${defaultUser.name}`);
-    }
+    // Nếu chưa có phiên đăng nhập: Giữ null để hiển thị màn hình Đăng Nhập Gateway
   },
 
   isAuthenticated() {
@@ -60,27 +53,6 @@ const Auth = {
   // Kiểm tra Admin có đang đóng vai xem giao diện người khác hay không
   isAdminSupervising() {
     return this.isRealAdmin() && this.activeUser && this.activeUser.id !== this.sessionUser.id;
-  },
-
-  // Đổi vai trò 1-chạm siêu nhanh (không cần gõ lại mật khẩu)
-  quickSwitch(userId) {
-    const user = Store.getUserById(userId);
-    if (!user) return false;
-
-    this.sessionUser = user;
-    this.activeUser = user;
-    localStorage.setItem(this.SESSION_KEY, user.id);
-    localStorage.removeItem(this.SUPERVISE_KEY);
-
-    window.dispatchEvent(new CustomEvent('auth:user_changed', { detail: user }));
-    if (typeof App !== 'undefined') {
-      if (App.showToast) {
-        App.showToast(`⚡ Đã chuyển nhanh sang: ${user.name} (${user.roleName || user.role})`, 'success');
-      }
-      if (App.updateHeaderProfile) App.updateHeaderProfile();
-      if (App.renderCurrentView) App.renderCurrentView();
-    }
-    return true;
   },
 
   // Phương thức đăng nhập chính thức bằng Tên đăng nhập (tk) và Mật khẩu (mk)

@@ -74,11 +74,6 @@
           <span class="sync-pill-text">Đám Mây ☁️</span>
         </button>
 
-        <!-- Nút Đổi Vai Trò Nhanh 1-Chạm (Không cần gõ mật khẩu) -->
-        <button type="button" class="btn btn-xs btn-outline" onclick="App.openQuickSwitchModal()" title="Chuyển nhanh giữa Gia sư, Admin và Học sinh 1-chạm" style="font-weight:700; border-radius:20px; padding:6px 12px; border-color:#cbd5e1; background:#ffffff;">
-          🔄 Đổi Vai Trò
-        </button>
-
         <!-- Khu vực tài khoản & Nút Đăng Xuất -->
         <div id="headerUserActions" style="display:flex; align-items:center; gap:12px;">
           <!-- Render động Profile Badge + Nút Đăng Xuất -->
@@ -1177,28 +1172,6 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="GitHubSync.closeModal()">Đóng</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ================= MODAL: CHUYỂN ĐỔI VAI TRÒ NHANH 1-CHẠM ================= -->
-  <div class="modal-overlay" id="quickSwitchModal" style="z-index: 3700;">
-    <div class="modal-box" style="max-width: 520px; background: #ffffff;">
-      <div class="modal-header">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div style="font-size:24px;">🔄</div>
-          <div>
-            <h3>Chuyển Đổi Vai Trò Nhanh (1-Chạm)</h3>
-            <small style="color:var(--text-muted);">Vào thẳng bàn làm việc mà không cần gõ lại mật khẩu</small>
-          </div>
-        </div>
-        <button class="modal-close" onclick="App.closeModal('quickSwitchModal')">&times;</button>
-      </div>
-      <div class="modal-body" id="quickSwitchModalBody" style="gap:10px; padding:16px;">
-        <!-- Render động qua App.renderQuickSwitchList() -->
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline" onclick="App.closeModal('quickSwitchModal')">Đóng</button>
       </div>
     </div>
   </div>
