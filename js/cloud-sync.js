@@ -355,8 +355,14 @@ const CloudSync = {
       }
 
       // Xác định các tài khoản mới xuất hiện từ thiết bị khác
+      if (remoteData && window.Store && typeof Store.healAllData === 'function') {
+        Store.healAllData(remoteData);
+      }
       const oldUserIds = (Store.data && Store.data.users) ? Store.data.users.map(u => u.id) : [];
       const mergedData = this.smartMerge(Store.data, remoteData);
+      if (window.Store && typeof Store.healAllData === 'function') {
+        Store.healAllData(mergedData);
+      }
       const newUsers = mergedData.users.filter(u => !oldUserIds.includes(u.id));
 
       Store.data = mergedData;
@@ -452,6 +458,15 @@ const CloudSync = {
           accountStatus
         };
 
+        // Chống lỗi font: Nếu ru bị lỗi font (? hoặc \uFFFD) mà lu không bị, ưu tiên giữ lu
+        for (const k in combined) {
+          if (typeof lu[k] === 'string' && typeof ru[k] === 'string') {
+            const ruBad = ru[k].includes('?') || ru[k].includes('\uFFFD');
+            const luBad = lu[k].includes('?') || lu[k].includes('\uFFFD');
+            if (ruBad && !luBad) combined[k] = lu[k];
+          }
+        }
+
         if (ru.username && ru.username.trim()) combined.username = ru.username;
         else if (lu.username && lu.username.trim()) combined.username = lu.username;
 
@@ -505,6 +520,10 @@ const CloudSync = {
     });
     merged.submissions = Array.from(subsMap.values());
 
+    if (window.Store && typeof Store.healAllData === 'function') {
+      Store.healAllData(merged);
+    }
+
     return merged;
   },
 
@@ -523,12 +542,16 @@ const CloudSync = {
     if (!this.isConfigured) return false;
 
     const authorName = (window.Auth && Auth.getCurrentUser()) ? Auth.getCurrentUser().name : 'EduTask';
+    const cleanData = dataToPush || Store.data;
+    if (window.Store && typeof Store.healAllData === 'function') {
+      Store.healAllData(cleanData);
+    }
     const payload = {
-      data: dataToPush || Store.data,
+      data: cleanData,
       lastUpdated: Date.now(),
       deviceId: this.myDeviceId,
       author: authorName,
-      clientVersion: 3
+      clientVersion: 4
     };
 
     this.renderHeaderIndicator('syncing');

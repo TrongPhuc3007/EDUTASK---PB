@@ -233,8 +233,8 @@ const AdminView = {
                       <div style="display:flex; align-items:center; gap:10px;">
                         <div class="user-avatar" style="width:36px; height:36px; font-size:13px; background:linear-gradient(135deg, #6366f1, #4f46e5);">${tut.avatarText || 'GS'}</div>
                         <div>
-                          <strong style="font-size:14px; color:var(--text-main);">${tut.name}</strong>
-                          <span style="font-size:11.5px; color:#64748b; display:block;">${tut.gender || 'Gia sư'} • ${subjects}</span>
+                          <strong style="font-size:14px; color:var(--text-main);">${window.Store && Store.healString ? Store.healString(tut.name) : tut.name}</strong>
+                          <span style="font-size:11.5px; color:#64748b; display:block;">${(tut.gender === 'N?' ? 'Nữ' : (window.Store && Store.healString ? Store.healString(tut.gender || 'Gia sư') : (tut.gender || 'Gia sư')))} • ${window.Store && Store.healString ? Store.healString(subjects) : subjects}</span>
                         </div>
                       </div>
                     </td>

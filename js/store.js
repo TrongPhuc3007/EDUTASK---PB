@@ -54,6 +54,178 @@ const Store = {
     <text x="130" y="960" font-family="cursive, sans-serif" font-size="16" fill="%231e3a8a">Do x + 1/x &gt;= 2 nên P &lt;= 1/2. Max P = 1/2 khi x = 1.</text>
   </svg>`,
 
+  // Phục hồi và chuẩn hóa font chữ tiếng Việt cho một chuỗi (Chống lỗi font ?, \uFFFD)
+  healString(str) {
+    if (typeof str !== 'string' || !str) return str;
+    if (!str.includes('?') && !str.includes('\uFFFD') && !str.includes('')) return str;
+
+    let s = str;
+    const phraseMap = [
+      [/Th[\?\uFFFD]+y\s+Minh\s+D[\?\uFFFD]+c/gi, 'Thầy Minh Đức'],
+      [/C[\?\uFFFD]*\s*Phuong\s*Linh/gi, 'Cô Phương Linh'],
+      [/C[\?\uFFFD]*\s*B[\?\uFFFD]*nh\s*B[\?\uFFFD]*nh/gi, 'Cô Bình Bình'],
+      [/Qu[\?\uFFFD]+n\s+Tr[\?\uFFFD]+\s+H[\?\uFFFD]+\s+Th[\?\uFFFD]+ng/gi, 'Quản Trị Hệ Thống'],
+      [/Nguy[\?\uFFFD]+n\s+Minh\s+Quang/gi, 'Nguyễn Minh Quang'],
+      [/H[\?\uFFFD]+c\s+Sinh\s+AN/gi, 'Học Sinh AN'],
+      [/L[\?\uFFFD]+e?\s+Ho[\?\uFFFD]+ng\s+Nam/gi, 'Lê Hoàng Nam'],
+      [/Tr[\?\uFFFD]+n\s+Mai\s+Anh/gi, 'Trần Mai Anh'],
+      [/To[\?\uFFFD]+n\s+H[\?\uFFFD]+c\s+THPT/gi, 'Toán Học THPT'],
+      [/To[\?\uFFFD]+n\s+&\s+Khoa\s+H[\?\uFFFD]+c\s*T?[\?\uFFFD]*\s*Nhi?[\?\uFFFD]*n?/gi, 'Toán & Khoa Học Tự Nhiên'],
+      [/To[\?\uFFFD]+n\s+H[\?\uFFFD]+c\s+12/gi, 'Toán Học 12'],
+      [/To[\?\uFFFD]+n\s+H[\?\uFFFD]+c/gi, 'Toán Học'],
+      [/Chuy[\?\uFFFD]+n\s+D[\?\uFFFD]+\s+C[\?\uFFFD]+c\s+Tr[\?\uFFFD]+\s+&\s+B[\?\uFFFD]+t\s+D[\?\uFFFD]+ng\s+Th[\?\uFFFD]+c/gi, 'Chuyên Đề Cực Trị & Bất Đẳng Thức'],
+      [/Kh[\?\uFFFD]+o\s+S[\?\uFFFD]+t\s+D[\?\uFFFD]+\s+Th[\?\uFFFD]+\s+H[\?\uFFFD]+m\s+S[\?\uFFFD]+\s+Ph[\?\uFFFD]+n\s+Th[\?\uFFFD]+c/gi, 'Khảo Sát Đồ Thị Hàm Số Phân Thức'],
+      [/Phuong\s+Tr[\?\uFFFD]+nh\s+Lu[\?\uFFFD]+ng\s+Gi[\?\uFFFD]+c\s+Co\s+B[\?\uFFFD]+n/gi, 'Phương Trình Lượng Giác Cơ Bản'],
+      [/Phi[\?\uFFFD]+u\s+05[^\n]*/gi, 'Phiếu 05: Chuyên Đề Cực Trị & Bất Đẳng Thức'],
+      [/Phi[\?\uFFFD]+u\s+04[^\n]*/gi, 'Phiếu 04: Khảo Sát Đồ Thị Hàm Số Phân Thức'],
+      [/Phi[\?\uFFFD]+u\s+03[^\n]*/gi, 'Phiếu 03: Phương Trình Lượng Giác Cơ Bản'],
+      [/L[\?\uFFFD]+p\s+12/gi, 'Lớp 12'],
+      [/L[\?\uFFFD]+p\s+11/gi, 'Lớp 11'],
+      [/L[\?\uFFFD]+p\s+10/gi, 'Lớp 10'],
+      [/Chua\s+c[\?\uFFFD]+p\s+nh[\?\uFFFD]+t/gi, 'Chưa cập nhật'],
+      [/Ph[\?\uFFFD]+\s+huynh/gi, 'Phụ huynh'],
+      [/^[N\?\uFFFD]+$/gi, 'Nữ']
+    ];
+    for (const [re, rep] of phraseMap) {
+      s = s.replace(re, rep);
+    }
+
+    const wordMap = [
+      [/\bTh[\?\uFFFD]+y\b/gi, 'Thầy'],
+      [/\bC[\?\uFFFD]+\b/gi, 'Cô'],
+      [/\bTo[\?\uFFFD]+n\b/gi, 'Toán'],
+      [/\bH[\?\uFFFD]+c\b/gi, 'Học'],
+      [/\bD[\?\uFFFD]+c\b/gi, 'Đức'],
+      [/\bB[\?\uFFFD]+nh\b/gi, 'Bình'],
+      [/\bN[\?\uFFFD]+\b/gi, 'Nữ'],
+      [/\bNguy[\?\uFFFD]+n\b/gi, 'Nguyễn'],
+      [/\bTr[\?\uFFFD]+n\b/gi, 'Trần'],
+      [/\bL[\?\uFFFD]+\b/gi, 'Lê'],
+      [/\bHo[\?\uFFFD]+ng\b/gi, 'Hoàng'],
+      [/\bQu[\?\uFFFD]+n\b/gi, 'Quản'],
+      [/\bTr[\?\uFFFD]+\b/gi, 'Trị'],
+      [/\bH[\?\uFFFD]+\b/gi, 'Hệ'],
+      [/\bTh[\?\uFFFD]+ng\b/gi, 'Thống'],
+      [/\bPhi[\?\uFFFD]+u\b/gi, 'Phiếu'],
+      [/\bChuy[\?\uFFFD]+n\b/gi, 'Chuyên'],
+      [/\bD[\?\uFFFD]+\b/gi, 'Đề'],
+      [/\bC[\?\uFFFD]+c\b/gi, 'Cực'],
+      [/\bB[\?\uFFFD]+t\b/gi, 'Bất'],
+      [/\bD[\?\uFFFD]+ng\b/gi, 'Đẳng'],
+      [/\bTh[\?\uFFFD]+c\b/gi, 'Thức'],
+      [/\bKh[\?\uFFFD]+o\b/gi, 'Khảo'],
+      [/\bS[\?\uFFFD]+t\b/gi, 'Sát'],
+      [/\bH[\?\uFFFD]+m\b/gi, 'Hàm'],
+      [/\bS[\?\uFFFD]+\b/gi, 'Số'],
+      [/\bPh[\?\uFFFD]+n\b/gi, 'Phân'],
+      [/\bLu[\?\uFFFD]+ng\b/gi, 'Lượng'],
+      [/\bGi[\?\uFFFD]+c\b/gi, 'Giác'],
+      [/\bB[\?\uFFFD]+n\b/gi, 'Bản'],
+      [/\bL[\?\uFFFD]+p\b/gi, 'Lớp'],
+      [/\bPh[\?\uFFFD]+\b/gi, 'Phụ']
+    ];
+    for (const [re, rep] of wordMap) {
+      s = s.replace(re, rep);
+    }
+    return s;
+  },
+
+  // Quét và tự động phục hồi toàn bộ dữ liệu hệ thống (Chống lỗi font vĩnh viễn)
+  healAllData(dataObj) {
+    if (!dataObj || typeof dataObj !== 'object') return dataObj;
+
+    // 1. Chuẩn hóa & bảo vệ danh sách Người dùng (Users)
+    if (Array.isArray(dataObj.users)) {
+      dataObj.users.forEach(u => {
+        if (!u) return;
+        if (u.id === 'u_tutor') {
+          u.name = 'Thầy Minh Đức';
+          u.roleName = 'Gia Sư Phụ Trách';
+          u.subjects = ['Toán Học THPT'];
+          u.avatarText = 'MĐ';
+        } else if (u.id === 'u_tutor_linh') {
+          u.name = 'Cô Phương Linh';
+          u.roleName = 'Gia Sư Phụ Trách';
+          u.subjects = ['Toán & Khoa Học Tự Nhiên'];
+          u.avatarText = 'PL';
+        } else if (u.id === 'u_tutor_1791305106234' || u.username === 'binhbinh') {
+          u.name = 'Cô Bình Bình';
+          u.roleName = 'Gia Sư Phụ Trách';
+          u.subjects = ['Toán Học THPT'];
+          u.gender = 'Nữ';
+          u.avatarText = 'BB';
+        } else if (u.id === 'u_admin') {
+          u.name = 'Quản Trị Hệ Thống';
+          u.roleName = 'Quản Trị Viên (Admin)';
+          u.avatarText = 'AD';
+        } else if (u.id === 'u_std_quang') {
+          u.name = 'Nguyễn Minh Quang';
+          u.roleName = 'Học Sinh';
+          u.assignedTutorName = 'Thầy Minh Đức';
+          u.gender = 'Nam';
+        } else if (u.id === 'u_std_maianh') {
+          u.name = 'Trần Mai Anh';
+          u.roleName = 'Học Sinh';
+          u.assignedTutorName = 'Thầy Minh Đức';
+          u.gender = 'Nữ';
+        } else if (u.id === 'u_std_nam') {
+          u.name = 'Lê Hoàng Nam';
+          u.roleName = 'Học Sinh';
+          u.assignedTutorName = 'Cô Phương Linh';
+          u.gender = 'Nam';
+        } else if (u.id === 'u_std_1791342637918') {
+          u.name = 'Học Sinh AN';
+          u.roleName = 'Học Sinh';
+          u.assignedTutorName = 'Cô Bình Bình';
+        }
+
+        for (const k in u) {
+          if (typeof u[k] === 'string') {
+            u[k] = this.healString(u[k]);
+          } else if (Array.isArray(u[k])) {
+            u[k] = u[k].map(item => typeof item === 'string' ? this.healString(item) : item);
+          }
+        }
+      });
+    }
+
+    // 2. Chuẩn hóa & bảo vệ danh sách Bài tập (Assignments)
+    if (Array.isArray(dataObj.assignments)) {
+      dataObj.assignments.forEach(a => {
+        if (!a) return;
+        if (a.id === 'asn_001') {
+          a.title = 'Phiếu 05: Chuyên Đề Cực Trị & Bất Đẳng Thức';
+          a.subject = 'Toán Học 12 (Giải Tích & BĐT)';
+        } else if (a.id === 'asn_002') {
+          a.title = 'Phiếu 04: Khảo Sát Đồ Thị Hàm Số Phân Thức';
+          a.subject = 'Toán Học 12 (Khảo sát hàm số)';
+        } else if (a.id === 'asn_003') {
+          a.title = 'Phiếu 03: Phương Trình Lượng Giác Cơ Bản';
+          a.subject = 'Toán Học 11 (Lượng giác)';
+        }
+        for (const k in a) {
+          if (typeof a[k] === 'string') {
+            a[k] = this.healString(a[k]);
+          }
+        }
+      });
+    }
+
+    // 3. Chuẩn hóa & bảo vệ danh sách Bài nộp (Submissions)
+    if (Array.isArray(dataObj.submissions)) {
+      dataObj.submissions.forEach(sub => {
+        if (!sub) return;
+        for (const k in sub) {
+          if (typeof sub[k] === 'string') {
+            sub[k] = this.healString(sub[k]);
+          }
+        }
+      });
+    }
+
+    return dataObj;
+  },
+
   data: null,
 
   init() {
@@ -61,6 +233,8 @@ const Store = {
     if (raw) {
       try {
         this.data = JSON.parse(raw);
+        // Tự động phục hồi toàn bộ chuỗi font chữ bị lỗi ngay khi nạp
+        this.healAllData(this.data);
         // Migration: Đảm bảo toàn bộ tài khoản có username, password, phân quyền và phân công giáo viên chính xác
         if (this.data && Array.isArray(this.data.users)) {
           let updated = false;
@@ -313,6 +487,7 @@ const Store = {
   },
 
   save(skipCloudPush = false, immediate = false) {
+    if (this.data) this.healAllData(this.data);
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
     } catch (e) {
@@ -731,10 +906,12 @@ const Store = {
   },
 
   getStudents() {
+    if (this.data) this.healAllData(this.data);
     return this.data.users.filter(u => u.role === 'student');
   },
 
   getTutors() {
+    if (this.data) this.healAllData(this.data);
     return this.data.users.filter(u => u.role === 'tutor');
   },
 
