@@ -640,7 +640,11 @@ const AdminView = {
         <button class="btn btn-danger" onclick="App.closeModal('studentProfileModal'); AdminView.confirmDeleteStudent('${std.id}', '${std.name}')" title="Xóa học sinh đã học xong hoặc không còn theo học">
           🗑️ Xóa Học Sinh
         </button>
-      ` : ''}
+      ` : `
+        <button class="btn btn-danger" onclick="App.closeModal('studentProfileModal'); AdminView.confirmDeleteStudent('${std.id}', '${std.name}')" title="Xóa học sinh đã học xong hoặc không còn theo học">
+          🗑️ Xóa Học Sinh
+        </button>
+      `}
       <button class="btn btn-primary" onclick="App.closeModal('studentProfileModal'); App.openCreateAssignmentModal('${std.id}')">
         🎯 Giao Bài Riêng Cho Em Này
       </button>

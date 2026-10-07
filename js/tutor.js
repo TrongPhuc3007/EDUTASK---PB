@@ -264,7 +264,7 @@ const TutorView = {
                   </div>
                 </div>
 
-                <div style="display:flex; gap:6px; margin-top:auto; padding-top:6px;">
+                <div style="display:flex; gap:6px; margin-top:auto; padding-top:6px; align-items:center;">
                   <button class="btn btn-outline btn-sm" onclick="AdminView.openStudentProfileModal('${std.id}')" title="Xem hồ sơ chi tiết">
                     👁️ Hồ Sơ
                   </button>
@@ -273,6 +273,9 @@ const TutorView = {
                   </button>
                   <button class="btn btn-primary btn-sm" onclick="App.openCreateAssignmentModal('${std.id}')" title="Giao bài riêng 1-1">
                     🎯 Giao bài
+                  </button>
+                  <button class="btn btn-danger btn-sm" style="padding:6px 9px;" onclick="AdminView.confirmDeleteStudent('${std.id}', '${std.name}')" title="Xóa học sinh này">
+                    🗑️
                   </button>
                 </div>
               </div>

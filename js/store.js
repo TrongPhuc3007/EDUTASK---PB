@@ -1048,19 +1048,23 @@ const Store = {
   },
 
   getAssignmentsForStudent(studentId) {
-    return this.data.assignments.filter(a => a.targetStudentIds.includes(studentId));
+    const delAsns = new Set(this.data?.deletedAssignmentIds || []);
+    return (this.data?.assignments || []).filter(a => !delAsns.has(a.id) && Array.isArray(a.targetStudentIds) && a.targetStudentIds.includes(studentId));
   },
 
   getAllAssignments() {
-    return this.data.assignments;
+    const delAsns = new Set(this.data?.deletedAssignmentIds || []);
+    return (this.data?.assignments || []).filter(a => !delAsns.has(a.id));
   },
 
   getSubmission(assignmentId, studentId) {
-    return this.data.submissions.find(s => s.assignmentId === assignmentId && s.studentId === studentId);
+    const delSubs = new Set(this.data?.deletedSubmissionIds || []);
+    return (this.data?.submissions || []).find(s => !delSubs.has(s.id) && s.assignmentId === assignmentId && s.studentId === studentId);
   },
 
   getSubmissionsByAssignment(assignmentId) {
-    return this.data.submissions.filter(s => s.assignmentId === assignmentId);
+    const delSubs = new Set(this.data?.deletedSubmissionIds || []);
+    return (this.data?.submissions || []).filter(s => !delSubs.has(s.id) && s.assignmentId === assignmentId);
   },
 
   getStudentCheatSummary(studentId) {
