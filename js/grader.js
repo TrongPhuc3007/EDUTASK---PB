@@ -94,6 +94,19 @@ const Grader = {
       }
     }
 
+    // Hiển thị Lời nhắn của Học sinh từ điện thoại gửi lên
+    const studentNoteBox = document.getElementById('graderStudentNoteBox');
+    const studentNoteText = document.getElementById('graderStudentNoteText');
+    const sNote = sub.studentNote || sub.note || '';
+    if (studentNoteBox && studentNoteText) {
+      if (sNote && sNote.trim()) {
+        studentNoteText.textContent = sNote.trim();
+        studentNoteBox.style.display = 'block';
+      } else {
+        studentNoteBox.style.display = 'none';
+      }
+    }
+
     // Mở overlay
     const modal = document.getElementById('graderModal');
     if (modal) modal.classList.add('active');

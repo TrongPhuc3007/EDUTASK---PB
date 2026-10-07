@@ -164,6 +164,25 @@ const StudentView = {
         `;
       }
 
+      let feedbackSnippet = '';
+      if (sub && sub.status === 'graded' && sub.feedback) {
+        feedbackSnippet = `
+          <div style="background:#ecfdf5; border-left:3.5px solid #10b981; padding:8px 10px; border-radius:6px; margin:8px 0; font-size:12.5px; color:#065f46; line-height:1.45;">
+            <strong>💬 Lời phê của Thầy/Cô:</strong> ${sub.feedback}
+          </div>
+        `;
+      }
+
+      let studentNoteSnippet = '';
+      if (sub && (sub.studentNote || sub.note)) {
+        const nText = sub.studentNote || sub.note;
+        studentNoteSnippet = `
+          <div style="font-size:11.5px; color:#64748b; font-style:italic; margin:4px 0;">
+            💬 Lời nhắn của bạn: "${nText}"
+          </div>
+        `;
+      }
+
       return `
         <div class="assignment-card">
           <div class="card-top">
@@ -176,6 +195,8 @@ const StudentView = {
           <h4>${asn.title}</h4>
           <p style="font-size:13.5px; color:var(--text-muted);">${asn.description}</p>
           ${attachmentBox}
+          ${feedbackSnippet}
+          ${studentNoteSnippet}
 
           <div class="assignment-meta">
             <div class="meta-row">

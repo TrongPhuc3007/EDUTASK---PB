@@ -203,6 +203,16 @@ const App = {
         </button>
       `;
     }
+
+    // 5. Quản lý hiển thị thanh Mobile Bottom Navigation (Chỉ hiện khi là Học Sinh trên điện thoại)
+    const mobileNav = document.getElementById('mobileBottomNav');
+    const isStudent = activeUser && activeUser.role === 'student';
+    if (mobileNav) {
+      mobileNav.style.display = isStudent ? 'flex' : 'none';
+    }
+    if (document.body) {
+      document.body.classList.toggle('has-bottom-nav', !!isStudent);
+    }
   },
 
   renderCurrentView() {
@@ -581,6 +591,10 @@ const App = {
 
     document.getElementById('submitModalTitle').textContent = `Nộp Bài: ${assignment.title}`;
     
+    const camInput = document.getElementById('submitCameraInput');
+    if (camInput) camInput.value = '';
+    const galInput = document.getElementById('submitGalleryInput');
+    if (galInput) galInput.value = '';
     const fileInput = document.getElementById('submitFileInput');
     if (fileInput) fileInput.value = '';
 
@@ -651,6 +665,37 @@ const App = {
     }
   },
 
+  // Xoay ảnh 90 độ cho học sinh nếu điện thoại chụp ngang
+  rotateSubmitPhoto() {
+    if (!this.currentUploadedPhotoUrl) return;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.height;
+      canvas.height = img.width;
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((90 * Math.PI) / 180);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+      const rotatedUrl = canvas.toDataURL('image/jpeg', 0.85);
+      App.currentUploadedPhotoUrl = rotatedUrl;
+      const previewImg = document.getElementById('submitPreviewImg');
+      if (previewImg) previewImg.src = rotatedUrl;
+    };
+    img.src = this.currentUploadedPhotoUrl;
+  },
+
+  // Hủy ảnh đã chọn để chụp lại ảnh khác
+  clearSubmitPhoto() {
+    this.currentUploadedPhotoUrl = null;
+    const previewBox = document.getElementById('submitFilePreview');
+    if (previewBox) previewBox.style.display = 'none';
+    const camInput = document.getElementById('submitCameraInput');
+    if (camInput) camInput.value = '';
+    const galInput = document.getElementById('submitGalleryInput');
+    if (galInput) galInput.value = '';
+  },
+
   confirmStudentSubmission() {
     if (!this.currentSubmittingAssignmentId) return;
     const student = Auth.getCurrentUser();
@@ -675,6 +720,7 @@ const App = {
       status: 'submitted',
       photoUrl: photoUrl,
       studentNote: note,
+      note: note,
       score: null,
       feedback: '',
       gradedAt: null,
@@ -767,6 +813,196 @@ const App = {
       toast.style.transition = 'all 0.3s ease';
       setTimeout(() => toast.remove(), 300);
     }, 3200);
+  },
+
+  // ================= TƯƠNG TÁC ĐA THIẾT BỊ: MÃ QR CHO ĐIỆN THOẠI =================
+  openQRCodeModal(assignmentId) {
+    const asn = Store.data.assignments.find(a => a.id === assignmentId);
+    const origin = window.location.origin + window.location.pathname;
+    const targetUrl = origin;
+
+    const qrTitle = document.getElementById('qrCodeTitle');
+    if (qrTitle) qrTitle.textContent = asn ? asn.title : 'EDUTASK - PB';
+
+    const qrInput = document.getElementById('qrCodeUrlInput');
+    if (qrInput) qrInput.value = targetUrl;
+
+    const qrImg = document.getElementById('qrCodeImg');
+    if (qrImg) {
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(targetUrl)}`;
+    }
+
+    const modal = document.getElementById('qrCodeModal');
+    if (modal) modal.classList.add('active');
+  },
+
+  copyQrUrl() {
+    const input = document.getElementById('qrCodeUrlInput');
+    if (input) {
+      input.select();
+      try {
+        navigator.clipboard.writeText(input.value);
+        this.showToast('📋 Đã sao chép liên kết vào bộ nhớ tạm!', 'success');
+      } catch (e) {
+        document.execCommand('copy');
+        this.showToast('📋 Đã sao chép liên kết!', 'success');
+      }
+    }
+  },
+
+  // ================= TƯƠNG TÁC ĐA THIẾT BỊ: ÂM THANH THÔNG BÁO TỔNG HỢP =================
+  playNotificationSound(type = 'submit') {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const audioCtx = new AudioCtx();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'grade') {
+        // Âm thanh chúc mừng học sinh khi được chấm điểm (Hợp âm tươi sáng)
+        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+        osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+      } else {
+        // Âm thanh thông báo nhẹ nhàng cho gia sư khi có học sinh nộp bài
+        osc.frequency.setValueAtTime(698.46, audioCtx.currentTime); // F5
+        osc.frequency.setValueAtTime(880.00, audioCtx.currentTime + 0.12); // A5
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+      }
+    } catch (e) {
+      // Bỏ qua nếu trình duyệt chặn audio autoplay
+    }
+  },
+
+  // ================= TOAST TƯƠNG TÁC ĐA THIẾT BỊ (ACTIONABLE TOAST) =================
+  showInteractiveToast(message, actionText = '', actionCallback = null) {
+    let toast = document.getElementById('interactiveToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'interactiveToast';
+      toast.className = 'interactive-toast';
+      document.body.appendChild(toast);
+    }
+
+    toast.innerHTML = `
+      <div class="interactive-toast-content">
+        <div class="interactive-toast-msg">${message}</div>
+        ${actionText ? `<button class="interactive-toast-btn" id="interactiveToastActionBtn">${actionText}</button>` : ''}
+        <button class="interactive-toast-close" onclick="document.getElementById('interactiveToast').classList.remove('active')">&times;</button>
+      </div>
+    `;
+
+    if (actionText && actionCallback) {
+      const btn = document.getElementById('interactiveToastActionBtn');
+      if (btn) {
+        btn.onclick = () => {
+          toast.classList.remove('active');
+          actionCallback();
+        };
+      }
+    }
+
+    toast.classList.add('active');
+    setTimeout(() => {
+      if (toast) toast.classList.remove('active');
+    }, 12000);
+  },
+
+  // ================= ĐỐI SOÁT & THÔNG BÁO TỨC THÌ GIỮA GIA SƯ VÀ HỌC SINH =================
+  checkCrossDeviceNotifications(prevData, newData) {
+    if (!prevData || !newData || !Auth.isAuthenticated()) return;
+    const currentUser = Auth.getCurrentUser();
+    if (!currentUser) return;
+
+    if (currentUser.role === 'student') {
+      // 1. Kiểm tra xem có bài nộp nào của học sinh này vừa được chấm điểm không
+      const prevSubs = (prevData.submissions || []).filter(s => s.studentId === currentUser.id);
+      const newSubs = (newData.submissions || []).filter(s => s.studentId === currentUser.id);
+
+      newSubs.forEach(newSub => {
+        const oldSub = prevSubs.find(s => s.id === newSub.id);
+        if ((!oldSub || oldSub.status !== 'graded') && newSub.status === 'graded') {
+          const asn = (newData.assignments || []).find(a => a.id === newSub.assignmentId);
+          const title = asn ? asn.title : 'Bài tập';
+          this.playNotificationSound('grade');
+          this.showInteractiveToast(
+            `🎉 Thầy/Cô vừa chấm xong: <strong>"${title}"</strong>! Bạn đạt <strong>${newSub.score}/10đ</strong>.`,
+            '🔍 Xem Lời Phê & Bút Đỏ',
+            () => App.openReviewModal(newSub.id)
+          );
+        }
+      });
+
+      // 2. Kiểm tra xem có bài tập mới nào vừa được giao cho học sinh này không
+      const prevAsns = (prevData.assignments || []).filter(a => a.targetStudentIds && a.targetStudentIds.includes(currentUser.id));
+      const newAsns = (newData.assignments || []).filter(a => a.targetStudentIds && a.targetStudentIds.includes(currentUser.id));
+      newAsns.forEach(newAsn => {
+        if (!prevAsns.some(a => a.id === newAsn.id)) {
+          this.playNotificationSound('submit');
+          this.showInteractiveToast(
+            `📚 Thầy/Cô vừa giao bài mới: <strong>"${newAsn.title}"</strong>!`,
+            '✍️ Xem Bài Ngay',
+            () => App.renderCurrentView()
+          );
+        }
+      });
+    } else if (currentUser.role === 'tutor' || currentUser.role === 'admin') {
+      // Kiểm tra xem có bài tập nào vừa được học sinh nộp từ điện thoại lên không
+      const prevSubs = prevData.submissions || [];
+      const newSubs = newData.submissions || [];
+
+      newSubs.forEach(newSub => {
+        const oldSub = prevSubs.find(s => s.id === newSub.id);
+        if ((!oldSub || oldSub.status !== 'submitted') && newSub.status === 'submitted') {
+          const asn = (newData.assignments || []).find(a => a.id === newSub.assignmentId);
+          const title = asn ? asn.title : 'Bài tập';
+          const std = (newData.users || []).find(u => u.id === newSub.studentId);
+          const stdName = std ? std.name : (newSub.studentName || 'Học sinh');
+
+          this.playNotificationSound('submit');
+          this.showInteractiveToast(
+            `🔔 <strong>${stdName}</strong> vừa nộp ảnh bài làm: <strong>"${title}"</strong>!`,
+            '✍️ Mở Bàn Chấm Bút Đỏ',
+            () => Grader.open(newSub.id)
+          );
+        }
+      });
+    }
+  },
+
+  // ================= ĐIỀU HƯỚNG NHANH CHO HỌC SINH TRÊN ĐIỆN THOẠI =================
+  handleMobileNavClick(tab) {
+    const itemAsn = document.getElementById('mNavAssignments');
+    const itemScores = document.getElementById('mNavScores');
+    if (tab === 'assignments') {
+      if (itemAsn) itemAsn.classList.add('active');
+      if (itemScores) itemScores.classList.remove('active');
+      const container = document.querySelector('.assignment-grid');
+      if (container) {
+        container.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } else if (tab === 'scores') {
+      if (itemScores) itemScores.classList.add('active');
+      if (itemAsn) itemAsn.classList.remove('active');
+      const banner = document.querySelector('.view-banner');
+      if (banner) {
+        banner.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
   }
 };
 

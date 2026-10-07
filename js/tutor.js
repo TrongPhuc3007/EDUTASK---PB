@@ -489,6 +489,9 @@ const TutorView = {
           <button class="btn btn-sm btn-outline" style="flex:1;" onclick="App.showToast('🔔 Đã gửi thông báo nhắc học sinh nộp bài!', 'info')">
             🔔 Nhắc nộp bài
           </button>
+          <button class="btn btn-sm btn-outline" style="flex:1; border-color:#38bdf8; color:#0284c7;" onclick="App.openQRCodeModal('${assignment.id}')" title="Mở mã QR cho học sinh quét bằng camera điện thoại">
+            📱 QR Điện Thoại
+          </button>
           <button class="btn btn-sm btn-danger" style="padding:6px 10px;" onclick="TutorView.deleteAssignment('${assignment.id}')" title="Xóa bài tập này">
             🗑️
           </button>
@@ -566,7 +569,15 @@ const TutorView = {
       </div>
     ` : '';
 
-    return submissionRows + notSubmittedNotice;
+    const qrActionRow = `
+      <div style="display:flex; justify-content:flex-end; margin-top:6px;">
+        <button class="btn btn-xs btn-outline" style="border-color:#38bdf8; color:#0284c7; font-weight:600;" onclick="App.openQRCodeModal('${assignment.id}')" title="Mở mã QR cho học sinh quét bằng camera điện thoại">
+          📱 Mã QR Mở Trên Điện Thoại
+        </button>
+      </div>
+    `;
+
+    return submissionRows + notSubmittedNotice + qrActionRow;
   },
 
   deleteAssignment(assignmentId) {

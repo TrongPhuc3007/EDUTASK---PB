@@ -169,6 +169,9 @@ const GitHubSync = {
       const remoteData = JSON.parse(jsonString);
 
       if (remoteData && Array.isArray(remoteData.users) && remoteData.users.length > 0) {
+        // Lưu bản snapshot trước đó để đối soát các sự kiện tương tác giữa các thiết bị
+        const prevData = Store.data ? JSON.parse(JSON.stringify(Store.data)) : null;
+
         // Nếu máy này KHÔNG có thay đổi cục bộ đang chờ đẩy -> Nhận toàn bộ bản mới từ GitHub
         if (!this.pendingPushTimer && !this.hasQueuedPush) {
           Store.data = remoteData;
@@ -190,6 +193,11 @@ const GitHubSync = {
 
         // Báo cho các thành phần UI cập nhật
         window.dispatchEvent(new CustomEvent('edutask:remote_data_updated', { detail: Store.data }));
+
+        // Kích hoạt thông báo tương tác đa thiết bị thông minh (Gia sư <-> Học sinh)
+        if (prevData && window.App && typeof App.checkCrossDeviceNotifications === 'function') {
+          App.checkCrossDeviceNotifications(prevData, Store.data);
+        }
 
         // Cập nhật giao diện nếu không đang thao tác vẽ chấm bài
         const isGrader = window.Grader && Grader.activeSubmission;
