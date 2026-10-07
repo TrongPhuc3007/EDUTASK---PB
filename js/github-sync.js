@@ -206,13 +206,51 @@ const GitHubSync = {
           }
         }
 
-        if (window.App && typeof App.showToast === 'function') {
-          App.showToast('⚡ Dữ liệu vừa được tự động đồng bộ thời gian thực từ thiết bị khác!', 'info');
+        // TỰ ĐỘNG BÙ DỮ LIỆU: Nếu máy này có tài khoản, bài tập hoặc bài nộp mới mà GitHub chưa có
+        // Hệ thống sẽ tự động đẩy ngay bản hợp nhất lên GitHub để các thiết bị khác nhận được ngay!
+        if (prevData && this.hasLocalAdditions(prevData, remoteData)) {
+          console.log('[GitHubSync] ⚡ Phát hiện máy này có dữ liệu mới chưa có trên GitHub! Đang tự động đẩy bù...');
+          setTimeout(() => {
+            this.pushToGitHub(Store.data, false);
+          }, 400);
         }
       }
     } catch (err) {
       console.warn('[GitHubSync] Lỗi phân tích dữ liệu remote:', err);
     }
+  },
+
+  // So sánh xem bản cục bộ có dữ liệu mới hơn bản trên GitHub hay không
+  hasLocalAdditions(local, remote) {
+    if (!local || !remote) return false;
+    // 1. Kiểm tra người dùng mới
+    const localUsers = Array.isArray(local.users) ? local.users : [];
+    const remoteUsers = Array.isArray(remote.users) ? remote.users : [];
+    const remoteUserIds = new Set(remoteUsers.map(u => u.id));
+    for (const u of localUsers) {
+      if (!remoteUserIds.has(u.id)) return true;
+    }
+
+    // 2. Kiểm tra bài tập mới
+    const localAsns = Array.isArray(local.assignments) ? local.assignments : [];
+    const remoteAsns = Array.isArray(remote.assignments) ? remote.assignments : [];
+    const remoteAsnIds = new Set(remoteAsns.map(a => a.id));
+    for (const a of localAsns) {
+      if (!remoteAsnIds.has(a.id)) return true;
+    }
+
+    // 3. Kiểm tra bài nộp mới hoặc bài vừa chấm điểm
+    const localSubs = Array.isArray(local.submissions) ? local.submissions : [];
+    const remoteSubs = Array.isArray(remote.submissions) ? remote.submissions : [];
+    const remoteSubMap = new Map();
+    remoteSubs.forEach(s => remoteSubMap.set(s.id, s));
+    for (const ls of localSubs) {
+      const rs = remoteSubMap.get(ls.id);
+      if (!rs) return true;
+      if (ls.status === 'graded' && rs.status !== 'graded') return true;
+    }
+
+    return false;
   },
 
   // Chờ tiến trình đồng bộ trước kết thúc để tránh nghẽn
