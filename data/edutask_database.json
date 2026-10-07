@@ -298,8 +298,7 @@
       "description": "Bài tập rèn luyện kỹ năng vẽ bảng biến thiên và tiệm cận.",
       "targetType": "individual",
       "targetStudentIds": [
-        "u_std_maianh",
-        "u_std_1791342637918"
+        "u_std_maianh"
       ],
       "deadline": "2026-10-07T20:00",
       "createdAt": "2026-10-05T14:00",
@@ -318,8 +317,7 @@
       "description": "Ôn tập 10 công thức lượng giác và giải các phương trình sin, cos.",
       "targetType": "all",
       "targetStudentIds": [
-        "u_std_nam",
-        "u_std_1791342637918"
+        "u_std_nam"
       ],
       "deadline": "2026-10-10T23:59",
       "createdAt": "2026-10-05T08:00",
