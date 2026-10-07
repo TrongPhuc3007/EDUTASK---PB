@@ -298,6 +298,22 @@ const CloudSync = {
         Auth.refreshUserFromStore();
       }
 
+      // BẮC CẦU TỰ ĐỘNG: Ghi bản sao lưu bền vững lên kho GitHub trung tâm (background)
+      if (window.GitHubSync && typeof GitHubSync.schedulePush === 'function') {
+        GitHubSync.schedulePush(false);
+      }
+
+      // TỰ HOÀN THIỆN: Nếu dữ liệu cục bộ có thông tin mà Firebase đang thiếu, đẩy ngược lại lên Cloud
+      const remoteAsnsCount = Array.isArray(remoteData.assignments) ? remoteData.assignments.length : 0;
+      const mergedAsnsCount = Array.isArray(mergedData.assignments) ? mergedData.assignments.length : 0;
+      const remoteUsersCount = Array.isArray(remoteData.users) ? remoteData.users.length : 0;
+      const mergedUsersCount = Array.isArray(mergedData.users) ? mergedData.users.length : 0;
+
+      if (mergedUsersCount > remoteUsersCount || mergedAsnsCount > remoteAsnsCount) {
+        console.log('[CloudSync] 🔄 Tự động bù đắp dữ liệu hoàn chỉnh lên Firebase...');
+        setTimeout(() => this.pushData(mergedData, true), 600);
+      }
+
       // Cập nhật giao diện mượt mà (không ngắt quãng nếu người dùng đang chấm bài hoặc nhập dữ liệu)
       const isGrader = window.Grader && Grader.activeSubmission;
       const hasActiveModal = document.querySelector('.modal-overlay.active');

@@ -214,6 +214,11 @@ const GitHubSync = {
             this.pushToGitHub(Store.data, false);
           }, 400);
         }
+
+        // BẮC CẦU TỰ ĐỘNG: Đảm bảo Firebase Realtime Database cũng nhận được dữ liệu hợp nhất
+        if (window.CloudSync && typeof CloudSync.schedulePush === 'function') {
+          CloudSync.schedulePush();
+        }
       }
     } catch (err) {
       console.warn('[GitHubSync] Lỗi phân tích dữ liệu remote:', err);

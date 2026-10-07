@@ -1,20 +1,10 @@
-{
+﻿{
     "meta":  {
                  "name":  "EDUTASK_PB_CENTRAL_DATABASE",
                  "version":  3,
-                 "lastUpdated":  "2026-10-07T09:00:00Z"
+                 "lastUpdated":  "2026-10-07T06:27:31.3333629+00:00"
              },
     "users":  [
-                  {
-                      "id":  "u_admin",
-                      "username":  "admin",
-                      "password":  "admin123",
-                      "name":  "Quản Trị Hệ Thống",
-                      "role":  "admin",
-                      "roleName":  "Quản Trị Viên (Admin)",
-                      "phone":  "0900.123.456",
-                      "avatarText":  "AD"
-                  },
                   {
                       "id":  "u_tutor",
                       "username":  "giasu",
@@ -26,19 +16,6 @@
                       "avatarText":  "MĐ",
                       "subjects":  [
                                        "Toán Học THPT"
-                                   ]
-                  },
-                  {
-                      "id":  "u_tutor_linh",
-                      "username":  "giasu_linh",
-                      "password":  "123456",
-                      "name":  "Cô Phương Linh",
-                      "role":  "tutor",
-                      "roleName":  "Gia Sư Phụ Trách",
-                      "phone":  "0988.765.432",
-                      "avatarText":  "PL",
-                      "subjects":  [
-                                       "Toán \u0026 Khoa Học Tự Nhiên"
                                    ]
                   },
                   {
@@ -77,39 +54,39 @@
                       "avatarText":  "MQ"
                   },
                   {
-                      "id":  "u_std_maianh",
-                      "hasAccount":  true,
+                      "accountCreatedAt":  "2026-10-07T03:10:37.918Z",
                       "accountStatus":  "active",
-                      "username":  "std_maianh",
+                      "address":  "",
+                      "assignedTutorId":  "u_tutor_1791305106234",
+                      "assignedTutorName":  "Bình Bình",
+                      "avatarText":  "A",
+                      "currentScore":  5.5,
+                      "dob":  "2008-01-01",
+                      "feePerSession":  250000,
+                      "gender":  "Nam",
+                      "grade":  "Lớp 12",
+                      "hasAccount":  true,
+                      "id":  "u_std_1791342637918",
+                      "initialScore":  5.5,
+                      "learningMode":  "1 kèm 1 tại nhà",
+                      "name":  "AN",
+                      "notes":  "",
+                      "parentJob":  "",
+                      "parentName":  "",
+                      "parentPhone":  "1238912381",
                       "password":  "123456",
-                      "accountCreatedAt":  "2026-09-01",
-                      "name":  "Trần Mai Anh",
+                      "phone":  "Chưa cập nhật",
                       "role":  "student",
                       "roleName":  "Học Sinh",
-                      "assignedTutorId":  "u_tutor",
-                      "assignedTutorName":  "Thầy Minh Đức",
-                      "dob":  "2008-05-20",
-                      "gender":  "Nữ",
-                      "school":  "THPT Kim Liên",
-                      "grade":  "Lớp 12A3",
-                      "phone":  "0903.444.555",
-                      "address":  "Tầng 12, Chung cư Star City, Lê Văn Lương, Thanh Xuân",
-                      "parentName":  "Cô Lê Thu Hà (Mẹ)",
-                      "parentPhone":  "0918.555.444",
-                      "parentJob":  "Kế toán trưởng",
-                      "subject":  "Toán Học 12 (Luyện thi ĐH khối D01)",
-                      "initialScore":  7.0,
+                      "schedule":  "",
+                      "school":  "",
+                      "startDate":  "2026-10-07",
+                      "strengths":  "",
+                      "subject":  "Toán Học 12",
                       "targetScore":  8.5,
-                      "currentScore":  8.2,
-                      "feePerSession":  250000,
-                      "totalSessions":  6,
-                      "learningMode":  "1 kèm 1 Online qua Google Meet",
-                      "schedule":  "Tối Thứ 4 (19h30 - 21h30) \u0026 Sáng Chủ Nhật (8h30 - 10h30)",
-                      "startDate":  "2026-09-01",
-                      "strengths":  "Trình bày sạch sẽ, cẩn thận từng bước giải, hình học không gian nắm tốt.",
-                      "weaknesses":  "Tốc độ làm bài trắc nghiệm còn chậm, ngại các bài toán vận dụng cao chứa tham số m.",
-                      "notes":  "Mục tiêu xét tuyển Đại học Ngoại Thương.",
-                      "avatarText":  "MA"
+                      "totalSessions":  0,
+                      "username":  "std_an",
+                      "weaknesses":  ""
                   },
                   {
                       "id":  "u_std_nam",
@@ -145,6 +122,80 @@
                       "weaknesses":  "Mất gốc lượng giác lớp 10, chưa thuộc công thức biến đổi cơ bản.",
                       "notes":  "Cần kiểm tra bài cũ đều đặn 10 phút đầu mỗi buổi.",
                       "avatarText":  "HN"
+                  },
+                  {
+                      "id":  "u_std_maianh",
+                      "hasAccount":  true,
+                      "accountStatus":  "active",
+                      "username":  "std_maianh",
+                      "password":  "123456",
+                      "accountCreatedAt":  "2026-09-01",
+                      "name":  "Trần Mai Anh",
+                      "role":  "student",
+                      "roleName":  "Học Sinh",
+                      "assignedTutorId":  "u_tutor",
+                      "assignedTutorName":  "Thầy Minh Đức",
+                      "dob":  "2008-05-20",
+                      "gender":  "Nữ",
+                      "school":  "THPT Kim Liên",
+                      "grade":  "Lớp 12A3",
+                      "phone":  "0903.444.555",
+                      "address":  "Tầng 12, Chung cư Star City, Lê Văn Lương, Thanh Xuân",
+                      "parentName":  "Cô Lê Thu Hà (Mẹ)",
+                      "parentPhone":  "0918.555.444",
+                      "parentJob":  "Kế toán trưởng",
+                      "subject":  "Toán Học 12 (Luyện thi ĐH khối D01)",
+                      "initialScore":  7.0,
+                      "targetScore":  8.5,
+                      "currentScore":  8.2,
+                      "feePerSession":  250000,
+                      "totalSessions":  6,
+                      "learningMode":  "1 kèm 1 Online qua Google Meet",
+                      "schedule":  "Tối Thứ 4 (19h30 - 21h30) \u0026 Sáng Chủ Nhật (8h30 - 10h30)",
+                      "startDate":  "2026-09-01",
+                      "strengths":  "Trình bày sạch sẽ, cẩn thận từng bước giải, hình học không gian nắm tốt.",
+                      "weaknesses":  "Tốc độ làm bài trắc nghiệm còn chậm, ngại các bài toán vận dụng cao chứa tham số m.",
+                      "notes":  "Mục tiêu xét tuyển Đại học Ngoại Thương.",
+                      "avatarText":  "MA"
+                  },
+                  {
+                      "id":  "u_tutor_linh",
+                      "username":  "giasu_linh",
+                      "password":  "123456",
+                      "name":  "Cô Phương Linh",
+                      "role":  "tutor",
+                      "roleName":  "Gia Sư Phụ Trách",
+                      "phone":  "0988.765.432",
+                      "avatarText":  "PL",
+                      "subjects":  [
+                                       "Toán \u0026 Khoa Học Tự Nhiên"
+                                   ]
+                  },
+                  {
+                      "id":  "u_admin",
+                      "username":  "admin",
+                      "password":  "admin123",
+                      "name":  "Quản Trị Hệ Thống",
+                      "role":  "admin",
+                      "roleName":  "Quản Trị Viên (Admin)",
+                      "phone":  "0900.123.456",
+                      "avatarText":  "AD"
+                  },
+                  {
+                      "avatarText":  "BB",
+                      "degree":  "Giáo viên dạy kèm chuyên môn",
+                      "email":  "",
+                      "gender":  "Nữ",
+                      "id":  "u_tutor_1791305106234",
+                      "name":  "Bình Bình",
+                      "password":  "23032004",
+                      "phone":  "0902704416",
+                      "role":  "tutor",
+                      "roleName":  "Gia Sư Phụ Trách",
+                      "subjects":  [
+                                       "Toán Học THPT"
+                                   ],
+                      "username":  "binhbinh"
                   }
               ],
     "assignments":  [
@@ -154,7 +205,8 @@
                             "description":  "Làm 3 bài tự luận trọng tâm trong phiếu đính kèm, trình bày chi tiết từng bước khảo sát và bất đẳng thức Cauchy.",
                             "targetType":  "individual",
                             "targetStudentIds":  [
-                                                     "u_std_quang"
+                                                     "u_std_quang",
+                                                     "u_std_1791342637918"
                                                  ],
                             "deadline":  "2026-10-08T22:00",
                             "createdAt":  "2026-10-04T10:00:00Z",
@@ -171,7 +223,8 @@
                             "description":  "Hoàn thành các bài toán tham số m để đồ thị hàm số có 3 điểm cực trị tạo thành tam giác vuông.",
                             "targetType":  "individual",
                             "targetStudentIds":  [
-                                                     "u_std_maianh"
+                                                     "u_std_maianh",
+                                                     "u_std_1791342637918"
                                                  ],
                             "deadline":  "2026-10-09T20:00",
                             "createdAt":  "2026-10-04T14:30:00Z",
@@ -190,7 +243,8 @@
                             "targetStudentIds":  [
                                                      "u_std_quang",
                                                      "u_std_maianh",
-                                                     "u_std_nam"
+                                                     "u_std_nam",
+                                                     "u_std_1791342637918"
                                                  ],
                             "deadline":  "2026-10-10T23:59",
                             "createdAt":  "2026-10-05T08:00:00Z",

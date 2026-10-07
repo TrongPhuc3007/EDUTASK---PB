@@ -8,6 +8,9 @@
   <meta name="apple-mobile-web-app-title" content="EDUTASK - PB">
   <meta name="theme-color" content="#0f2b5c">
   <meta name="format-detection" content="telephone=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>EDUTASK - PB — Hệ Thống Học Tập & Dạy Kèm Tri Thức</title>
   
   <!-- Google Fonts: Plus Jakarta Sans (Nội dung), Outfit (Tiêu đề hiện đại), Cinzel (Biểu tượng tri thức), JetBrains Mono (Mã số) -->
@@ -1252,18 +1255,18 @@
   </nav>
 
   <!-- JavaScript Modules -->
-  <script src="js/cloud-sync.js?v=11.0"></script>
-  <script src="js/github-sync.js?v=11.0"></script>
-  <script src="js/store.js?v=11.0"></script>
-  <script src="js/auth.js?v=11.0"></script>
-  <script src="js/gateway.js?v=11.0"></script>
-  <script src="js/anticheat.js?v=11.0"></script>
-  <script src="js/grader.js?v=11.0"></script>
-  <script src="js/admin.js?v=11.0"></script>
-  <script src="js/tutor.js?v=11.0"></script>
-  <script src="js/student.js?v=11.0"></script>
-  <script src="js/parent.js?v=11.0"></script>
-  <script src="js/app.js?v=11.0"></script>
+  <script src="js/cloud-sync.js?v=11.1"></script>
+  <script src="js/github-sync.js?v=11.1"></script>
+  <script src="js/store.js?v=11.1"></script>
+  <script src="js/auth.js?v=11.1"></script>
+  <script src="js/gateway.js?v=11.1"></script>
+  <script src="js/anticheat.js?v=11.1"></script>
+  <script src="js/grader.js?v=11.1"></script>
+  <script src="js/admin.js?v=11.1"></script>
+  <script src="js/tutor.js?v=11.1"></script>
+  <script src="js/student.js?v=11.1"></script>
+  <script src="js/parent.js?v=11.1"></script>
+  <script src="js/app.js?v=11.1"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
@@ -1271,7 +1274,18 @@
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').then((reg) => {
           console.log('[PWA] ServiceWorker đã kích hoạt thành công:', reg.scope);
-          // Tự động kiểm tra và kích hoạt ngay bản cập nhật mới
+          // Tự động reload khi có Service Worker phiên bản mới được cài đặt
+          reg.onupdatefound = () => {
+            const installing = reg.installing;
+            if (installing) {
+              installing.onstatechange = () => {
+                if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('[PWA] Đã phát hiện bản cập nhật mới v11.1! Đang làm mới trang...');
+                  window.location.reload();
+                }
+              };
+            }
+          };
           if (reg && typeof reg.update === 'function') {
             reg.update();
           }

@@ -82,6 +82,64 @@ const Store = {
             updated = true;
           }
 
+          // Kiểm tra và bổ sung Gia Sư thứ 3 nếu chưa có (Cô Bình Bình)
+          const hasBinhBinh = this.data.users.some(u => u.id === 'u_tutor_1791305106234' || u.username === 'binhbinh');
+          if (!hasBinhBinh) {
+            this.data.users.splice(3, 0, {
+              id: 'u_tutor_1791305106234',
+              username: 'binhbinh',
+              password: '23032004',
+              name: 'Cô Bình Bình',
+              role: 'tutor',
+              roleName: 'Gia Sư Phụ Trách',
+              phone: '0902.704.416',
+              avatarText: 'BB',
+              subjects: ['Toán Học THPT']
+            });
+            updated = true;
+          }
+
+          // Kiểm tra và bổ sung Học Sinh AN nếu chưa có
+          const hasAn = this.data.users.some(u => u.id === 'u_std_1791342637918' || u.username === 'std_an');
+          if (!hasAn) {
+            this.data.users.push({
+              id: 'u_std_1791342637918',
+              hasAccount: true,
+              accountStatus: 'active',
+              username: 'std_an',
+              password: '123456',
+              accountCreatedAt: '2026-10-07T03:10:37.918Z',
+              name: 'Học Sinh AN',
+              role: 'student',
+              roleName: 'Học Sinh',
+              assignedTutorId: 'u_tutor_1791305106234',
+              assignedTutorName: 'Cô Bình Bình',
+              dob: '2008-01-01',
+              gender: 'Nam',
+              school: 'THPT',
+              grade: 'Lớp 12',
+              phone: '0902.704.416',
+              address: 'TP.HCM',
+              parentName: 'Phụ huynh em AN',
+              parentPhone: '1238912381',
+              parentJob: '',
+              subject: 'Toán Học 12',
+              initialScore: 5.5,
+              targetScore: 8.5,
+              currentScore: 5.5,
+              feePerSession: 250000,
+              totalSessions: 0,
+              learningMode: '1 kèm 1 tại nhà',
+              schedule: 'Tối Thứ 2 & Thứ 5',
+              startDate: '2026-10-07',
+              strengths: '',
+              weaknesses: '',
+              notes: '',
+              avatarText: 'AN'
+            });
+            updated = true;
+          }
+
           // Cập nhật tên Thầy Minh Đức cho u_tutor
           const mainTutor = this.data.users.find(u => u.id === 'u_tutor');
           if (mainTutor && (mainTutor.name === 'Gia Sư Trực Tiếp' || !mainTutor.name)) {
@@ -444,6 +502,52 @@ const Store = {
           weaknesses: 'Mất gốc lượng giác lớp 10, chưa thuộc công thức biến đổi cơ bản.',
           notes: 'Cần kiểm tra bài cũ đều đặn 10 phút đầu mỗi buổi.',
           avatarText: 'HN'
+        },
+        {
+          id: 'u_tutor_1791305106234',
+          username: 'binhbinh',
+          password: '23032004',
+          name: 'Cô Bình Bình',
+          role: 'tutor',
+          roleName: 'Gia Sư Phụ Trách',
+          phone: '0902.704.416',
+          avatarText: 'BB',
+          subjects: ['Toán Học THPT']
+        },
+        {
+          id: 'u_std_1791342637918',
+          hasAccount: true,
+          accountStatus: 'active',
+          username: 'std_an',
+          password: '123456',
+          accountCreatedAt: '2026-10-07T03:10:37.918Z',
+          name: 'Học Sinh AN',
+          role: 'student',
+          roleName: 'Học Sinh',
+          assignedTutorId: 'u_tutor_1791305106234',
+          assignedTutorName: 'Cô Bình Bình',
+          dob: '2008-01-01',
+          gender: 'Nam',
+          school: 'THPT',
+          grade: 'Lớp 12',
+          phone: '0902.704.416',
+          address: 'TP.HCM',
+          parentName: 'Phụ huynh em AN',
+          parentPhone: '1238912381',
+          parentJob: '',
+          subject: 'Toán Học 12',
+          initialScore: 5.5,
+          targetScore: 8.5,
+          currentScore: 5.5,
+          feePerSession: 250000,
+          totalSessions: 0,
+          learningMode: '1 kèm 1 tại nhà',
+          schedule: 'Tối Thứ 2 & Thứ 5',
+          startDate: '2026-10-07',
+          strengths: '',
+          weaknesses: '',
+          notes: '',
+          avatarText: 'AN'
         }
       ],
 
@@ -458,7 +562,7 @@ const Store = {
           attachmentSize: '1.4 MB',
           attachmentType: 'pdf',
           targetType: 'individual',
-          targetStudentIds: ['u_std_quang'],
+          targetStudentIds: ['u_std_quang', 'u_std_1791342637918'],
           deadline: '2026-10-08T21:00',
           createdAt: '2026-10-06T09:00',
           totalPoints: 10,
@@ -473,7 +577,7 @@ const Store = {
           attachmentSize: '820 KB',
           attachmentType: 'docx',
           targetType: 'individual',
-          targetStudentIds: ['u_std_maianh'],
+          targetStudentIds: ['u_std_maianh', 'u_std_1791342637918'],
           deadline: '2026-10-07T20:00',
           createdAt: '2026-10-05T14:00',
           totalPoints: 10,
@@ -481,16 +585,16 @@ const Store = {
         },
         {
           id: 'asn_003',
-          tutorId: 'u_tutor',
-          title: 'Phiếu Chung: 10 Câu Trắc Nghiệm Nguyên Hàm Cơ Bản',
-          description: 'Kiểm tra tốc độ tính nguyên hàm bảng chuẩn.',
+          tutorId: 'u_tutor_linh',
+          title: 'Phiếu 03: Phương Trình Lượng Giác Cơ Bản',
+          description: 'Ôn tập 10 công thức lượng giác và giải các phương trình sin, cos.',
           attachmentName: '10_Cau_Trac_Nghiem_Nguyen_Ham.pdf',
           attachmentSize: '560 KB',
           attachmentType: 'pdf',
-          targetType: 'group',
-          targetStudentIds: ['u_std_quang', 'u_std_maianh'],
-          deadline: '2026-10-09T22:00',
-          createdAt: '2026-10-06T10:30',
+          targetType: 'all',
+          targetStudentIds: ['u_std_nam', 'u_std_quang', 'u_std_1791342637918'],
+          deadline: '2026-10-10T23:59',
+          createdAt: '2026-10-05T08:00',
           totalPoints: 10,
           submissionType: 'photo'
         }
