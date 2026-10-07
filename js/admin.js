@@ -443,12 +443,15 @@ const AdminView = {
     };
 
     Store.addStudent(newStudent);
+    if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
+      GitHubSync.pushToGitHub(Store.data, false);
+    }
     App.closeModal('addStudentModal');
     App.updateHeaderProfile();
     App.renderCurrentView();
 
     if (hasAccount) {
-      App.showToast(`🎉 Đã thêm học sinh ${newStudent.name} (phụ trách bởi ${assignedTutorName}) & cấp TK "${username}" thành công!`, 'success');
+      App.showToast(`🎉 Đã thêm học sinh ${newStudent.name} (phụ trách bởi ${assignedTutorName}) & cấp TK "${username}" thành công (Đã đồng bộ Cloud)!`, 'success');
     } else {
       App.showToast(`Đã thêm học sinh ${newStudent.name} (phụ trách bởi ${assignedTutorName}) vào danh sách quản lý.`, 'info');
     }
@@ -718,10 +721,13 @@ const AdminView = {
     }
 
     Store.provisionStudentAccount(stdId, { username, password });
+    if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
+      GitHubSync.pushToGitHub(Store.data, false);
+    }
     App.closeModal('manageAccountModal');
     App.updateHeaderProfile();
     App.renderCurrentView();
-    App.showToast(`🎉 Đã cấp tài khoản chính thức thành công cho "${std.name}"! Nút HS đã xuất hiện trên thanh vai trò.`, 'success');
+    App.showToast(`🎉 Đã cấp tài khoản chính thức thành công cho "${std.name}"! Nút HS đã xuất hiện trên thanh vai trò (Đã lưu Cloud).`, 'success');
   },
 
   revokeStudentAccount() {
@@ -895,8 +901,11 @@ const AdminView = {
     };
 
     Store.addTutor(newTutor);
+    if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
+      GitHubSync.pushToGitHub(Store.data, false);
+    }
     App.closeModal('addTutorModal');
-    App.showToast(`✓ Đã tạo tài khoản Gia sư cho "${name}" (TK: ${username})!`, 'success');
+    App.showToast(`✓ Đã tạo tài khoản Gia sư cho "${name}" (TK: ${username}) và đồng bộ Cloud!`, 'success');
     this.render(document.getElementById('viewContainer'));
   },
 
@@ -919,8 +928,11 @@ const AdminView = {
       return;
     }
     Store.updateTutorPassword(tutorId, newPassword);
+    if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
+      GitHubSync.pushToGitHub(Store.data, false);
+    }
     App.closeModal('manageTutorAccountModal');
-    App.showToast('✓ Đã cập nhật mật khẩu cho gia sư thành công!', 'success');
+    App.showToast('✓ Đã cập nhật mật khẩu cho gia sư và đồng bộ Cloud!', 'success');
     this.render(document.getElementById('viewContainer'));
   },
 

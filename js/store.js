@@ -289,8 +289,9 @@ const Store = {
 
     // Tự động đẩy lên Kho dữ liệu trung tâm GitHub
     if (!skipCloudPush && window.GitHubSync && typeof GitHubSync.schedulePush === 'function') {
-      GitHubSync.schedulePush(immediate);
+      return GitHubSync.schedulePush(immediate);
     }
+    return Promise.resolve();
   },
 
   optimizeStorage() {
@@ -587,6 +588,7 @@ const Store = {
     if (!user) {
       return { 
         success: false, 
+        notFound: true,
         message: 'Tài khoản không tồn tại trên hệ thống! Vui lòng kiểm tra lại.' 
       };
     }

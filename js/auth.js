@@ -80,8 +80,23 @@ const Auth = {
   },
 
   // Phương thức đăng nhập chính thức bằng Tên đăng nhập (tk) và Mật khẩu (mk)
-  login(username, password, rememberMe = false) {
-    const authResult = Store.authenticate(username, password);
+  async login(username, password, rememberMe = false) {
+    let authResult = Store.authenticate(username, password);
+
+    // NẾU CHƯA THÀNH CÔNG: Tự động kéo dữ liệu mới nhất từ kho GitHub trung tâm để kiểm tra!
+    // Tránh tình trạng tài khoản vừa tạo trên máy tính nhưng điện thoại chưa kịp nạp dữ liệu.
+    if (!authResult.success && (!authResult.user || authResult.notFound) && window.GitHubSync && typeof GitHubSync.pullFromGitHub === 'function') {
+      try {
+        console.log(`[Auth] Không tìm thấy tài khoản "${username}" trên thiết bị này. Đang kéo dữ liệu mới từ GitHub...`);
+        const pullRes = await GitHubSync.pullFromGitHub(false);
+        if (pullRes && pullRes.success) {
+          authResult = Store.authenticate(username, password);
+        }
+      } catch (err) {
+        console.warn('[Auth] Không thể kéo dữ liệu kiểm tra từ GitHub:', err);
+      }
+    }
+
     if (!authResult.success) {
       return authResult;
     }

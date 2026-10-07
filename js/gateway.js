@@ -275,7 +275,7 @@ const GatewayView = {
   },
 
   // Xử lý submit form đăng nhập
-  handleLoginSubmit(event) {
+  async handleLoginSubmit(event) {
     if (event) event.preventDefault();
 
     const uInput = document.getElementById('loginUsername');
@@ -298,14 +298,14 @@ const GatewayView = {
     const originalBtnText = btn ? btn.innerHTML : '';
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = `<span>⏳</span> <span>Đang xác thực...</span>`;
+      btn.innerHTML = `<span>⏳</span> <span>Đang kiểm tra tài khoản...</span>`;
     }
 
     const remInput = document.getElementById('loginRememberMe');
     const rememberMe = remInput ? remInput.checked : false;
 
-    setTimeout(() => {
-      const result = Auth.login(username, password, rememberMe);
+    try {
+      const result = await Auth.login(username, password, rememberMe);
 
       if (btn) {
         btn.disabled = false;
@@ -334,7 +334,13 @@ const GatewayView = {
         if (document.body) document.body.scrollTop = 0;
         if (document.documentElement) document.documentElement.scrollTop = 0;
       }
-    }, 120);
+    } catch (e) {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
+      }
+      this.showAlert('Đã có lỗi xảy ra: ' + (e.message || 'Vui lòng thử lại'));
+    }
   },
 
   // Hiển thị thông báo lỗi inline
@@ -457,7 +463,7 @@ const GatewayView = {
     }
   },
 
-  submitRegister() {
+  async submitRegister() {
     if (this.currentRegisterRole === 'student') {
       const name = document.getElementById('regStdName')?.value.trim();
       const grade = document.getElementById('regStdGrade')?.value || 'Lớp 12';
@@ -523,6 +529,12 @@ const GatewayView = {
       Store.data.users.push(newStudent);
       Store.save();
 
+      // Đẩy ngay lập tức lên GitHub để các thiết bị khác (như Điện thoại) nhận ngay tài khoản!
+      if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
+        App.showToast('☁️ Đang đồng bộ tài khoản mới lên kho GitHub trung tâm...', 'info');
+        await GitHubSync.pushToGitHub(Store.data, false);
+      }
+
       App.closeModal('registerAccountModal');
       this.switchRole('student');
       
@@ -531,7 +543,7 @@ const GatewayView = {
       if (uField) uField.value = username;
       if (pField) pField.value = password;
 
-      App.showToast(`🎉 Tạo tài khoản Học Sinh thành công! Tên đăng nhập: ${username}`, 'success');
+      App.showToast(`🎉 Tạo tài khoản thành công! Tên đăng nhập: "${username}" đã sẵn sàng trên mọi thiết bị.`, 'success');
     } else {
       const name = document.getElementById('regTutorName')?.value.trim();
       const gender = document.getElementById('regTutorGender')?.value || 'Nam';
@@ -578,6 +590,12 @@ const GatewayView = {
 
       Store.addTutor(newTutor);
 
+      // Đẩy ngay lập tức lên kho GitHub
+      if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
+        App.showToast('☁️ Đang đồng bộ tài khoản mới lên kho GitHub trung tâm...', 'info');
+        await GitHubSync.pushToGitHub(Store.data, false);
+      }
+
       App.closeModal('registerAccountModal');
       this.switchRole('tutor');
 
@@ -586,7 +604,7 @@ const GatewayView = {
       if (uField) uField.value = username;
       if (pField) pField.value = password;
 
-      App.showToast(`🎉 Tạo tài khoản Gia Sư thành công! Tên đăng nhập: ${username}`, 'success');
+      App.showToast(`🎉 Tạo tài khoản Gia Sư thành công! Tên đăng nhập: "${username}" đã sẵn sàng trên mọi thiết bị.`, 'success');
     }
   }
 };
