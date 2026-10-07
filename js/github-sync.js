@@ -22,8 +22,11 @@ const GitHubSync = {
 
   // Trạng thái hoạt động
   lastSha: null,
+  lastProcessedCommitSha: null,
   isSyncing: false,
   pendingPushTimer: null,
+  heartbeatTimer: null,
+  pollingIntervalMs: 5000, // Kiểm tra thay đổi mỗi 5 giây
   lastSyncTime: null,
   lastSyncStatus: 'ready', // 'ready', 'syncing', 'error'
   statusMessage: '',
@@ -31,16 +34,80 @@ const GitHubSync = {
   // Khởi tạo
   async init() {
     this.renderHeaderIndicator();
-    // Tự động kéo dữ liệu từ GitHub khi khởi động
+    
+    // 1. Tự động kéo dữ liệu từ GitHub khi khởi động
     setTimeout(() => {
       this.pullFromGitHub(false);
-    }, 500);
+    }, 300);
 
-    // Lắng nghe sự kiện khôi phục mạng
+    // 2. Kích hoạt động cơ nhịp tim (Heartbeat Polling) để đồng bộ thời gian thực đa thiết bị
+    this.startHeartbeat();
+
+    // 3. Lắng nghe khi tab quay trở lại tiêu điểm (Focus/Visible) -> Kiểm tra NGAY LẬP TỨC!
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.checkRemoteChanges();
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      this.checkRemoteChanges();
+    });
+
+    // 4. Lắng nghe sự kiện khôi phục mạng -> Đồng bộ bù ngay lập tức
     window.addEventListener('online', () => {
-      console.log('[GitHubSync] Mạng đã kết nối, kiểm tra đồng bộ...');
+      console.log('[GitHubSync] Mạng đã kết nối, kiểm tra đồng bộ bù...');
       this.pullFromGitHub(false);
     });
+
+    // 5. Khi người dùng chuẩn bị tắt tab / đóng trình duyệt -> Đẩy ngay các thay đổi đang chờ!
+    window.addEventListener('beforeunload', () => {
+      this.flushPendingPush();
+    });
+    window.addEventListener('pagehide', () => {
+      this.flushPendingPush();
+    });
+  },
+
+  // Khởi động nhịp tim kiểm tra thay đổi từ xa định kỳ
+  startHeartbeat() {
+    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+    this.heartbeatTimer = setInterval(() => {
+      this.checkRemoteChanges();
+    }, this.pollingIntervalMs);
+  },
+
+  // Kiểm tra siêu nhẹ xem GitHub có commit mới không (chỉ tải ~1KB JSON)
+  async checkRemoteChanges() {
+    if (this.isSyncing || this.pendingPushTimer) return;
+
+    try {
+      const url = `https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}/commits?path=${this.FILE_PATH}&page=1&per_page=1&_t=${Date.now()}`;
+      const response = await fetch(url, { headers: this.getHeaders() });
+      if (!response.ok) return;
+
+      const commits = await response.json();
+      if (!Array.isArray(commits) || commits.length === 0) return;
+
+      const latestSha = commits[0].sha;
+      if (!this.lastProcessedCommitSha) {
+        this.lastProcessedCommitSha = latestSha;
+        return;
+      }
+
+      // Phát hiện thiết bị khác vừa lưu dữ liệu mới lên GitHub!
+      if (latestSha !== this.lastProcessedCommitSha) {
+        console.log('[GitHubSync] ⚡ Phát hiện dữ liệu mới từ thiết bị khác! Đang tự động kéo về...', latestSha);
+        this.lastProcessedCommitSha = latestSha;
+        await this.pullFromGitHub(false);
+
+        if (window.App && typeof App.showToast === 'function') {
+          App.showToast('⚡ Dữ liệu vừa được cập nhật thời gian thực từ thiết bị khác!', 'info');
+        }
+      }
+    } catch (err) {
+      // Ngoại tuyến hoặc mạng chập chờn, chờ nhịp sau
+    }
   },
 
   // Headers xác thực gọi GitHub API
@@ -52,15 +119,32 @@ const GitHubSync = {
     };
   },
 
-  // Lên lịch đẩy tự động (Debounce 2.5s để gom nhiều thao tác liên tiếp)
-  schedulePush() {
+  // Lên lịch đẩy tự động (Debounce 800ms hoặc đẩy ngay lập tức nếu cần)
+  schedulePush(immediate = false) {
     if (this.pendingPushTimer) {
       clearTimeout(this.pendingPushTimer);
+      this.pendingPushTimer = null;
     }
+
+    if (immediate) {
+      this.pushToGitHub(Store.data, false);
+      return;
+    }
+
     this.renderHeaderIndicator('waiting');
     this.pendingPushTimer = setTimeout(() => {
+      this.pendingPushTimer = null;
       this.pushToGitHub(Store.data, false);
-    }, 2500);
+    }, 800);
+  },
+
+  // Đẩy cưỡng bức ngay khi đóng trang
+  flushPendingPush() {
+    if (this.pendingPushTimer) {
+      clearTimeout(this.pendingPushTimer);
+      this.pendingPushTimer = null;
+      this.pushToGitHub(Store.data, false);
+    }
   },
 
   // Tải dữ liệu từ kho GitHub về máy (Pull)
@@ -209,6 +293,7 @@ const GitHubSync = {
 
       const resJson = await response.json();
       this.lastSha = resJson.content?.sha || null;
+      this.lastProcessedCommitSha = resJson.commit?.sha || null;
       this.lastSyncTime = new Date();
       this.lastSyncStatus = 'ready';
       this.renderHeaderIndicator('ready');
@@ -276,6 +361,16 @@ const GitHubSync = {
         const rs = subsMap.get(ls.id);
         if (ls.status === 'graded' && rs.status !== 'graded') {
           subsMap.set(ls.id, ls);
+        } else if (rs.status === 'graded' && ls.status !== 'graded') {
+          subsMap.set(ls.id, rs);
+        } else {
+          const lTime = ls.gradedAt || ls.submittedAt || ls.createdAt || '';
+          const rTime = rs.gradedAt || rs.submittedAt || rs.createdAt || '';
+          if (lTime >= rTime) {
+            subsMap.set(ls.id, { ...rs, ...ls });
+          } else {
+            subsMap.set(ls.id, { ...ls, ...rs });
+          }
         }
       }
     });

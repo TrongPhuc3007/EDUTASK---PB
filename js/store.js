@@ -254,7 +254,7 @@ const Store = {
     }
   },
 
-  save(skipCloudPush = false) {
+  save(skipCloudPush = false, immediate = false) {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
     } catch (e) {
@@ -289,7 +289,7 @@ const Store = {
 
     // Tự động đẩy lên Kho dữ liệu trung tâm GitHub
     if (!skipCloudPush && window.GitHubSync && typeof GitHubSync.schedulePush === 'function') {
-      GitHubSync.schedulePush();
+      GitHubSync.schedulePush(immediate);
     }
   },
 

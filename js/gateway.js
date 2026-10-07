@@ -162,8 +162,12 @@ const GatewayView = {
                 </div>
               </div>
 
-              <!-- Quên Mật Khẩu -->
-              <div class="login-options-row" style="justify-content:flex-end;">
+              <!-- Tùy chọn Ghi nhớ & Quên Mật Khẩu -->
+              <div class="login-options-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <label style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:#475569; cursor:pointer; user-select:none;">
+                  <input type="checkbox" id="loginRememberMe" style="accent-color:var(--primary); width:15px; height:15px; cursor:pointer;">
+                  <span>Ghi nhớ đăng nhập</span>
+                </label>
                 <a href="javascript:void(0)" class="login-forgot-link" onclick="GatewayView.showForgotPasswordNotice()">
                   Quên mật khẩu?
                 </a>
@@ -292,8 +296,11 @@ const GatewayView = {
       btn.innerHTML = `<span>⏳</span> <span>Đang xác thực...</span>`;
     }
 
+    const remInput = document.getElementById('loginRememberMe');
+    const rememberMe = remInput ? remInput.checked : false;
+
     setTimeout(() => {
-      const result = Auth.login(username, password);
+      const result = Auth.login(username, password, rememberMe);
 
       if (btn) {
         btn.disabled = false;

@@ -5,7 +5,7 @@
  */
 
 const Auth = {
-  SESSION_KEY: 'EDUTASK_USER_SESSION_V2',
+  SESSION_KEY: 'EDUTASK_USER_SESSION_V3',
   SUPERVISE_KEY: 'EDUTASK_ADMIN_SUPERVISE_ID',
   REMEMBER_KEY: 'EDUTASK_REMEMBERED_USERNAME',
 
@@ -13,8 +13,12 @@ const Auth = {
   activeUser: null,     // Tài khoản đang hiển thị giao diện
 
   init() {
-    // Tự động khôi phục phiên đăng nhập gần nhất (tiện dụng tối đa, không cần đăng nhập lại)
-    const savedUserId = localStorage.getItem(this.SESSION_KEY);
+    // 1. Dọn sạch các khóa phiên tự động cũ để tuyệt đối không tự nhảy thẳng vào tài khoản
+    localStorage.removeItem('EDUTASK_USER_SESSION');
+    localStorage.removeItem('EDUTASK_USER_SESSION_V2');
+
+    // 2. Khôi phục phiên chỉ khi có trong sessionStorage (phiên hiện tại) hoặc localStorage (nếu đã tick Ghi nhớ)
+    const savedUserId = sessionStorage.getItem(this.SESSION_KEY) || localStorage.getItem(this.SESSION_KEY);
     if (savedUserId && window.Store) {
       const user = Store.getUserById(savedUserId);
       if (user) {
@@ -25,12 +29,14 @@ const Auth = {
           const target = Store.getUserById(superviseId);
           if (target) this.activeUser = target;
         }
-        console.log(`[Auth] Tự động khôi phục phiên: ${user.name} (${user.role})`);
+        console.log(`[Auth] Khôi phục phiên làm việc hợp lệ: ${user.name} (${user.role})`);
         return;
       }
     }
 
-    // Nếu chưa có phiên đăng nhập: Giữ null để hiển thị màn hình Đăng Nhập Gateway
+    // Nếu chưa đăng nhập: Luôn hiển thị màn hình Đăng Nhập Gateway
+    this.sessionUser = null;
+    this.activeUser = null;
   },
 
   isAuthenticated() {
@@ -56,7 +62,7 @@ const Auth = {
   },
 
   // Phương thức đăng nhập chính thức bằng Tên đăng nhập (tk) và Mật khẩu (mk)
-  login(username, password) {
+  login(username, password, rememberMe = false) {
     const authResult = Store.authenticate(username, password);
     if (!authResult.success) {
       return authResult;
@@ -66,8 +72,16 @@ const Auth = {
     this.sessionUser = user;
     this.activeUser = user;
 
-    // Lưu phiên vĩnh viễn vào localStorage để không phải đăng nhập lại mỗi lần mở web!
-    localStorage.setItem(this.SESSION_KEY, user.id);
+    // Lưu phiên làm việc:
+    // Nếu chọn "Ghi nhớ": lưu vào localStorage để dùng lâu dài
+    // Nếu không chọn: chỉ lưu vào sessionStorage để an toàn khi đóng trình duyệt
+    sessionStorage.setItem(this.SESSION_KEY, user.id);
+    if (rememberMe) {
+      localStorage.setItem(this.SESSION_KEY, user.id);
+    } else {
+      localStorage.removeItem(this.SESSION_KEY);
+    }
+
     localStorage.removeItem(this.SUPERVISE_KEY);
     localStorage.setItem(this.REMEMBER_KEY, user.username);
 
@@ -98,6 +112,7 @@ const Auth = {
 
     this.sessionUser = user;
     this.activeUser = user;
+    sessionStorage.setItem(this.SESSION_KEY, user.id);
     localStorage.setItem(this.SESSION_KEY, user.id);
     localStorage.removeItem(this.SUPERVISE_KEY);
 
@@ -114,6 +129,7 @@ const Auth = {
   logout() {
     this.sessionUser = null;
     this.activeUser = null;
+    sessionStorage.removeItem(this.SESSION_KEY);
     localStorage.removeItem(this.SESSION_KEY);
     localStorage.removeItem(this.SUPERVISE_KEY);
 
