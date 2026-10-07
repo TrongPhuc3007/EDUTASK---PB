@@ -279,7 +279,8 @@
       "description": "Làm chi tiết bài 1, 2, 3 ra vở viết tay, chụp ảnh nộp trước buổi học tới.",
       "targetType": "individual",
       "targetStudentIds": [
-        "u_std_quang"
+        "u_std_quang",
+        "u_std_1791342637918"
       ],
       "deadline": "2026-10-08T21:00",
       "createdAt": "2026-10-06T09:00",
@@ -298,7 +299,8 @@
       "description": "Bài tập rèn luyện kỹ năng vẽ bảng biến thiên và tiệm cận.",
       "targetType": "individual",
       "targetStudentIds": [
-        "u_std_maianh"
+        "u_std_maianh",
+        "u_std_1791342637918"
       ],
       "deadline": "2026-10-07T20:00",
       "createdAt": "2026-10-05T14:00",
@@ -318,7 +320,8 @@
       "targetType": "all",
       "targetStudentIds": [
         "u_std_nam",
-        "u_std_quang"
+        "u_std_quang",
+        "u_std_1791342637918"
       ],
       "deadline": "2026-10-10T23:59",
       "createdAt": "2026-10-05T08:00",
