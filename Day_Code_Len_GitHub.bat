@@ -14,6 +14,8 @@ echo.
 set "GIT_EXE=C:\Users\LECOO\AppData\Local\Programs\Git\cmd\git.exe"
 if not exist "%GIT_EXE%" set "GIT_EXE=git"
 
+"%GIT_EXE%" add -A
+"%GIT_EXE%" diff --cached --quiet || "%GIT_EXE%" commit -m "update: dong bo ma nguon va he thong xoa tai khoan v11.8"
 "%GIT_EXE%" push -u origin main --force
 
 echo.

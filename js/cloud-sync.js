@@ -380,13 +380,17 @@ const CloudSync = {
         GitHubSync.schedulePush(false);
       }
 
-      // TỰ HOÀN THIỆN: Nếu dữ liệu cục bộ có thông tin mà Firebase đang thiếu, đẩy ngược lại lên Cloud
+      // TỰ HOÀN THIỆN: Nếu dữ liệu cục bộ có thông tin hoặc danh sách xóa mới mà Firebase đang thiếu, đẩy ngược lại lên Cloud
       const remoteAsnsCount = Array.isArray(remoteData.assignments) ? remoteData.assignments.length : 0;
       const mergedAsnsCount = Array.isArray(mergedData.assignments) ? mergedData.assignments.length : 0;
       const remoteUsersCount = Array.isArray(remoteData.users) ? remoteData.users.length : 0;
       const mergedUsersCount = Array.isArray(mergedData.users) ? mergedData.users.length : 0;
+      const remoteDelUsersCount = Array.isArray(remoteData.deletedUserIds) ? remoteData.deletedUserIds.length : 0;
+      const mergedDelUsersCount = Array.isArray(mergedData.deletedUserIds) ? mergedData.deletedUserIds.length : 0;
+      const remoteDelAsnsCount = Array.isArray(remoteData.deletedAssignmentIds) ? remoteData.deletedAssignmentIds.length : 0;
+      const mergedDelAsnsCount = Array.isArray(mergedData.deletedAssignmentIds) ? mergedData.deletedAssignmentIds.length : 0;
 
-      if (mergedUsersCount > remoteUsersCount || mergedAsnsCount > remoteAsnsCount) {
+      if (mergedUsersCount !== remoteUsersCount || mergedAsnsCount !== remoteAsnsCount || mergedDelUsersCount !== remoteDelUsersCount || mergedDelAsnsCount !== remoteDelAsnsCount) {
         console.log('[CloudSync] 🔄 Tự động bù đắp dữ liệu hoàn chỉnh lên Firebase...');
         setTimeout(() => this.pushData(mergedData, true), 600);
       }
@@ -431,11 +435,29 @@ const CloudSync = {
     if (!local) return remote;
     if (!remote) return local;
 
-    const merged = { ...remote };
+    const merged = { ...remote, ...local };
 
-    // 1. Hợp nhất danh sách Users
-    const localUsers = Array.isArray(local.users) ? local.users : [];
-    const remoteUsers = Array.isArray(remote.users) ? remote.users : [];
+    // Hợp nhất danh sách tombstones (các ID đã bị xóa)
+    const deletedUserIds = new Set([
+      ...(Array.isArray(local.deletedUserIds) ? local.deletedUserIds : []),
+      ...(Array.isArray(remote.deletedUserIds) ? remote.deletedUserIds : [])
+    ]);
+    const deletedAsnIds = new Set([
+      ...(Array.isArray(local.deletedAssignmentIds) ? local.deletedAssignmentIds : []),
+      ...(Array.isArray(remote.deletedAssignmentIds) ? remote.deletedAssignmentIds : [])
+    ]);
+    const deletedSubIds = new Set([
+      ...(Array.isArray(local.deletedSubmissionIds) ? local.deletedSubmissionIds : []),
+      ...(Array.isArray(remote.deletedSubmissionIds) ? remote.deletedSubmissionIds : [])
+    ]);
+
+    merged.deletedUserIds = Array.from(deletedUserIds);
+    merged.deletedAssignmentIds = Array.from(deletedAsnIds);
+    merged.deletedSubmissionIds = Array.from(deletedSubIds);
+
+    // 1. Hợp nhất danh sách Users (Loại trừ triệt để các tài khoản đã bị xóa)
+    const localUsers = (Array.isArray(local.users) ? local.users : []).filter(u => !deletedUserIds.has(u.id));
+    const remoteUsers = (Array.isArray(remote.users) ? remote.users : []).filter(u => !deletedUserIds.has(u.id));
     const userMap = new Map();
 
     // Nạp remote users trước
@@ -446,14 +468,12 @@ const CloudSync = {
         userMap.set(lu.id, lu);
       } else {
         const ru = userMap.get(lu.id);
-        const hasAccount = (ru.hasAccount || lu.hasAccount);
-        const accountStatus = (ru.accountStatus === 'active' || lu.accountStatus === 'active')
-          ? 'active'
-          : (ru.accountStatus || lu.accountStatus || 'none');
+        const hasAccount = (typeof lu.hasAccount !== 'undefined') ? lu.hasAccount : ru.hasAccount;
+        const accountStatus = lu.accountStatus || ru.accountStatus || 'none';
 
         const combined = {
-          ...lu,
           ...ru,
+          ...lu,
           hasAccount,
           accountStatus
         };
@@ -467,20 +487,20 @@ const CloudSync = {
           }
         }
 
-        if (ru.username && ru.username.trim()) combined.username = ru.username;
-        else if (lu.username && lu.username.trim()) combined.username = lu.username;
+        if (lu.username && lu.username.trim()) combined.username = lu.username;
+        else if (ru.username && ru.username.trim()) combined.username = ru.username;
 
-        if (ru.password && ru.password.trim()) combined.password = ru.password;
-        else if (lu.password && lu.password.trim()) combined.password = lu.password;
+        if (lu.password && lu.password.trim()) combined.password = lu.password;
+        else if (ru.password && ru.password.trim()) combined.password = ru.password;
 
         userMap.set(lu.id, combined);
       }
     });
-    merged.users = Array.from(userMap.values());
+    merged.users = Array.from(userMap.values()).filter(u => !deletedUserIds.has(u.id));
 
     // 2. Hợp nhất Bài Tập (Assignments)
-    const localAsns = Array.isArray(local.assignments) ? local.assignments : [];
-    const remoteAsns = Array.isArray(remote.assignments) ? remote.assignments : [];
+    const localAsns = (Array.isArray(local.assignments) ? local.assignments : []).filter(a => !deletedAsnIds.has(a.id));
+    const remoteAsns = (Array.isArray(remote.assignments) ? remote.assignments : []).filter(a => !deletedAsnIds.has(a.id));
     const asnsMap = new Map();
 
     remoteAsns.forEach(a => asnsMap.set(a.id, a));
@@ -494,11 +514,11 @@ const CloudSync = {
         asnsMap.set(la.id, lTime >= rTime ? { ...ra, ...la } : { ...la, ...ra });
       }
     });
-    merged.assignments = Array.from(asnsMap.values());
+    merged.assignments = Array.from(asnsMap.values()).filter(a => !deletedAsnIds.has(a.id));
 
     // 3. Hợp nhất Bài Nộp (Submissions) — Ưu tiên giữ bài đã chấm điểm và nét vẽ chấm bài
-    const localSubs = Array.isArray(local.submissions) ? local.submissions : [];
-    const remoteSubs = Array.isArray(remote.submissions) ? remote.submissions : [];
+    const localSubs = (Array.isArray(local.submissions) ? local.submissions : []).filter(s => !deletedSubIds.has(s.id));
+    const remoteSubs = (Array.isArray(remote.submissions) ? remote.submissions : []).filter(s => !deletedSubIds.has(s.id));
     const subsMap = new Map();
 
     remoteSubs.forEach(s => subsMap.set(s.id, s));
@@ -518,7 +538,7 @@ const CloudSync = {
         }
       }
     });
-    merged.submissions = Array.from(subsMap.values());
+    merged.submissions = Array.from(subsMap.values()).filter(s => !deletedSubIds.has(s.id));
 
     if (window.Store && typeof Store.healAllData === 'function') {
       Store.healAllData(merged);

@@ -134,6 +134,24 @@ const Store = {
   healAllData(dataObj) {
     if (!dataObj || typeof dataObj !== 'object') return dataObj;
 
+    // Chuẩn hóa & bảo vệ danh sách các mục đã xóa (Tombstones)
+    if (!Array.isArray(dataObj.deletedUserIds)) dataObj.deletedUserIds = [];
+    if (!Array.isArray(dataObj.deletedAssignmentIds)) dataObj.deletedAssignmentIds = [];
+    if (!Array.isArray(dataObj.deletedSubmissionIds)) dataObj.deletedSubmissionIds = [];
+
+    const delUsers = new Set(dataObj.deletedUserIds);
+    if (delUsers.size > 0 && Array.isArray(dataObj.users)) {
+      dataObj.users = dataObj.users.filter(u => u && !delUsers.has(u.id));
+    }
+    const delAsns = new Set(dataObj.deletedAssignmentIds);
+    if (delAsns.size > 0 && Array.isArray(dataObj.assignments)) {
+      dataObj.assignments = dataObj.assignments.filter(a => a && !delAsns.has(a.id));
+    }
+    const delSubs = new Set(dataObj.deletedSubmissionIds);
+    if (delSubs.size > 0 && Array.isArray(dataObj.submissions)) {
+      dataObj.submissions = dataObj.submissions.filter(s => s && !delSubs.has(s.id));
+    }
+
     // 1. Chuẩn hóa & bảo vệ danh sách Người dùng (Users)
     if (Array.isArray(dataObj.users)) {
       dataObj.users.forEach(u => {
@@ -233,84 +251,98 @@ const Store = {
     if (raw) {
       try {
         this.data = JSON.parse(raw);
-        // Tự động phục hồi toàn bộ chuỗi font chữ bị lỗi ngay khi nạp
+        if (!Array.isArray(this.data.deletedUserIds)) this.data.deletedUserIds = [];
+        const seedDeleted = ['u_std_1791361091065', 'u_std_1791361864132'];
+        seedDeleted.forEach(id => {
+          if (!this.data.deletedUserIds.includes(id)) {
+            this.data.deletedUserIds.push(id);
+          }
+        });
+        // Tự động phục hồi toàn bộ chuỗi font chữ bị lỗi ngay khi nạp & loại bỏ tài khoản đã xóa
         this.healAllData(this.data);
         // Migration: Đảm bảo toàn bộ tài khoản có username, password, phân quyền và phân công giáo viên chính xác
         if (this.data && Array.isArray(this.data.users)) {
           let updated = false;
 
-          // Kiểm tra và bổ sung Gia Sư thứ 2 nếu chưa có (Cô Phương Linh)
-          const hasLinh = this.data.users.some(u => u.id === 'u_tutor_linh');
-          if (!hasLinh) {
-            this.data.users.splice(2, 0, {
-              id: 'u_tutor_linh',
-              username: 'giasu_linh',
-              password: '123456',
-              name: 'Cô Phương Linh',
-              role: 'tutor',
-              roleName: 'Gia Sư Phụ Trách',
-              phone: '0988.765.432',
-              avatarText: 'PL',
-              subjects: ['Toán & Khoa Học Tự Nhiên']
-            });
-            updated = true;
-          }
+          const isDeletedUser = (uid) => Array.isArray(this.data.deletedUserIds) && this.data.deletedUserIds.includes(uid);
 
-          // Kiểm tra và bổ sung Gia Sư thứ 3 nếu chưa có (Cô Bình Bình)
-          const hasBinhBinh = this.data.users.some(u => u.id === 'u_tutor_1791305106234' || u.username === 'binhbinh');
-          if (!hasBinhBinh) {
-            this.data.users.splice(3, 0, {
-              id: 'u_tutor_1791305106234',
-              username: 'binhbinh',
-              password: '23032004',
-              name: 'Cô Bình Bình',
-              role: 'tutor',
-              roleName: 'Gia Sư Phụ Trách',
-              phone: '0902.704.416',
-              avatarText: 'BB',
-              subjects: ['Toán Học THPT']
-            });
-            updated = true;
-          }
+          // Chỉ bổ sung tài khoản mẫu lần đầu tiên (nếu chưa từng hoàn thành migration và không nằm trong danh sách đã xóa)
+          if (!this.data.migratedInitialUsers) {
+            // Kiểm tra và bổ sung Gia Sư thứ 2 nếu chưa có (Cô Phương Linh)
+            const hasLinh = this.data.users.some(u => u.id === 'u_tutor_linh');
+            if (!hasLinh && !isDeletedUser('u_tutor_linh')) {
+              this.data.users.splice(2, 0, {
+                id: 'u_tutor_linh',
+                username: 'giasu_linh',
+                password: '123456',
+                name: 'Cô Phương Linh',
+                role: 'tutor',
+                roleName: 'Gia Sư Phụ Trách',
+                phone: '0988.765.432',
+                avatarText: 'PL',
+                subjects: ['Toán & Khoa Học Tự Nhiên']
+              });
+              updated = true;
+            }
 
-          // Kiểm tra và bổ sung Học Sinh AN nếu chưa có
-          const hasAn = this.data.users.some(u => u.id === 'u_std_1791342637918' || u.username === 'std_an');
-          if (!hasAn) {
-            this.data.users.push({
-              id: 'u_std_1791342637918',
-              hasAccount: true,
-              accountStatus: 'active',
-              username: 'std_an',
-              password: '123456',
-              accountCreatedAt: '2026-10-07T03:10:37.918Z',
-              name: 'Học Sinh AN',
-              role: 'student',
-              roleName: 'Học Sinh',
-              assignedTutorId: 'u_tutor_1791305106234',
-              assignedTutorName: 'Cô Bình Bình',
-              dob: '2008-01-01',
-              gender: 'Nam',
-              school: 'THPT',
-              grade: 'Lớp 12',
-              phone: '0902.704.416',
-              address: 'TP.HCM',
-              parentName: 'Phụ huynh em AN',
-              parentPhone: '1238912381',
-              parentJob: '',
-              subject: 'Toán Học 12',
-              initialScore: 5.5,
-              targetScore: 8.5,
-              currentScore: 5.5,
-              feePerSession: 250000,
-              totalSessions: 0,
-              learningMode: '1 kèm 1 tại nhà',
-              schedule: 'Tối Thứ 2 & Thứ 5',
-              startDate: '2026-10-07',
-              strengths: '',
-              weaknesses: '',
-              notes: '',
-              avatarText: 'AN'
-            });
+            // Kiểm tra và bổ sung Gia Sư thứ 3 nếu chưa có (Cô Bình Bình)
+            const hasBinhBinh = this.data.users.some(u => u.id === 'u_tutor_1791305106234' || u.username === 'binhbinh');
+            if (!hasBinhBinh && !isDeletedUser('u_tutor_1791305106234')) {
+              this.data.users.splice(3, 0, {
+                id: 'u_tutor_1791305106234',
+                username: 'binhbinh',
+                password: '23032004',
+                name: 'Cô Bình Bình',
+                role: 'tutor',
+                roleName: 'Gia Sư Phụ Trách',
+                phone: '0902.704.416',
+                avatarText: 'BB',
+                subjects: ['Toán Học THPT']
+              });
+              updated = true;
+            }
+
+            // Kiểm tra và bổ sung Học Sinh AN nếu chưa có
+            const hasAn = this.data.users.some(u => u.id === 'u_std_1791342637918' || u.username === 'std_an');
+            if (!hasAn && !isDeletedUser('u_std_1791342637918')) {
+              this.data.users.push({
+                id: 'u_std_1791342637918',
+                hasAccount: true,
+                accountStatus: 'active',
+                username: 'std_an',
+                password: '123456',
+                accountCreatedAt: '2026-10-07T03:10:37.918Z',
+                name: 'Học Sinh AN',
+                role: 'student',
+                roleName: 'Học Sinh',
+                assignedTutorId: 'u_tutor_1791305106234',
+                assignedTutorName: 'Cô Bình Bình',
+                dob: '2008-01-01',
+                gender: 'Nam',
+                school: 'THPT',
+                grade: 'Lớp 12',
+                phone: '0902.704.416',
+                address: 'TP.HCM',
+                parentName: 'Phụ huynh em AN',
+                parentPhone: '1238912381',
+                parentJob: '',
+                subject: 'Toán Học 12',
+                initialScore: 5.5,
+                targetScore: 8.5,
+                currentScore: 5.5,
+                feePerSession: 250000,
+                totalSessions: 0,
+                learningMode: '1 kèm 1 tại nhà',
+                schedule: 'Tối Thứ 2 & Thứ 5',
+                startDate: '2026-10-07',
+                strengths: '',
+                weaknesses: '',
+                notes: '',
+                avatarText: 'AN'
+              });
+              updated = true;
+            }
+            this.data.migratedInitialUsers = true;
             updated = true;
           }
 
@@ -470,6 +502,7 @@ const Store = {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && Array.isArray(parsed.users)) {
+          this.healAllData(parsed);
           this.data = parsed;
           if (window.App && typeof App.renderCurrentView === 'function') {
             const isGrader = window.Grader && Grader.activeSubmission;
@@ -517,8 +550,12 @@ const Store = {
 
     // Tự động đẩy lên Firebase nếu có cấu hình
     const cs = window.CloudSync || (typeof CloudSync !== 'undefined' ? CloudSync : null);
-    if (!skipCloudPush && cs && typeof cs.schedulePush === 'function') {
-      cs.schedulePush();
+    if (!skipCloudPush && cs) {
+      if (immediate && typeof cs.pushData === 'function') {
+        cs.pushData(this.data, true);
+      } else if (typeof cs.schedulePush === 'function') {
+        cs.schedulePush();
+      }
     }
 
     // Tự động đẩy lên Kho dữ liệu trung tâm GitHub
@@ -541,6 +578,13 @@ const Store = {
 
   resetDefault() {
     this.data = {
+      deletedUserIds: [
+        'u_std_1791361091065',
+        'u_std_1791361864132'
+      ],
+      deletedAssignmentIds: [],
+      deletedSubmissionIds: [],
+      migratedInitialUsers: true,
       // 1. NGƯỜI DÙNG: 1 Admin + 2 Gia Sư Chuyên Môn + Danh Sách Học Sinh Phân Công Kèm 1-1
       users: [
         {
@@ -821,18 +865,21 @@ const Store = {
 
   // Helpers
   getUsersByRole(role) {
-    return this.data.users.filter(u => u.role === role);
+    const del = new Set(this.data?.deletedUserIds || []);
+    return (this.data?.users || []).filter(u => u.role === role && !del.has(u.id));
   },
 
   getUserById(id) {
     if (!id || !this.data || !Array.isArray(this.data.users)) return null;
+    if (this.data.deletedUserIds && this.data.deletedUserIds.includes(id)) return null;
     return this.data.users.find(u => u.id === id) || null;
   },
 
   getUserByUsername(username) {
     if (!username || !this.data || !Array.isArray(this.data.users)) return null;
     const clean = username.trim().toLowerCase();
-    return this.data.users.find(u => u.username && u.username.toLowerCase() === clean);
+    const del = new Set(this.data.deletedUserIds || []);
+    return this.data.users.find(u => !del.has(u.id) && u.username && u.username.toLowerCase() === clean) || null;
   },
 
   authenticate(username, password) {
@@ -847,23 +894,28 @@ const Store = {
     const cleanPassword = password.trim();
 
     // Tìm kiếm theo tên đăng nhập chính xác hoặc bí danh thông dụng
-    let user = this.data.users.find(u => u.username && u.username.toLowerCase() === cleanUsername);
+    const del = new Set(this.data?.deletedUserIds || []);
+    let user = this.data.users.find(u => !del.has(u.id) && u.username && u.username.toLowerCase() === cleanUsername);
 
     // Hỗ trợ bí danh linh hoạt giữa các thiết bị
     if (!user) {
       if (cleanUsername === 'admin') {
-        user = this.data.users.find(u => u.role === 'admin' || u.id === 'u_admin');
+        user = this.data.users.find(u => !del.has(u.id) && (u.role === 'admin' || u.id === 'u_admin'));
       } else if (cleanUsername === 'tutor' || cleanUsername === 'giasu') {
-        user = this.data.users.find(u => u.id === 'u_tutor');
+        user = this.data.users.find(u => !del.has(u.id) && u.id === 'u_tutor');
       } else if (cleanUsername === 'linh' || cleanUsername === 'giasu_linh') {
-        user = this.data.users.find(u => u.id === 'u_tutor_linh');
+        user = this.data.users.find(u => !del.has(u.id) && u.id === 'u_tutor_linh');
       } else if (cleanUsername === 'quang' || cleanUsername === 'std_quang') {
-        user = this.data.users.find(u => u.id === 'u_std_quang');
+        user = this.data.users.find(u => !del.has(u.id) && u.id === 'u_std_quang');
       } else if (cleanUsername === 'maianh' || cleanUsername === 'std_maianh') {
-        user = this.data.users.find(u => u.id === 'u_std_maianh');
+        user = this.data.users.find(u => !del.has(u.id) && u.id === 'u_std_maianh');
       } else if (cleanUsername === 'nam' || cleanUsername === 'std_nam') {
-        user = this.data.users.find(u => u.id === 'u_std_nam');
+        user = this.data.users.find(u => !del.has(u.id) && u.id === 'u_std_nam');
       }
+    }
+
+    if (user && del.has(user.id)) {
+      user = null;
     }
 
     if (!user) {
@@ -907,12 +959,14 @@ const Store = {
 
   getStudents() {
     if (this.data) this.healAllData(this.data);
-    return this.data.users.filter(u => u.role === 'student');
+    const del = new Set(this.data?.deletedUserIds || []);
+    return (this.data?.users || []).filter(u => u.role === 'student' && !del.has(u.id));
   },
 
   getTutors() {
     if (this.data) this.healAllData(this.data);
-    return this.data.users.filter(u => u.role === 'tutor');
+    const del = new Set(this.data?.deletedUserIds || []);
+    return (this.data?.users || []).filter(u => u.role === 'tutor' && !del.has(u.id));
   },
 
   getStudentsByTutor(tutorId) {
@@ -932,7 +986,8 @@ const Store = {
   isUsernameTaken(username, excludeUserId = null) {
     if (!username) return false;
     const clean = username.trim().toLowerCase();
-    return this.data.users.some(u => u.username && u.username.toLowerCase() === clean && u.id !== excludeUserId);
+    const del = new Set(this.data?.deletedUserIds || []);
+    return (this.data?.users || []).some(u => !del.has(u.id) && u.username && u.username.toLowerCase() === clean && u.id !== excludeUserId);
   },
 
   addTutor(tutorData) {
@@ -942,6 +997,10 @@ const Store = {
     if (!tutorData.avatarText) {
       const words = (tutorData.name || 'Gia Sư').trim().split(/\s+/);
       tutorData.avatarText = words.length > 1 ? (words[0][0] + words[words.length - 1][0]).toUpperCase() : words[0].slice(0, 2).toUpperCase();
+    }
+    // Xóa khỏi danh sách đã xóa nếu tạo lại
+    if (this.data.deletedUserIds) {
+      this.data.deletedUserIds = this.data.deletedUserIds.filter(id => id !== tutorData.id);
     }
     this.data.users.push(tutorData);
     this.save();
@@ -953,6 +1012,11 @@ const Store = {
     if (tutors.length <= 1) {
       return { success: false, message: 'Hệ thống cần duy trì ít nhất 1 gia sư!' };
     }
+    // Ghi nhận tombstone vĩnh viễn
+    if (!this.data.deletedUserIds) this.data.deletedUserIds = [];
+    if (!this.data.deletedUserIds.includes(tutorId)) {
+      this.data.deletedUserIds.push(tutorId);
+    }
     this.data.users = this.data.users.filter(u => u.id !== tutorId);
     // Chuyển học sinh đang kèm sang gia sư còn lại
     const remaining = this.getTutors();
@@ -963,7 +1027,15 @@ const Store = {
         s.assignedTutorName = fallback.name;
       }
     });
-    this.save();
+    // Chuyển bài tập do gia sư này phụ trách sang gia sư còn lại
+    if (Array.isArray(this.data.assignments)) {
+      this.data.assignments.forEach(a => {
+        if (a && a.tutorId === tutorId && fallback) {
+          a.tutorId = fallback.id;
+        }
+      });
+    }
+    this.save(false, true);
     return { success: true };
   },
 
@@ -1014,8 +1086,29 @@ const Store = {
   },
 
   addAssignment(assignment) {
+    if (this.data.deletedAssignmentIds) {
+      this.data.deletedAssignmentIds = this.data.deletedAssignmentIds.filter(id => id !== assignment.id);
+    }
     this.data.assignments.unshift(assignment);
     this.save();
+  },
+
+  deleteAssignment(assignmentId) {
+    if (!this.data.deletedAssignmentIds) this.data.deletedAssignmentIds = [];
+    if (!this.data.deletedAssignmentIds.includes(assignmentId)) {
+      this.data.deletedAssignmentIds.push(assignmentId);
+    }
+    this.data.assignments = (this.data.assignments || []).filter(a => a.id !== assignmentId);
+
+    const removedSubs = (this.data.submissions || []).filter(s => s.assignmentId === assignmentId);
+    if (!this.data.deletedSubmissionIds) this.data.deletedSubmissionIds = [];
+    removedSubs.forEach(s => {
+      if (!this.data.deletedSubmissionIds.includes(s.id)) {
+        this.data.deletedSubmissionIds.push(s.id);
+      }
+    });
+    this.data.submissions = (this.data.submissions || []).filter(s => s.assignmentId !== assignmentId);
+    this.save(false, true);
   },
 
   addSubmission(submission) {
@@ -1043,24 +1136,53 @@ const Store = {
   },
 
   addStudent(studentData) {
+    if (this.data.deletedUserIds) {
+      this.data.deletedUserIds = this.data.deletedUserIds.filter(id => id !== studentData.id);
+    }
     this.data.users.push(studentData);
     this.save();
   },
 
   deleteStudent(studentId) {
-    // 1. Xóa học sinh khỏi danh sách người dùng
-    this.data.users = this.data.users.filter(u => u.id !== studentId);
+    // 1. Ghi nhận tombstone vĩnh viễn
+    if (!this.data.deletedUserIds) this.data.deletedUserIds = [];
+    if (!this.data.deletedUserIds.includes(studentId)) {
+      this.data.deletedUserIds.push(studentId);
+    }
 
-    // 2. Xóa toàn bộ bài nộp của học sinh này
-    this.data.submissions = this.data.submissions.filter(s => s.studentId !== studentId);
+    // 2. Xóa học sinh khỏi danh sách người dùng
+    this.data.users = (this.data.users || []).filter(u => u.id !== studentId);
 
-    // 3. Xóa học sinh khỏi các bài tập; nếu bài tập giao riêng cho học sinh này thì xóa hẳn bài tập
-    this.data.assignments = this.data.assignments.filter(a => {
-      a.targetStudentIds = a.targetStudentIds.filter(id => id !== studentId);
-      return a.targetStudentIds.length > 0;
+    // 3. Xóa toàn bộ bài nộp của học sinh này & ghi nhận tombstone
+    const removedSubs = (this.data.submissions || []).filter(s => s.studentId === studentId);
+    if (!this.data.deletedSubmissionIds) this.data.deletedSubmissionIds = [];
+    removedSubs.forEach(s => {
+      if (!this.data.deletedSubmissionIds.includes(s.id)) {
+        this.data.deletedSubmissionIds.push(s.id);
+      }
     });
+    this.data.submissions = (this.data.submissions || []).filter(s => s.studentId !== studentId);
 
-    this.save();
+    // 4. Xóa học sinh khỏi các bài tập; nếu bài tập giao riêng cho học sinh này thì xóa hẳn bài tập & ghi nhận tombstone
+    const removedAsnIds = [];
+    this.data.assignments = (this.data.assignments || []).filter(a => {
+      a.targetStudentIds = (a.targetStudentIds || []).filter(id => id !== studentId);
+      if (a.targetStudentIds.length === 0) {
+        removedAsnIds.push(a.id);
+        return false;
+      }
+      return true;
+    });
+    if (removedAsnIds.length > 0) {
+      if (!this.data.deletedAssignmentIds) this.data.deletedAssignmentIds = [];
+      removedAsnIds.forEach(id => {
+        if (!this.data.deletedAssignmentIds.includes(id)) {
+          this.data.deletedAssignmentIds.push(id);
+        }
+      });
+    }
+
+    this.save(false, true);
   },
 
   updateStudent(studentId, updatedData) {

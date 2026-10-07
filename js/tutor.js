@@ -585,9 +585,7 @@ const TutorView = {
 
   deleteAssignment(assignmentId) {
     if (confirm("Bạn có chắc chắn muốn xóa bài tập này?")) {
-      Store.data.assignments = Store.data.assignments.filter(a => a.id !== assignmentId);
-      Store.data.submissions = Store.data.submissions.filter(s => s.assignmentId !== assignmentId);
-      Store.save();
+      Store.deleteAssignment(assignmentId);
       App.showToast("Đã xóa bài tập!", "info");
       App.renderCurrentView();
     }

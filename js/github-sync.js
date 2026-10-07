@@ -228,25 +228,43 @@ const GitHubSync = {
   // So sánh xem bản cục bộ có dữ liệu mới hơn bản trên GitHub hay không
   hasLocalAdditions(local, remote) {
     if (!local || !remote) return false;
+
+    // 0. Kiểm tra xem có mục nào vừa bị xóa cục bộ mà trên GitHub chưa ghi nhận
+    const localDelUsers = Array.isArray(local.deletedUserIds) ? local.deletedUserIds : [];
+    const remoteDelUsers = new Set(Array.isArray(remote.deletedUserIds) ? remote.deletedUserIds : []);
+    if (localDelUsers.some(id => !remoteDelUsers.has(id))) return true;
+
+    const localDelAsns = Array.isArray(local.deletedAssignmentIds) ? local.deletedAssignmentIds : [];
+    const remoteDelAsns = new Set(Array.isArray(remote.deletedAssignmentIds) ? remote.deletedAssignmentIds : []);
+    if (localDelAsns.some(id => !remoteDelAsns.has(id))) return true;
+
+    const localDelSubs = Array.isArray(local.deletedSubmissionIds) ? local.deletedSubmissionIds : [];
+    const remoteDelSubs = new Set(Array.isArray(remote.deletedSubmissionIds) ? remote.deletedSubmissionIds : []);
+    if (localDelSubs.some(id => !remoteDelSubs.has(id))) return true;
+
+    const allDelUsers = new Set([...localDelUsers, ...remoteDelUsers]);
+    const allDelAsns = new Set([...localDelAsns, ...remoteDelAsns]);
+    const allDelSubs = new Set([...localDelSubs, ...remoteDelSubs]);
+
     // 1. Kiểm tra người dùng mới
-    const localUsers = Array.isArray(local.users) ? local.users : [];
-    const remoteUsers = Array.isArray(remote.users) ? remote.users : [];
+    const localUsers = (Array.isArray(local.users) ? local.users : []).filter(u => !allDelUsers.has(u.id));
+    const remoteUsers = (Array.isArray(remote.users) ? remote.users : []).filter(u => !allDelUsers.has(u.id));
     const remoteUserIds = new Set(remoteUsers.map(u => u.id));
     for (const u of localUsers) {
       if (!remoteUserIds.has(u.id)) return true;
     }
 
     // 2. Kiểm tra bài tập mới
-    const localAsns = Array.isArray(local.assignments) ? local.assignments : [];
-    const remoteAsns = Array.isArray(remote.assignments) ? remote.assignments : [];
+    const localAsns = (Array.isArray(local.assignments) ? local.assignments : []).filter(a => !allDelAsns.has(a.id));
+    const remoteAsns = (Array.isArray(remote.assignments) ? remote.assignments : []).filter(a => !allDelAsns.has(a.id));
     const remoteAsnIds = new Set(remoteAsns.map(a => a.id));
     for (const a of localAsns) {
       if (!remoteAsnIds.has(a.id)) return true;
     }
 
     // 3. Kiểm tra bài nộp mới hoặc bài vừa chấm điểm
-    const localSubs = Array.isArray(local.submissions) ? local.submissions : [];
-    const remoteSubs = Array.isArray(remote.submissions) ? remote.submissions : [];
+    const localSubs = (Array.isArray(local.submissions) ? local.submissions : []).filter(s => !allDelSubs.has(s.id));
+    const remoteSubs = (Array.isArray(remote.submissions) ? remote.submissions : []).filter(s => !allDelSubs.has(s.id));
     const remoteSubMap = new Map();
     remoteSubs.forEach(s => remoteSubMap.set(s.id, s));
     for (const ls of localSubs) {
@@ -476,11 +494,29 @@ const GitHubSync = {
     if (!local) return remote;
     if (!remote) return local;
 
-    const merged = { ...remote };
+    const merged = { ...remote, ...local };
 
-    // 1. Users
-    const localUsers = Array.isArray(local.users) ? local.users : [];
-    const remoteUsers = Array.isArray(remote.users) ? remote.users : [];
+    // Hợp nhất danh sách các mục đã xóa (Tombstones) từ cả 2 nguồn
+    const deletedUserIds = new Set([
+      ...(Array.isArray(local.deletedUserIds) ? local.deletedUserIds : []),
+      ...(Array.isArray(remote.deletedUserIds) ? remote.deletedUserIds : [])
+    ]);
+    const deletedAsnIds = new Set([
+      ...(Array.isArray(local.deletedAssignmentIds) ? local.deletedAssignmentIds : []),
+      ...(Array.isArray(remote.deletedAssignmentIds) ? remote.deletedAssignmentIds : [])
+    ]);
+    const deletedSubIds = new Set([
+      ...(Array.isArray(local.deletedSubmissionIds) ? local.deletedSubmissionIds : []),
+      ...(Array.isArray(remote.deletedSubmissionIds) ? remote.deletedSubmissionIds : [])
+    ]);
+
+    merged.deletedUserIds = Array.from(deletedUserIds);
+    merged.deletedAssignmentIds = Array.from(deletedAsnIds);
+    merged.deletedSubmissionIds = Array.from(deletedSubIds);
+
+    // 1. Users: Loại bỏ triệt để các tài khoản đã bị xóa (không cho phép hồi sinh)
+    const localUsers = (Array.isArray(local.users) ? local.users : []).filter(u => !deletedUserIds.has(u.id));
+    const remoteUsers = (Array.isArray(remote.users) ? remote.users : []).filter(u => !deletedUserIds.has(u.id));
     const userMap = new Map();
     remoteUsers.forEach(u => userMap.set(u.id, u));
     localUsers.forEach(lu => {
@@ -491,11 +527,11 @@ const GitHubSync = {
         userMap.set(lu.id, { ...ru, ...lu });
       }
     });
-    merged.users = Array.from(userMap.values());
+    merged.users = Array.from(userMap.values()).filter(u => !deletedUserIds.has(u.id));
 
     // 2. Assignments
-    const localAsns = Array.isArray(local.assignments) ? local.assignments : [];
-    const remoteAsns = Array.isArray(remote.assignments) ? remote.assignments : [];
+    const localAsns = (Array.isArray(local.assignments) ? local.assignments : []).filter(a => !deletedAsnIds.has(a.id));
+    const remoteAsns = (Array.isArray(remote.assignments) ? remote.assignments : []).filter(a => !deletedAsnIds.has(a.id));
     const asnsMap = new Map();
     remoteAsns.forEach(a => asnsMap.set(a.id, a));
     localAsns.forEach(la => {
@@ -506,11 +542,11 @@ const GitHubSync = {
         asnsMap.set(la.id, { ...ra, ...la });
       }
     });
-    merged.assignments = Array.from(asnsMap.values());
+    merged.assignments = Array.from(asnsMap.values()).filter(a => !deletedAsnIds.has(a.id));
 
     // 3. Submissions
-    const localSubs = Array.isArray(local.submissions) ? local.submissions : [];
-    const remoteSubs = Array.isArray(remote.submissions) ? remote.submissions : [];
+    const localSubs = (Array.isArray(local.submissions) ? local.submissions : []).filter(s => !deletedSubIds.has(s.id));
+    const remoteSubs = (Array.isArray(remote.submissions) ? remote.submissions : []).filter(s => !deletedSubIds.has(s.id));
     const subsMap = new Map();
     remoteSubs.forEach(s => subsMap.set(s.id, s));
     localSubs.forEach(ls => {
@@ -533,7 +569,11 @@ const GitHubSync = {
         }
       }
     });
-    merged.submissions = Array.from(subsMap.values());
+    merged.submissions = Array.from(subsMap.values()).filter(s => !deletedSubIds.has(s.id));
+
+    if (window.Store && typeof Store.healAllData === 'function') {
+      Store.healAllData(merged);
+    }
 
     return merged;
   },

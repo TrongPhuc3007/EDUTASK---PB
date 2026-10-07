@@ -948,8 +948,19 @@ const AdminView = {
       App.showToast(res.message || 'Không thể xóa gia sư này!', 'error');
       return;
     }
+
+    // Nếu Admin đang đóng vai xem bàn gia sư này thì thoát chế độ giám sát
+    if (typeof Auth !== 'undefined' && Auth.isAdminSupervising() && Auth.getCurrentUser().id === tutorId) {
+      Auth.adminReturnToAdmin();
+    }
+
     App.showToast(`✓ Đã xóa gia sư "${tutorName}" thành công!`, 'success');
-    this.render(document.getElementById('viewContainer'));
+    if (window.App) {
+      App.updateHeaderProfile();
+      App.renderCurrentView();
+    } else {
+      this.render(document.getElementById('viewContainer'));
+    }
   }
 };
 

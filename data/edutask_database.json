@@ -1,9 +1,15 @@
 {
   "meta": {
     "name": "EDUTASK_PB_CENTRAL_DATABASE",
-    "version": 3,
-    "lastUpdated": "2026-10-07T06:27:31.3333629+00:00"
+    "version": 4,
+    "lastUpdated": "2026-10-07T14:15:00.000Z"
   },
+  "deletedUserIds": [
+    "u_std_1791361091065",
+    "u_std_1791361864132"
+  ],
+  "deletedAssignmentIds": [],
+  "deletedSubmissionIds": [],
   "users": [
     {
       "id": "u_tutor",
