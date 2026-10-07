@@ -8,15 +8,14 @@
   inset: 0;
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 2000;
-  display: flex;
+  display: none !important;
   flex-direction: column;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
 }
 
 .grader-modal-overlay.active {
+  display: flex !important;
   opacity: 1;
   pointer-events: auto;
 }

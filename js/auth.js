@@ -13,22 +13,28 @@ const Auth = {
   activeUser: null,     // Tài khoản đang hiển thị giao diện
 
   init() {
-    // 1. Dọn sạch các khóa phiên tự động cũ để tuyệt đối không tự nhảy thẳng vào tài khoản
-    localStorage.removeItem('EDUTASK_USER_SESSION');
-    localStorage.removeItem('EDUTASK_USER_SESSION_V2');
+    try {
+      localStorage.removeItem('EDUTASK_USER_SESSION');
+      localStorage.removeItem('EDUTASK_USER_SESSION_V2');
+    } catch (e) {}
 
-    // 2. Khôi phục phiên chỉ khi có trong sessionStorage (phiên hiện tại) hoặc localStorage (nếu đã tick Ghi nhớ)
-    const savedUserId = sessionStorage.getItem(this.SESSION_KEY) || localStorage.getItem(this.SESSION_KEY);
+    let savedUserId = null;
+    try {
+      savedUserId = sessionStorage.getItem(this.SESSION_KEY) || localStorage.getItem(this.SESSION_KEY);
+    } catch (e) {}
+
     if (savedUserId && window.Store) {
       const user = Store.getUserById(savedUserId);
       if (user) {
         this.sessionUser = user;
         this.activeUser = user;
-        const superviseId = localStorage.getItem(this.SUPERVISE_KEY);
-        if (superviseId && user.role === 'admin') {
-          const target = Store.getUserById(superviseId);
-          if (target) this.activeUser = target;
-        }
+        try {
+          const superviseId = localStorage.getItem(this.SUPERVISE_KEY);
+          if (superviseId && user.role === 'admin') {
+            const target = Store.getUserById(superviseId);
+            if (target) this.activeUser = target;
+          }
+        } catch (e) {}
         console.log(`[Auth] Khôi phục phiên làm việc hợp lệ: ${user.name} (${user.role})`);
         return;
       }
@@ -84,18 +90,24 @@ const Auth = {
     this.sessionUser = user;
     this.activeUser = user;
 
-    // Lưu phiên làm việc:
-    // Nếu chọn "Ghi nhớ": lưu vào localStorage để dùng lâu dài
-    // Nếu không chọn: chỉ lưu vào sessionStorage để an toàn khi đóng trình duyệt
-    sessionStorage.setItem(this.SESSION_KEY, user.id);
-    if (rememberMe) {
-      localStorage.setItem(this.SESSION_KEY, user.id);
-    } else {
-      localStorage.removeItem(this.SESSION_KEY);
+    // Lưu phiên làm việc an toàn (hỗ trợ cả Safari ẩn danh trên điện thoại)
+    try {
+      sessionStorage.setItem(this.SESSION_KEY, user.id);
+    } catch (e) {
+      console.warn('[Auth] sessionStorage không khả dụng:', e);
     }
 
-    localStorage.removeItem(this.SUPERVISE_KEY);
-    localStorage.setItem(this.REMEMBER_KEY, user.username);
+    try {
+      if (rememberMe) {
+        localStorage.setItem(this.SESSION_KEY, user.id);
+      } else {
+        localStorage.removeItem(this.SESSION_KEY);
+      }
+      localStorage.removeItem(this.SUPERVISE_KEY);
+      localStorage.setItem(this.REMEMBER_KEY, user.username);
+    } catch (e) {
+      console.warn('[Auth] localStorage không khả dụng:', e);
+    }
 
     window.dispatchEvent(new CustomEvent('auth:user_changed', { detail: user }));
 

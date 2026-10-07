@@ -210,6 +210,11 @@ const App = {
       const container = document.getElementById('viewContainer');
       if (!container) return;
 
+      // Đảm bảo viewport cuộn về đỉnh trang khi chuyển đổi màn hình trên điện thoại
+      window.scrollTo(0, 0);
+      if (document.body) document.body.scrollTop = 0;
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+
       if (!Auth.isAuthenticated()) {
         // Hiển thị Màn Hình 3 Cổng Đăng Nhập Phân Quyền
         GatewayView.render(container);
@@ -765,7 +770,11 @@ const App = {
   }
 };
 
-// Khởi chạy khi tài liệu tải xong
-document.addEventListener('DOMContentLoaded', () => {
+// Khởi chạy khi tài liệu tải xong (hỗ trợ cả trường hợp DOM đã tải trước)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    App.init();
+  });
+} else {
   App.init();
-});
+}

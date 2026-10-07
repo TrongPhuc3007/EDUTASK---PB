@@ -289,6 +289,11 @@ const GatewayView = {
       return;
     }
 
+    // Hạ bàn phím ảo trên điện thoại để trả lại viewport chuẩn
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+
     const btn = document.getElementById('btnLoginSubmit');
     const originalBtnText = btn ? btn.innerHTML : '';
     if (btn) {
@@ -324,6 +329,10 @@ const GatewayView = {
         }
       } else {
         this.dismissAlert();
+        // Đưa màn hình về đỉnh trang (0, 0) chống kẹt khoảng trắng trên điện thoại
+        window.scrollTo(0, 0);
+        if (document.body) document.body.scrollTop = 0;
+        if (document.documentElement) document.documentElement.scrollTop = 0;
       }
     }, 120);
   },

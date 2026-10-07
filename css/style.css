@@ -764,17 +764,16 @@ body {
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
-  display: flex;
+  -webkit-backdrop-filter: blur(4px);
+  display: none !important;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
 }
 
 .modal-overlay.active {
+  display: flex !important;
   opacity: 1;
   pointer-events: auto;
 }
@@ -2485,15 +2484,8 @@ button, a, input, select, textarea, .btn, .student-chip, .tool-btn, .fast-score-
 }
 
 /* ================= HARDWARE ACCELERATION & PERFORMANCE OPTIMIZATIONS ================= */
-.modal-overlay,
-.grader-modal-overlay {
-  will-change: opacity;
-  transform: translateZ(0);
-}
-
 .modal-box {
-  will-change: transform, opacity;
-  transform: translateZ(0);
+  transform: translateY(0);
 }
 
 #gradingCanvas {

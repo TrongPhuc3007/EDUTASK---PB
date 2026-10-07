@@ -543,7 +543,8 @@ const Store = {
   },
 
   getUserById(id) {
-    return this.data.users.find(u => u.id === id);
+    if (!id || !this.data || !Array.isArray(this.data.users)) return null;
+    return this.data.users.find(u => u.id === id) || null;
   },
 
   getUserByUsername(username) {

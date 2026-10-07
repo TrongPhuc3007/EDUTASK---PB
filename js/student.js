@@ -72,8 +72,11 @@ const StudentView = {
 
     return assignments.map(asn => {
       const sub = Store.getSubmission(asn.id, studentId);
-      const isIndividual = asn.targetType === 'individual';
-      const deadline = new Date(asn.deadline).toLocaleString('vi-VN', {
+      const safeDeadlineStr = (asn.deadline && asn.deadline.includes('T') && asn.deadline.length === 16) 
+        ? asn.deadline + ':00' 
+        : (asn.deadline || '');
+      const parsedDeadline = safeDeadlineStr ? new Date(safeDeadlineStr) : new Date();
+      const deadline = isNaN(parsedDeadline.getTime()) ? 'Chưa ấn định' : parsedDeadline.toLocaleString('vi-VN', {
         hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
       });
 

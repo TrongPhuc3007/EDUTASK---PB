@@ -405,9 +405,12 @@ const TutorView = {
         .map(id => Store.getUserById(id)?.name || id)
         .join(', ');
 
-      const deadline = new Date(asn.deadline);
-      const isOverdue = deadline < new Date();
-      const deadlineFormatted = deadline.toLocaleString('vi-VN', {
+      const safeDeadlineStr = (asn.deadline && asn.deadline.includes('T') && asn.deadline.length === 16) 
+        ? asn.deadline + ':00' 
+        : (asn.deadline || '');
+      const parsedDeadline = safeDeadlineStr ? new Date(safeDeadlineStr) : new Date();
+      const isOverdue = parsedDeadline < new Date();
+      const deadlineFormatted = isNaN(parsedDeadline.getTime()) ? 'Chưa ấn định' : parsedDeadline.toLocaleString('vi-VN', {
         hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
       });
 
