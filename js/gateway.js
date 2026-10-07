@@ -184,6 +184,19 @@ const GatewayView = {
 
             </form>
 
+            <!-- Thanh trạng thái đồng bộ đám mây trên màn hình đăng nhập -->
+            <div style="margin-top:16px; padding:10px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; display:flex; align-items:center; justify-content:space-between; font-size:12.5px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span>☁️</span>
+                <span style="color:var(--text-muted);">
+                  ${window.CloudSync && CloudSync.isConnected ? '<strong style="color:#059669;">Đám mây Realtime: Đang kết nối</strong>' : (window.CloudSync && CloudSync.isConfigured ? '<span style="color:#d97706;">Đám mây: Đang chờ kết nối</span>' : '<span>Dữ liệu chưa đồng bộ giữa PC & ĐT</span>')}
+                </span>
+              </div>
+              <button type="button" onclick="CloudSync.openModal()" style="border:none; background:none; color:var(--primary); font-weight:700; cursor:pointer; font-size:12px; text-decoration:underline;">
+                ⚙️ Cài đặt
+              </button>
+            </div>
+
             <div class="login-card-footer-note">
               <div class="footer-note-seal">🏛️ <strong>EDUTASK - PB</strong> • Nền Tảng Học Tập & Dạy Kèm Chuẩn Mực</div>
               <div class="footer-note-sub">Phân quyền độc lập • Bảo mật dữ liệu & Vững bước tri thức</div>

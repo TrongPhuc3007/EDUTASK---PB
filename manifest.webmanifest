@@ -1,0 +1,18 @@
+{
+  "name": "EDUTASK - PB — Nền Tảng Học Tập & Dạy Kèm",
+  "short_name": "EduTask PB",
+  "description": "Hệ thống quản lý dạy kèm 1-1, giao bài tập, chấm điểm bút đỏ và đồng bộ đa thiết bị theo thời gian thực.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f2b5c",
+  "theme_color": "#0f2b5c",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='108' fill='%230f2b5c'/%3E%3Cpath d='M128 392c30-18 64-28 102-28h154V128H230c-38 0-72 10-102 28v236z' fill='none' stroke='%23ffffff' stroke-width='32' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M384 392c-30-18-64-28-102-28H128V128h154c38 0 72 10 102 28v236z' fill='none' stroke='%23ffffff' stroke-width='32' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='256' cy='96' r='24' fill='%23fbbf24'/%3E%3C/svg%3E",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

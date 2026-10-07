@@ -12,7 +12,7 @@ const ParentView = {
       return;
     }
 
-    const tutor = Store.getUserById(student.tutorId);
+    const tutor = Store.getUserById(student.assignedTutorId || student.tutorId);
     const assignments = Store.getAssignmentsForStudent(student.id);
 
     // Tính điểm trung bình và bài hoàn thành
@@ -24,15 +24,18 @@ const ParentView = {
       ? (completedSubs.reduce((acc, s) => acc + s.score, 0) / completedSubs.length).toFixed(1)
       : 'Chưa có';
 
+    const cheatSummary = Store.getStudentCheatSummary ? Store.getStudentCheatSummary(student.id) : null;
+    const honestyRate = cheatSummary ? (cheatSummary.honestyRate ?? cheatSummary.integrityRate ?? 100) : 100;
+
     container.innerHTML = `
       <!-- Banner Phụ Huynh -->
       <div class="view-banner" style="background: linear-gradient(135deg, #78350f 0%, #b45309 60%, #d97706 100%);">
         <div class="banner-info">
           <h2>Kính Chào Quý Phụ Huynh — ${parent.name}</h2>
-          <p>Bảng theo dõi tiến độ học tập minh bạch của em: <strong>${student.name}</strong></p>
+          <p>Bảng theo dõi tiến độ học tập minh bạch của em: <strong>${student.name}</strong> (${student.grade || 'Lớp 12'})</p>
         </div>
         <div class="banner-actions">
-          <button class="btn btn-white" onclick="App.showToast('Đã sao chép liên kết báo cáo tiến độ học tập!', 'success')">
+          <button class="btn btn-white" onclick="App.showToast('Đã sao chép liên kết báo cáo tiến độ học tập của con!', 'success')">
             🔗 Chia sẻ liên kết
           </button>
         </div>
@@ -43,8 +46,8 @@ const ParentView = {
         <div class="metric-card">
           <div class="metric-icon-box metric-purple">👨‍🏫</div>
           <div class="metric-data">
-            <h4>${tutor ? tutor.name : 'Chưa có'}</h4>
-            <span>Gia sư phụ trách</span>
+            <h4>${tutor ? tutor.name : (student.assignedTutorName || 'Thầy Minh Đức')}</h4>
+            <span>Gia sư phụ trách ${tutor && tutor.phone ? `• SĐT: ${tutor.phone}` : ''}</span>
           </div>
         </div>
         <div class="metric-card">
@@ -62,10 +65,10 @@ const ParentView = {
           </div>
         </div>
         <div class="metric-card">
-          <div class="metric-icon-box metric-yellow">📝</div>
+          <div class="metric-icon-box ${honestyRate >= 80 ? 'metric-green' : 'metric-yellow'}">🛡️</div>
           <div class="metric-data">
-            <h4>${completedSubs.length}/${assignments.length}</h4>
-            <span>Bài đã hoàn thành</span>
+            <h4>${honestyRate}%</h4>
+            <span>Chỉ số trung thực (làm bài)</span>
           </div>
         </div>
       </div>

@@ -15,6 +15,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+  <!-- Progressive Web App (PWA) Manifest & Icons -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230f2b5c'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z' fill='%231e40af'/%3E%3C/svg%3E">
+
   <!-- CSS -->
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/canvas.css">
@@ -56,9 +60,18 @@
         <!-- Render động Admin Master Control Bar khi đăng nhập Admin -->
       </div>
 
-      <!-- Khu vực tài khoản & Nút Đăng Xuất -->
-      <div id="headerUserActions" style="display:flex; align-items:center; gap:12px;">
-        <!-- Render động Profile Badge + Nút Đăng Xuất -->
+      <!-- Khu vực điều khiển đồng bộ đám mây và tài khoản -->
+      <div style="display:flex; align-items:center; gap:10px;">
+        <!-- Nút Đồng Bộ Đám Mây (Realtime Cloud Sync) -->
+        <button id="cloudSyncHeaderBtn" class="cloud-sync-pill-btn sync-state-unconfigured" onclick="CloudSync.openModal()" title="Cài đặt & Giám sát Đồng bộ Đám mây giữa Máy tính và Điện thoại">
+          <span class="sync-dot dot-unconfigured"></span>
+          <span class="sync-pill-text">Cài Đặt Đám Mây ☁️</span>
+        </button>
+
+        <!-- Khu vực tài khoản & Nút Đăng Xuất -->
+        <div id="headerUserActions" style="display:flex; align-items:center; gap:12px;">
+          <!-- Render động Profile Badge + Nút Đăng Xuất -->
+        </div>
       </div>
 
     </div>
@@ -222,7 +235,7 @@
 
   <!-- ================= MODAL 3: XEM BÀI ĐÃ CHẤM ================= -->
   <div class="modal-overlay" id="reviewGradedModal">
-    <div class="modal-box" style="max-width:850px; max-height:92vh;">
+    <div class="modal-box" style="max-width:900px; max-height:94vh;">
       <div class="modal-header">
         <div>
           <h3 id="reviewModalTitle">Kết Quả Bài Làm</h3>
@@ -233,18 +246,36 @@
           <button class="modal-close" onclick="App.closeModal('reviewGradedModal')">&times;</button>
         </div>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" style="padding:16px;">
         <div style="background:#f8fafc; border-left:4px solid var(--primary); padding:14px; border-radius:8px; margin-bottom:12px;">
           <strong style="color:var(--primary); font-size:14px;">💬 Lời nhận xét của Gia Sư:</strong>
-          <p id="reviewFeedbackText" style="font-size:14px; margin-top:4px; color:#334155;"></p>
+          <p id="reviewFeedbackText" style="font-size:14px; margin-top:4px; color:#334155; line-height:1.5;"></p>
         </div>
-        <div style="text-align:center; background:#0f172a; padding:16px; border-radius:8px; overflow:auto;">
-          <img id="reviewPaperImg" src="" alt="Bài làm đã chấm" style="max-width:100%; height:auto; border-radius:4px; box-shadow:0 8px 20px rgba(0,0,0,0.4);">
+
+        <!-- Thanh công cụ phóng to / thu nhỏ ảnh bài chấm -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; padding:8px 12px; border-radius:8px 8px 0 0; color:white; font-size:12px; flex-wrap:wrap; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span>📸 <strong>Xem Chi Tiết Bài Chấm Bút Đỏ:</strong></span>
+            <span id="reviewZoomLevel" style="color:#38bdf8; font-weight:700;">100%</span>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button type="button" class="btn btn-xs btn-white" onclick="App.zoomReviewImage(0.2)" title="Phóng to">🔍+ Phóng to</button>
+            <button type="button" class="btn btn-xs btn-white" onclick="App.zoomReviewImage(-0.2)" title="Thu nhỏ">🔍- Thu nhỏ</button>
+            <button type="button" class="btn btn-xs btn-white" onclick="App.zoomReviewImage(0)" title="Kích thước gốc">🔄 100%</button>
+            <button type="button" class="btn btn-xs btn-white" onclick="App.downloadReviewPaper()" title="Tải ảnh về máy">💾 Tải ảnh</button>
+          </div>
+        </div>
+
+        <div id="reviewPaperContainer" style="text-align:center; background:#0f172a; padding:16px; border-radius:0 0 8px 8px; overflow:auto; max-height:55vh; display:flex; justify-content:center; align-items:flex-start;">
+          <img id="reviewPaperImg" src="" alt="Bài làm đã chấm" style="max-width:100%; height:auto; border-radius:4px; box-shadow:0 8px 20px rgba(0,0,0,0.4); transform-origin: top center; transition: transform 0.15s ease;">
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline" onclick="App.closeModal('reviewGradedModal')">Đóng</button>
-        <button class="btn btn-primary" onclick="window.print()">🖨️ In bài làm</button>
+      <div class="modal-footer" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <button class="btn btn-outline" onclick="App.downloadReviewPaper()">💾 Tải Ảnh Bút Đỏ Về Máy</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-primary" onclick="window.print()">🖨️ In bài làm</button>
+          <button class="btn btn-outline" onclick="App.closeModal('reviewGradedModal')">Đóng</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1084,10 +1115,39 @@
     </div>
   </div>
 
+  <!-- ================= MODAL: QUẢN LÝ ĐỒNG BỘ ĐÁM MÂY (FIREBASE REALTIME) ================= -->
+  <div class="modal-overlay" id="cloudSyncModal" style="z-index: 3500;">
+    <div class="modal-box" style="max-width: 680px; max-height: 94vh; background: #ffffff;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:40px; height:40px; background:linear-gradient(135deg, #0284c7, #0f2b5c); border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-size:20px;">
+            ☁️
+          </div>
+          <div>
+            <h3>Đồng Bộ Đám Mây (Cloud Sync)</h3>
+            <small style="color:var(--text-muted);">Liên thông dữ liệu tức thì 2 chiều giữa Máy tính & Điện thoại (Firebase Realtime)</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="CloudSync.closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="cloudSyncModalBody" style="gap:16px;">
+        <!-- Render động qua CloudSync.renderModalContent() -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="CloudSync.closeModal()">Đóng</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notifications Container -->
   <div class="toast-container" id="toastContainer"></div>
 
+  <!-- Google Firebase SDK (Realtime Database & App - Compat Build) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
   <!-- JavaScript Modules -->
+  <script src="js/cloud-sync.js"></script>
   <script src="js/store.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/gateway.js"></script>
@@ -1098,6 +1158,19 @@
   <script src="js/student.js"></script>
   <script src="js/parent.js"></script>
   <script src="js/app.js"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          console.log('[PWA] ServiceWorker đã kích hoạt thành công:', reg.scope);
+        }).catch((err) => {
+          console.log('[PWA] ServiceWorker đăng ký (bỏ qua nếu chạy file://):', err);
+        });
+      });
+    }
+  </script>
 
 </body>
 </html>

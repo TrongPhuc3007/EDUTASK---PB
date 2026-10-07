@@ -197,10 +197,100 @@ const Store = {
     } else {
       this.resetDefault();
     }
+
+    if (window.CloudSync && typeof CloudSync.init === 'function') {
+      CloudSync.init();
+    }
+
+    this.initSyncChannel();
   },
 
-  save() {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
+  syncChannel: null,
+
+  initSyncChannel() {
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        this.syncChannel = new BroadcastChannel('edutask_sync_bus');
+        this.syncChannel.onmessage = (event) => {
+          if (event && event.data && event.data.type === 'EDUTASK_LOCAL_SAVE') {
+            this.handleCrossTabUpdate(event.data);
+          }
+        };
+      } catch (err) {
+        console.warn('BroadcastChannel không khả dụng, sử dụng fallback storage event');
+      }
+    }
+
+    window.addEventListener('storage', (event) => {
+      if (event.key === this.STORAGE_KEY && event.newValue) {
+        this.handleCrossTabUpdate({ raw: event.newValue });
+      }
+    });
+  },
+
+  handleCrossTabUpdate(payload) {
+    try {
+      const raw = payload.raw || localStorage.getItem(this.STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.users)) {
+          this.data = parsed;
+          if (window.App && typeof App.renderCurrentView === 'function') {
+            const isGrader = window.Grader && Grader.activeSubmission;
+            const hasActiveModal = document.querySelector('.modal-overlay.active');
+            if (!isGrader && !hasActiveModal) {
+              App.updateHeaderProfile();
+              App.renderCurrentView();
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Lỗi đồng bộ tab:', e);
+    }
+  },
+
+  save(skipCloudPush = false) {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.code === 22) {
+        console.warn('LocalStorage đầy! Bắt đầu dọn dẹp và tối ưu hóa ảnh...');
+        this.optimizeStorage();
+        try {
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
+        } catch (err2) {
+          console.error('Không thể lưu LocalStorage sau khi tối ưu:', err2);
+          if (window.App && App.showToast) {
+            App.showToast('Bộ nhớ trình duyệt đã đầy. Vui lòng xuất bản sao lưu ra file JSON!', 'warning');
+          }
+        }
+      }
+    }
+
+    // Thông báo cho các tab khác trên cùng trình duyệt
+    if (this.syncChannel) {
+      try {
+        this.syncChannel.postMessage({
+          type: 'EDUTASK_LOCAL_SAVE',
+          timestamp: Date.now()
+        });
+      } catch (e) {}
+    }
+
+    if (!skipCloudPush && window.CloudSync && typeof CloudSync.schedulePush === 'function') {
+      CloudSync.schedulePush();
+    }
+  },
+
+  optimizeStorage() {
+    if (this.data && Array.isArray(this.data.submissions)) {
+      this.data.submissions.forEach((sub, idx) => {
+        if (idx > 10 && sub.photoUrl && sub.photoUrl.length > 50000) {
+          sub.photoUrl = this.samplePaperDataUrl;
+        }
+      });
+    }
   },
 
   resetDefault() {

@@ -30,6 +30,9 @@ const App = {
 
     this.bindGlobalEvents();
     this.updateHeaderProfile();
+    if (window.CloudSync && typeof CloudSync.renderHeaderIndicator === 'function') {
+      CloudSync.renderHeaderIndicator();
+    }
     this.renderCurrentView();
 
     if (testUser === 'create_modal') this.openCreateAssignmentModal();
@@ -594,13 +597,47 @@ const App = {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        this.currentUploadedPhotoUrl = e.target.result;
-        const previewBox = document.getElementById('submitFilePreview');
-        const previewImg = document.getElementById('submitPreviewImg');
-        if (previewBox && previewImg) {
-          previewImg.src = e.target.result;
-          previewBox.style.display = 'block';
-        }
+        const rawDataUrl = e.target.result;
+        // Tối ưu hóa dung lượng ảnh chụp từ điện thoại để đồng bộ Realtime siêu tốc
+        const img = new Image();
+        img.onload = () => {
+          const maxDimension = 1400;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+          App.currentUploadedPhotoUrl = compressedDataUrl;
+          const previewBox = document.getElementById('submitFilePreview');
+          const previewImg = document.getElementById('submitPreviewImg');
+          if (previewBox && previewImg) {
+            previewImg.src = compressedDataUrl;
+            previewBox.style.display = 'block';
+          }
+        };
+        img.onerror = () => {
+          App.currentUploadedPhotoUrl = rawDataUrl;
+          const previewBox = document.getElementById('submitFilePreview');
+          const previewImg = document.getElementById('submitPreviewImg');
+          if (previewBox && previewImg) {
+            previewImg.src = rawDataUrl;
+            previewBox.style.display = 'block';
+          }
+        };
+        img.src = rawDataUrl;
       };
       reader.readAsDataURL(file);
     }
@@ -652,19 +689,57 @@ const App = {
   },
 
   // ================= MODAL: XEM BÀI ĐÃ CHẤM =================
+  currentReviewZoom: 1.0,
+
   openReviewModal(submissionId) {
     const sub = Store.data.submissions.find(s => s.id === submissionId);
     if (!sub) return;
 
+    this.currentReviewZoom = 1.0;
     const assignment = Store.data.assignments.find(a => a.id === sub.assignmentId);
     document.getElementById('reviewModalTitle').textContent = assignment ? assignment.title : 'Kết Quả Bài Làm';
     document.getElementById('reviewStudentName').textContent = sub.studentName;
     document.getElementById('reviewScoreBadge').textContent = sub.score !== null ? `${sub.score}/10` : 'Chờ chấm';
     document.getElementById('reviewFeedbackText').textContent = sub.feedback || 'Chưa có lời nhận xét từ gia sư.';
-    document.getElementById('reviewPaperImg').src = sub.annotatedPhoto || sub.photoUrl || Store.samplePaperDataUrl;
+    
+    const img = document.getElementById('reviewPaperImg');
+    if (img) {
+      img.src = sub.annotatedPhoto || sub.photoUrl || Store.samplePaperDataUrl;
+      img.style.transform = 'scale(1)';
+    }
+
+    const zoomLabel = document.getElementById('reviewZoomLevel');
+    if (zoomLabel) zoomLabel.textContent = '100%';
 
     const modal = document.getElementById('reviewGradedModal');
     modal.classList.add('active');
+  },
+
+  zoomReviewImage(delta) {
+    const img = document.getElementById('reviewPaperImg');
+    if (!img) return;
+
+    if (delta === 0) {
+      this.currentReviewZoom = 1.0;
+    } else {
+      this.currentReviewZoom = Math.min(3.0, Math.max(0.5, this.currentReviewZoom + delta));
+    }
+
+    img.style.transform = `scale(${this.currentReviewZoom})`;
+    const zoomLabel = document.getElementById('reviewZoomLevel');
+    if (zoomLabel) zoomLabel.textContent = `${Math.round(this.currentReviewZoom * 100)}%`;
+  },
+
+  downloadReviewPaper() {
+    const img = document.getElementById('reviewPaperImg');
+    if (!img || !img.src) return;
+
+    const studentName = (document.getElementById('reviewStudentName')?.textContent || 'HocSinh').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
+    const link = document.createElement('a');
+    link.download = `BaiCham_${studentName}_${Date.now()}.png`;
+    link.href = img.src;
+    link.click();
+    this.showToast('Đang tải ảnh bài chấm bút đỏ về thiết bị!', 'success');
   },
 
   // ================= TOAST THÔNG BÁO =================

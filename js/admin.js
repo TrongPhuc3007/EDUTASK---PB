@@ -291,7 +291,10 @@ const AdminView = {
         <div class="card-header">
           <h3>⚙️ Quản Trị & Sao Lưu Dữ Liệu</h3>
         </div>
-        <div class="card-body" style="display:flex; gap:12px; flex-wrap:wrap;">
+        <div class="card-body" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-primary" onclick="CloudSync.openModal()" style="font-weight:700;">
+            ☁️ Đồng Bộ Đám Mây (Kết Nối Điện Thoại & PC)
+          </button>
           <button class="btn btn-outline" onclick="AdminView.exportBackup()">
             💾 Sao Lưu Dữ Liệu Ra File (Backup JSON)
           </button>

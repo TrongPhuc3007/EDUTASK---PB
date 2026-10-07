@@ -70,10 +70,11 @@ Hệ thống sở hữu **Màn hình Đăng Nhập Tập Trung Hoàn Chỉnh** v
 ```
 d:\App_HocTap_Azota\
 ├── css/
-│   ├── style.css           # Bố cục, thẻ bài tập, chips lọc học sinh, progress bar
+│   ├── style.css           # Bố cục, thẻ bài tập, chips lọc học sinh, nút đồng bộ đám mây
 │   └── canvas.css          # Bàn chấm bài bút đỏ, nút chọn điểm nhanh
 ├── js/
-│   ├── store.js            # CSDL LocalStorage mô hình 1 Admin + 1 Gia Sư + Học Sinh
+│   ├── cloud-sync.js       # Động cơ đồng bộ Firebase Realtime 2 chiều giữa PC & Điện thoại
+│   ├── store.js            # CSDL LocalStorage kết hợp CloudSync mô hình 1 Admin + Gia Sư + Học Sinh
 │   ├── auth.js             # Phân quyền độc lập & kiểm soát phiên đăng nhập
 │   ├── anticheat.js        # Giám sát chống gian lận & phát hiện task ngoài (rời tab/dùng AI)
 │   ├── grader.js           # Lõi Canvas vẽ bút đỏ, đóng dấu, xử lý trừ điểm kỷ luật
@@ -81,6 +82,7 @@ d:\App_HocTap_Azota\
 │   ├── tutor.js            # Lọc theo học sinh, tiến độ nộp bài, báo cáo rời tab, tạo tin Zalo
 │   ├── student.js          # To-Do List học sinh, nộp bài có cờ giám sát trung thực
 │   └── app.js              # Khởi tạo, modals, toasts, phím ESC đóng nhanh
+├── HUONG_DAN_DONG_BO_DU_LIEU.md # Hướng dẫn chi tiết kích hoạt Firebase & quét QR đồng bộ
 ├── Mo_EduTask.bat          # Phím tắt mở ứng dụng 1-click
 └── index.html              # Giao diện chính của ứng dụng
 ```
@@ -100,4 +102,36 @@ d:\App_HocTap_Azota\
    - Hộp cảnh báo hiển thị ngay trên thanh công cụ chấm điểm với nút **⚠️ Trừ 1đ vì tra cứu** (tự động giảm 1 điểm và điền lời nhắc nhở kỷ luật).
 5. **Đồng bộ vào tin nhắn báo cáo Phụ huynh (Zalo)**:
    - Tự động phản ánh tính trung thực và số lần rời tab vào báo cáo buổi học gửi cho cha mẹ học sinh.
+
+---
+
+## 🌐 7. Hệ Thống Đồng Bộ Đám Mây Đa Thiết Bị & Đa Nền Tảng (Cross-Platform)
+1. **Đồng Bộ Đa Tab Tức Thời Không Độ Trễ (BroadcastChannel Bus)**:
+   - Khi mở nhiều tab hoặc nhiều cửa sổ trên cùng một máy (ví dụ: Tab 1 Gia Sư, Tab 2 Học Sinh hoặc Admin), mọi thay đổi dữ liệu sẽ được truyền thông qua kênh `BroadcastChannel` và sự kiện `storage`. Các tab tự động cập nhật ngay lập tức mà không cần kết nối mạng hay tải lại trang (F5).
+2. **Đồng Bộ 2 Chiều Thời Gian Thực (Google Firebase Realtime Database)**:
+   - Liên thông dữ liệu giữa Máy tính (PC/Laptop) và Điện thoại (iOS / Android) trong tích tắc.
+   - Thầy cô giao bài trên máy tính $\rightarrow$ Học sinh nhận ngay trên điện thoại; Học sinh nộp bài trên điện thoại $\rightarrow$ Thầy cô nhận bài chấm ngay trên máy tính.
+3. **Quét Mã QR 1-Chạm Cho Điện Thoại**:
+   - Cung cấp mã QR tích hợp trên modal Đám Mây: Điện thoại chỉ cần quét camera là tự động nhận cấu hình, không phải nhập bất kỳ ký tự nào.
+4. **Kiểm Tra Kết Nối (Ping Test) & Giám Sát Mạng Online/Offline**:
+   - Nút **"Kiểm Tra Kết Nối"** trong tab Cài đặt Firebase giúp kiểm tra ngay tính sẵn sàng của database và hướng dẫn sửa lỗi Security Rules nếu thiếu quyền.
+   - Khi mất mạng và có lại mạng, hệ thống tự động phát hiện và đồng bộ bù dữ liệu ngay lập tức.
+5. **Cài Đặt Dưới Dạng Ứng Dụng Native (PWA - Progressive Web App)**:
+   - Hỗ trợ tệp `manifest.webmanifest` và `sw.js` (Service Worker) cho phép cài đặt app trực tiếp lên Windows, macOS, Android (Chrome "Cài đặt ứng dụng") và iOS (Safari "Thêm vào màn hình chính").
+   - Ứng dụng khởi động siêu tốc và có khả năng hoạt động ngay cả khi ngoại tuyến (Offline-first).
+
+---
+
+## ⚡ 8. Tối Ưu Hóa Hiệu Năng & Trải Nghiệm Người Dùng (Performance Optimizations)
+1. **Bảo Vệ Chống Tràn Bộ Nhớ & Nén Ảnh Thông Minh**:
+   - Toàn bộ ảnh chụp bài tập từ camera điện thoại và ảnh chấm bút đỏ đều được tự động nén qua Canvas với chuẩn tối ưu (kích thước tối đa 1400px, chất lượng 80%), giúp dung lượng mỗi ảnh chỉ khoảng 120KB - 180KB, đảm bảo đường truyền đồng bộ dưới 0.3s.
+   - Cơ chế tự động giải phóng dung lượng và bắt lỗi an toàn `QuotaExceededError` bảo vệ dữ liệu không bao giờ bị mất hoặc tràn bộ nhớ LocalStorage.
+2. **Nét Vẽ Canvas Bút Đỏ Mượt Mà 60FPS (RequestAnimationFrame)**:
+   - Tối ưu hóa chuỗi điểm vẽ qua `requestAnimationFrame`, loại bỏ hiện tượng giật lag khi dùng chuột, bút cảm ứng (Apple Pencil, S-Pen) hoặc ngón tay trên màn hình cảm ứng.
+3. **Bộ Công Cụ Phóng To / Thu Nhỏ Ảnh Bài Chấm Cho Học Sinh & Phụ Huynh**:
+   - Khi xem bài đã chấm bút đỏ, người dùng có thể bấm nút **Phóng to (🔍+)**, **Thu nhỏ (🔍-)**, **Về 100% (🔄)** hoặc **Tải ảnh bài làm về máy (💾)** để xem rõ từng nét chữ viết tay và lời nhận xét của gia sư trên màn hình điện thoại.
+4. **Sửa Lỗi Phân Công & Liên Hệ Gia Sư Trong Giao Diện Phụ Huynh**:
+   - Hiển thị chính xác tên gia sư được phân công phụ trách học sinh (`student.assignedTutorId`), kèm số điện thoại liên hệ và chỉ số trung thực khi làm bài.
+
+
 

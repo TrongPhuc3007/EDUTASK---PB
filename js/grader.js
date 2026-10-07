@@ -113,10 +113,23 @@ const Grader = {
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       this.baseImage = img;
-      this.canvas.width = img.width || 800;
-      this.canvas.height = img.height || 1100;
+      // Giới hạn kích thước tối đa để không làm tràn bộ nhớ GPU trên điện thoại và máy tính bảng
+      const maxDim = 1400;
+      let w = img.width || 800;
+      let h = img.height || 1100;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      this.canvas.width = w;
+      this.canvas.height = h;
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.drawImage(img, 0, 0);
+      this.ctx.drawImage(img, 0, 0, w, h);
       this.saveState();
     };
     img.src = src;
@@ -195,8 +208,24 @@ const Grader = {
       };
     };
 
+    let pendingPoints = [];
+    let isRafScheduled = false;
+
+    const renderPoints = () => {
+      if (!this.isDrawing || pendingPoints.length === 0) {
+        isRafScheduled = false;
+        return;
+      }
+      for (let i = 0; i < pendingPoints.length; i++) {
+        const pt = pendingPoints[i];
+        this.ctx.lineTo(pt.x, pt.y);
+      }
+      this.ctx.stroke();
+      pendingPoints = [];
+      isRafScheduled = false;
+    };
+
     const startDraw = (e) => {
-      // Ngăn chặn cuộn trang hoặc cử chỉ phóng to khi vẽ trên iOS & Android
       if (e.cancelable) e.preventDefault();
       const pos = getPos(e);
 
@@ -207,6 +236,7 @@ const Grader = {
       }
 
       this.isDrawing = true;
+      pendingPoints = [];
       this.ctx.beginPath();
       this.ctx.moveTo(pos.x, pos.y);
       this.applyStyle();
@@ -216,12 +246,18 @@ const Grader = {
       if (!this.isDrawing) return;
       if (e.cancelable) e.preventDefault();
       const pos = getPos(e);
-      this.ctx.lineTo(pos.x, pos.y);
-      this.ctx.stroke();
+      pendingPoints.push(pos);
+      if (!isRafScheduled) {
+        isRafScheduled = true;
+        requestAnimationFrame(renderPoints);
+      }
     };
 
     const stopDraw = () => {
       if (this.isDrawing) {
+        if (pendingPoints.length > 0) {
+          renderPoints();
+        }
         this.isDrawing = false;
         this.saveState();
       }
@@ -229,8 +265,8 @@ const Grader = {
 
     // Hỗ trợ Pointer Events tiên tiến (cho iPad Apple Pencil, Samsung S-Pen, bút cảm ứng & ngón tay)
     if (window.PointerEvent) {
-      this.canvas.addEventListener('pointerdown', startDraw);
-      this.canvas.addEventListener('pointermove', draw);
+      this.canvas.addEventListener('pointerdown', startDraw, { passive: false });
+      this.canvas.addEventListener('pointermove', draw, { passive: false });
       window.addEventListener('pointerup', stopDraw);
       window.addEventListener('pointercancel', stopDraw);
     } else {
