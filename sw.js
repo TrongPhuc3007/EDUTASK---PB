@@ -1,9 +1,9 @@
 /**
- * EDUTASK PRO — SERVICE WORKER (V11.4)
+ * EDUTASK PRO — SERVICE WORKER (V11.5)
  * Hỗ trợ bộ nhớ đệm ngoại tuyến (Offline cache) và khởi động tức thì đa nền tảng.
  */
 
-const CACHE_NAME = 'edutask-v11.4-cache';
+const CACHE_NAME = 'edutask-v11.5-cache';
 const STATIC_ASSETS = [
   './',
   './index.html',

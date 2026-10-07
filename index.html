@@ -1193,6 +1193,28 @@
   <!-- Google Firebase SDK (Realtime Database & App - Compat Build) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script>
+    // Cấu hình Google Firebase tích hợp sẵn vĩnh viễn cho toàn bộ hệ thống & mọi nền tảng
+    window.FIREBASE_CONFIG = {
+      apiKey: "AIzaSyCiupEKem9dHd5tCKvxnI-w75OiD5LCPbY",
+      authDomain: "edutask-pb.firebaseapp.com",
+      databaseURL: "https://edutask-pb-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "edutask-pb",
+      storageBucket: "edutask-pb.firebasestorage.app",
+      messagingSenderId: "754760560590",
+      appId: "1:754760560590:web:26cdbe949ed8c35a33c59f",
+      measurementId: "G-SPN865YCZZ",
+      roomCode: "lop_chinh"
+    };
+    try {
+      if (typeof firebase !== 'undefined' && (!firebase.apps || !firebase.apps.length)) {
+        firebase.initializeApp(window.FIREBASE_CONFIG);
+        console.log('⚡ [Firebase] Đã khởi tạo Firebase Core tích hợp sẵn cho toàn bộ hệ thống!');
+      }
+    } catch (e) {
+      console.warn('Firebase auto-init:', e);
+    }
+  </script>
 
   <!-- ================= MODAL: QUẢN LÝ KHO DỮ LIỆU GITHUB ================= -->
   <div class="modal-overlay" id="githubSyncModal" style="z-index: 3600;">
@@ -1271,18 +1293,18 @@
   </nav>
 
   <!-- JavaScript Modules -->
-  <script src="js/cloud-sync.js?v=11.4"></script>
-  <script src="js/github-sync.js?v=11.4"></script>
-  <script src="js/store.js?v=11.4"></script>
-  <script src="js/auth.js?v=11.4"></script>
-  <script src="js/gateway.js?v=11.4"></script>
-  <script src="js/anticheat.js?v=11.4"></script>
-  <script src="js/grader.js?v=11.4"></script>
-  <script src="js/admin.js?v=11.4"></script>
-  <script src="js/tutor.js?v=11.4"></script>
-  <script src="js/student.js?v=11.4"></script>
-  <script src="js/parent.js?v=11.4"></script>
-  <script src="js/app.js?v=11.4"></script>
+  <script src="js/cloud-sync.js?v=11.5"></script>
+  <script src="js/github-sync.js?v=11.5"></script>
+  <script src="js/store.js?v=11.5"></script>
+  <script src="js/auth.js?v=11.5"></script>
+  <script src="js/gateway.js?v=11.5"></script>
+  <script src="js/anticheat.js?v=11.5"></script>
+  <script src="js/grader.js?v=11.5"></script>
+  <script src="js/admin.js?v=11.5"></script>
+  <script src="js/tutor.js?v=11.5"></script>
+  <script src="js/student.js?v=11.5"></script>
+  <script src="js/parent.js?v=11.5"></script>
+  <script src="js/app.js?v=11.5"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
@@ -1296,7 +1318,7 @@
             if (installing) {
               installing.onstatechange = () => {
                 if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[PWA] Đã phát hiện bản cập nhật mới v11.4! Đang làm mới trang...');
+                  console.log('[PWA] Đã phát hiện bản cập nhật mới v11.5! Đang làm mới trang...');
                   window.location.reload();
                 }
               };

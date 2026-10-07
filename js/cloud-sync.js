@@ -9,26 +9,36 @@ const CloudSync = {
   DEVICE_ID_KEY: 'EDUTASK_DEVICE_ID',
   ROOM_CODE_DEFAULT: 'lop_chinh',
 
-  // Cấu hình Google Firebase Realtime Database mặc định dùng chung cho toàn bộ hệ thống
-  DEFAULT_FIREBASE_CONFIG: {
-    apiKey: ['AIza', 'SyCi', 'upEKem9dHd5tCKvxnI-w75OiD5LCPbY'].join(''),
-    authDomain: 'edutask-pb.firebaseapp.com',
-    databaseURL: 'https://edutask-pb-default-rtdb.asia-southeast1.firebasedatabase.app',
-    projectId: 'edutask-pb',
-    storageBucket: 'edutask-pb.firebasestorage.app',
-    messagingSenderId: '754760560590',
-    appId: '1:754760560590:web:26cdbe949ed8c35a33c59f',
-    measurementId: 'G-SPN865YCZZ',
-    roomCode: 'lop_chinh'
+  // Cấu hình Google Firebase Realtime Database tích hợp cứng vĩnh viễn cho toàn bộ hệ thống & mọi nền tảng
+  PERMANENT_FIREBASE_CONFIG: {
+    apiKey: "AIzaSyCiupEKem9dHd5tCKvxnI-w75OiD5LCPbY",
+    authDomain: "edutask-pb.firebaseapp.com",
+    databaseURL: "https://edutask-pb-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "edutask-pb",
+    storageBucket: "edutask-pb.firebasestorage.app",
+    messagingSenderId: "754760560590",
+    appId: "1:754760560590:web:26cdbe949ed8c35a33c59f",
+    measurementId: "G-SPN865YCZZ",
+    roomCode: "lop_chinh"
   },
 
-  // Trạng thái hoạt động
-  config: null,
+  // Trạng thái hoạt động: LUÔN SẴN SÀNG (isConfigured = true) trên mọi nền tảng không cần nhập lại
+  config: {
+    apiKey: "AIzaSyCiupEKem9dHd5tCKvxnI-w75OiD5LCPbY",
+    authDomain: "edutask-pb.firebaseapp.com",
+    databaseURL: "https://edutask-pb-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "edutask-pb",
+    storageBucket: "edutask-pb.firebasestorage.app",
+    messagingSenderId: "754760560590",
+    appId: "1:754760560590:web:26cdbe949ed8c35a33c59f",
+    measurementId: "G-SPN865YCZZ",
+    roomCode: "lop_chinh"
+  },
   db: null,
   syncRef: null,
   connectionRef: null,
   isConnected: false,
-  isConfigured: false,
+  isConfigured: true,
   myDeviceId: null,
   pushTimer: null,
   lastPushedTimestamp: 0,
@@ -138,29 +148,11 @@ const CloudSync = {
 
   // Tải cấu hình từ localStorage hoặc nạp cấu hình mặc định (Tự động 100% cho mọi thiết bị)
   loadConfig() {
+    this.config = { ...this.PERMANENT_FIREBASE_CONFIG };
+    this.isConfigured = true;
     try {
-      const raw = localStorage.getItem(this.CONFIG_STORAGE_KEY);
-      if (raw) {
-        this.config = JSON.parse(raw);
-        // Tự động nâng cấp nếu cấu hình cũ chưa trỏ tới databaseURL edutask-pb
-        if (!this.config || !this.config.databaseURL || !this.config.databaseURL.includes('edutask-pb')) {
-          this.config = { ...this.DEFAULT_FIREBASE_CONFIG };
-          localStorage.setItem(this.CONFIG_STORAGE_KEY, JSON.stringify(this.config));
-        }
-        if (!this.config.roomCode) {
-          this.config.roomCode = this.ROOM_CODE_DEFAULT;
-        }
-        this.isConfigured = true;
-      } else {
-        // Tự động kích hoạt mặc định cho thiết bị mới (PC, Mobile, Tablet) mà không cần thao tác
-        this.config = { ...this.DEFAULT_FIREBASE_CONFIG };
-        this.isConfigured = true;
-        localStorage.setItem(this.CONFIG_STORAGE_KEY, JSON.stringify(this.config));
-      }
-    } catch (e) {
-      this.config = { ...this.DEFAULT_FIREBASE_CONFIG };
-      this.isConfigured = true;
-    }
+      localStorage.setItem(this.CONFIG_STORAGE_KEY, JSON.stringify(this.config));
+    } catch (e) {}
   },
 
   // Lưu cấu hình mới
@@ -251,8 +243,8 @@ const CloudSync = {
 
   // Trả về URL REST API chuẩn của Firebase Realtime Database
   getRestUrl() {
+    const dbUrl = (this.config && this.config.databaseURL) ? this.config.databaseURL : this.PERMANENT_FIREBASE_CONFIG.databaseURL;
     const room = (this.config && this.config.roomCode) ? this.config.roomCode : this.ROOM_CODE_DEFAULT;
-    const dbUrl = (this.config && this.config.databaseURL) ? this.config.databaseURL : this.DEFAULT_FIREBASE_CONFIG.databaseURL;
     const cleanRoom = room.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
     return `${dbUrl}/edutask_data/rooms/${cleanRoom}.json`;
   },
