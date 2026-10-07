@@ -51,6 +51,18 @@ const Auth = {
     return this.sessionUser;
   },
 
+  // Làm mới đối tượng tài khoản từ Store khi có cập nhật từ xa
+  refreshUserFromStore() {
+    if (this.sessionUser && window.Store) {
+      const freshSession = Store.getUserById(this.sessionUser.id);
+      if (freshSession) this.sessionUser = freshSession;
+    }
+    if (this.activeUser && window.Store) {
+      const freshActive = Store.getUserById(this.activeUser.id);
+      if (freshActive) this.activeUser = freshActive;
+    }
+  },
+
   // Kiểm tra người thực sự đăng nhập có phải là Admin hay không
   isRealAdmin() {
     return this.sessionUser && this.sessionUser.role === 'admin';

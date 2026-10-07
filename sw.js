@@ -1,9 +1,9 @@
 /**
- * EDUTASK PRO — SERVICE WORKER
+ * EDUTASK PRO — SERVICE WORKER (V6.0)
  * Hỗ trợ bộ nhớ đệm ngoại tuyến (Offline cache) và khởi động tức thì đa nền tảng.
  */
 
-const CACHE_NAME = 'edutask-v5-cache';
+const CACHE_NAME = 'edutask-v6-cache';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -27,7 +27,7 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[ServiceWorker] Caching static assets...');
+      console.log('[ServiceWorker] Caching static assets v6...');
       return cache.addAll(STATIC_ASSETS).catch((err) => {
         console.warn('[ServiceWorker] Cache addAll warning (non-fatal):', err);
       });
@@ -51,12 +51,18 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Bỏ qua các yêu cầu không phải GET hoặc yêu cầu tới Firebase / CDN bên ngoài
+  // Bỏ qua các yêu cầu không phải GET
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   
-  // Bỏ qua Firebase realtime websockets hoặc external APIs
-  if (url.origin.includes('firebase') || url.origin.includes('googleapis') || url.origin.includes('gstatic')) {
+  // TUYỆT ĐỐI BỎ QUA mọi yêu cầu bên ngoài (GitHub API, raw.githubusercontent.com, Firebase, Google APIs, CDN)
+  // để mạng gọi trực tiếp, không bị Service Worker chặn hay trả về dữ liệu cũ
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Không cache file cơ sở dữ liệu nếu có fetch cục bộ
+  if (url.pathname.includes('edutask_database.json')) {
     return;
   }
 
