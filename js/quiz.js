@@ -200,8 +200,9 @@ const Quiz = {
         const fileNameBytes = bytes.subarray(offset + 30, offset + 30 + fileNameLen);
         const fileName = new TextDecoder('utf-8').decode(fileNameBytes);
         const dataOffset = offset + 30 + fileNameLen + extraLen;
+        const normName = fileName.replace(/\\/g, '/').toLowerCase();
 
-        if (fileName === 'word/document.xml') {
+        if (normName.endsWith('word/document.xml')) {
           let actualCompSize = compSize;
           if (actualCompSize === 0) {
             let nextHeader = dataOffset;
@@ -298,11 +299,16 @@ const Quiz = {
       return { questions: [], totalFound: 0, correctCount: 0, explanationCount: 0 };
     }
 
-    let text = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    // Chuẩn hóa văn bản đầu vào: ngắt dòng chuẩn & loại bỏ khoảng trắng đặc biệt / non-breaking spaces
+    let text = rawText
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/[\u00A0\u200B\u200C\u200D]/g, ' ')
+      .trim();
 
     // Bước 1: Quét và bóc tách Bảng đáp án ở cuối văn bản (nếu có)
     const bottomKeys = {};
-    const bottomKeySectionRegex = /(?:BẢNG\s+ĐÁP\s+ÁN|ĐÁP\s+ÁN\s+THAM\s+KHẢO|HƯỚNG\s+DẪN\s+CHẤM|ANSWER\s+KEY|KEY\s*:?)[\s\S]*$/i;
+    const bottomKeySectionRegex = /(?:^|\n)\s*(?:[-–=]{2,}\s*)?(?:BẢNG\s+(?:ĐÁP\s+ÁN|TRẢ\s+LỜI)|ĐÁP\s+ÁN\s+(?:THAM\s+KHẢO|CHI\s+TIẾT|TỔNG\s+HỢP)|HƯỚNG\s+DẪN\s+CHẤM|ANSWER\s+KEY|KEY\s+TRẮC\s+NGHIỆM)(?:\s*[-–=:\s]+)?[\s\S]*$/i;
     const bottomMatch = text.match(bottomKeySectionRegex);
     if (bottomMatch) {
       const keySection = bottomMatch[0];
@@ -312,21 +318,32 @@ const Quiz = {
       }
       text = text.substring(0, bottomMatch.index).trim();
     } else {
-      // Kiểm tra dòng cuối cùng có phải chuỗi đáp án 1A 2B 3C...
+      // Kiểm tra các dòng cuối cùng có phải chuỗi đáp án 1A 2B 3C...
       const lines = text.split('\n');
-      const lastLine = lines[lines.length - 1].trim();
-      const lastPairs = Array.from(lastLine.matchAll(/(\d+)[\s.:\/-]*([A-D])/gi));
-      if (lastPairs.length >= 3) {
-        for (const kp of lastPairs) {
-          bottomKeys[parseInt(kp[1], 10)] = kp[2].toUpperCase();
+      let foundBottomLines = 0;
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const linePairs = Array.from(line.matchAll(/(\d+)[\s.:\/-]*([A-D])/gi));
+        // Nếu dòng chứa ít nhất 2 cặp đáp án và không chứa từ "câu hỏi", "hàm số", v.v.
+        if (linePairs.length >= 2 && !line.match(/(?:cho|hàm|tìm|tính|biết|nếu|giá\s+trị)/i)) {
+          for (const kp of linePairs) {
+            bottomKeys[parseInt(kp[1], 10)] = kp[2].toUpperCase();
+          }
+          foundBottomLines++;
+        } else {
+          break;
         }
-        lines.pop();
+      }
+      if (foundBottomLines > 0) {
+        lines.splice(lines.length - foundBottomLines, foundBottomLines);
         text = lines.join('\n').trim();
       }
     }
 
     // Bước 2: Nhận diện điểm bắt đầu của từng câu hỏi
-    const qRegex = /(?:^|\n)\s*(?:(?:Câu|Bài|Question|\bQ)\s*(\d+)[\s.:\/-]+|(\d+)[\.\)\/:]\s+)/gi;
+    // Hỗ trợ: "Câu 1:", "Câu 1.", "[Câu 1]", "Bài 1:", "Question 1:", "Q1:", "1.", "1)", "1/"
+    const qRegex = /(?:^|\n)\s*(?:\[?(?:Câu|Bài|Question|\bQ)\s*(\d+)[\].:\/-\s]*\s+|\[?(\d+)\]?[\.\)\/:]\s+)/gi;
     const qMatches = [];
     let m;
     while ((m = qRegex.exec(text)) !== null) {
@@ -354,18 +371,18 @@ const Quiz = {
     chunks.forEach((item, idx) => {
       let block = item.chunk;
 
-      // Bước 3a: Bóc tách Lời giải / Hướng dẫn giải
+      // Bước 3a: Bóc tách Lời giải / Hướng dẫn giải chi tiết
       let explanation = '';
-      const expMatch = block.match(/(?:Lời\s+giải|Hướng\s+dẫn\s+giải|Giải\s+chi\s+tiết|Explanation|Hướng\s+dẫn|HDG)[\s:=.-]+([\s\S]*)$/i);
+      const expMatch = block.match(/(?:Lời\s+giải(?:\s+chi\s+tiết)?|Hướng\s+dẫn(?:\s+giải)?|Giải(?:\s+chi\s+tiết)?|HDG|Explanation)[\s:=.-]+([\s\S]*)$/i);
       if (expMatch) {
         explanation = expMatch[1].trim();
         block = block.substring(0, expMatch.index).trim();
         explanationCount++;
       }
 
-      // Bước 3b: Nhận diện dòng Đáp án đúng (Đáp án: A / Key: B)
+      // Bước 3b: Nhận diện dòng Đáp án đúng (Đáp án: A / Key: B / ĐA: C / Chọn: D)
       let detectedCorrect = null;
-      const ansMatch = block.match(/(?:Đáp\s+án|ĐA|Key|Answer|Chọn|Đáp\s+án\s+đúng)[\s:=.-]+([A-D])\b/i);
+      const ansMatch = block.match(/(?:Đáp\s*án(?:\s*đúng|\s*là)?|Đ\/?A|Key|Answer|Ans|Chọn(?:\s*đáp\s*án|\s*phương\s*án)?|=>|->)[\s:=.-]*\s*([A-D])\b/i);
       if (ansMatch) {
         detectedCorrect = ansMatch[1].toUpperCase();
         block = block.substring(0, ansMatch.index) + block.substring(ansMatch.index + ansMatch[0].length);
@@ -373,28 +390,44 @@ const Quiz = {
       }
 
       // Bước 3c: Tìm vị trí 4 phương án A, B, C, D
-      const optRegex = /(?:^|\s|\n)([*#]?\s*[A-D])[\s.:\)]+\s*/gi;
+      // Hỗ trợ: "A.", "A)", "A:", "A/", "(A)", "[A]", "*A.", "A*."
+      const optRegex = /(?:^|[\s\t\n;])([*#]?\s*(?:\([A-D]\)|\[[A-D]\]|[A-D]\*?))[\s.:\)\/–-]+(?=\S)/gi;
       const optMatches = [];
       let om;
       while ((om = optRegex.exec(block)) !== null) {
         const rawLetter = om[1].toUpperCase();
         const letter = rawLetter.replace(/[^A-D]/g, '');
         const isStar = rawLetter.includes('*') || rawLetter.includes('#');
-        optMatches.push({ index: om.index, matchLen: om[0].length, letter, isStar });
+        if (letter) {
+          optMatches.push({ index: om.index, matchLen: om[0].length, letter, isStar });
+        }
+      }
+
+      // Lọc các phương án xuất hiện theo đúng thứ tự A -> B -> C -> D (tránh trùng lắp hoặc chữ cái trong đề)
+      const validOpts = [];
+      const expectedLetters = ['A', 'B', 'C', 'D'];
+      let expectedIdx = 0;
+      for (const opt of optMatches) {
+        if (opt.letter === expectedLetters[expectedIdx]) {
+          validOpts.push(opt);
+          expectedIdx++;
+          if (expectedIdx >= 4) break;
+        }
       }
 
       let qText = block;
       let options = ['Phương án A', 'Phương án B', 'Phương án C', 'Phương án D'];
 
-      if (optMatches.length >= 2) {
-        qText = block.substring(0, optMatches[0].index).trim();
+      if (validOpts.length >= 2) {
+        qText = block.substring(0, validOpts[0].index).trim();
         const extractedOpts = {};
-        for (let i = 0; i < optMatches.length; i++) {
-          const cur = optMatches[i];
-          const next = optMatches[i + 1];
+        for (let i = 0; i < validOpts.length; i++) {
+          const cur = validOpts[i];
+          const next = validOpts[i + 1];
           const contentStart = cur.index + cur.matchLen;
           const contentEnd = next ? next.index : block.length;
-          const optVal = block.substring(contentStart, contentEnd).trim();
+          let optVal = block.substring(contentStart, contentEnd).trim();
+          optVal = optVal.replace(/^[.:;–-]+\s*/, '').replace(/[,;]+$/, '').trim();
           extractedOpts[cur.letter] = optVal;
           if (cur.isStar && !detectedCorrect) {
             detectedCorrect = cur.letter;
@@ -437,6 +470,82 @@ const Quiz = {
     });
 
     return { questions, totalFound: questions.length, correctCount, explanationCount };
+  },
+
+  // Tải tệp đề thi mẫu chuẩn (.docx / .txt) về máy giáo viên
+  downloadSampleFile(format = 'txt') {
+    if (format === 'txt') {
+      const sampleText = `ĐỀ THI TRẮC NGHIỆM MẪU CHUẨN EDUTASK PRO\n` +
+        `(Giáo viên có thể mở file này chỉnh sửa, hoặc Copy & Paste trực tiếp vào ô Bóc Tách Đề Thi)\n\n` +
+        `Câu 1. Nguyên hàm của hàm số f(x) = 3x^2 + 2x là:\n` +
+        `A. x^3 + x^2 + C\n` +
+        `B. 6x + 2 + C\n` +
+        `C. x^3 + 2x^2 + C\n` +
+        `D. 3x^3 + x^2 + C\n` +
+        `Đáp án: A\n` +
+        `Lời giải: Áp dụng công thức nguyên hàm: ∫(3x^2 + 2x)dx = x^3 + x^2 + C.\n\n` +
+        `Câu 2. Cho hàm số y = f(x) có đạo hàm f'(x) = x(x - 2)^2. Số điểm cực trị của hàm số là:\n` +
+        `A. 0    B. 1    C. 2    D. 3\n` +
+        `Đáp án: B\n` +
+        `Lời giải: f'(x) đổi dấu duy nhất 1 lần khi qua x = 0 (tại x = 2 là nghiệm bội chẵn nên không phải cực trị).\n\n` +
+        `Câu 3. Trong không gian Oxyz, mặt cầu (S): (x - 1)^2 + (y + 2)^2 + z^2 = 9 có bán kính R bằng:\n` +
+        `*A. 3\n` +
+        `B. 9\n` +
+        `C. 81\n` +
+        `D. √3\n` +
+        `Lời giải: Phương trình mặt cầu có R^2 = 9 suy ra R = 3. Dấu sao (*) trước đáp án A biểu thị đáp án đúng.\n\n` +
+        `Câu 4: Kim loại nào sau đây dẫn điện và dẫn nhiệt tốt nhất?\n` +
+        `A. Vàng\n` +
+        `B. Đồng\n` +
+        `C. Bạc\n` +
+        `D. Nhôm\n\n` +
+        `Câu 5: Nước sôi ở bao nhiêu độ C ở điều kiện áp suất khí quyển tiêu chuẩn?\n` +
+        `A. 90°C\n` +
+        `B. 100°C\n` +
+        `C. 110°C\n` +
+        `D. 120°C\n\n` +
+        `BẢNG ĐÁP ÁN:\n` +
+        `4C 5B\n`;
+
+      const blob = new Blob([sampleText], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Mau_De_Thi_Trac_Nghiem_Chuan.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      App.showToast('📥 Đã tải xuống tệp mẫu Text (.txt) thành công!', 'success');
+    } else if (format === 'docx') {
+      const link = document.createElement('a');
+      link.href = './templates/Mau_De_Thi_Trac_Nghiem_Chuan.docx';
+      link.download = 'Mau_De_Thi_Trac_Nghiem_Chuan.docx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      App.showToast('📥 Đã tải xuống tệp mẫu Word (.docx) chuẩn cấu trúc!', 'success');
+    }
+  },
+
+  // Mở modal hướng dẫn định dạng đề chuẩn
+  openGuideModal(context = 'create') {
+    this.currentGuideContext = context;
+    const modal = document.getElementById('quizFormatGuideModal');
+    if (modal) modal.classList.add('active');
+  },
+
+  // Đóng modal hướng dẫn
+  closeGuideModal() {
+    const modal = document.getElementById('quizFormatGuideModal');
+    if (modal) modal.classList.remove('active');
+  },
+
+  // Áp dụng nhanh mẫu thử từ modal hướng dẫn
+  applyGuideSample(sampleKey) {
+    const context = this.currentGuideContext || 'create';
+    this.closeGuideModal();
+    this.insertSamplePreset(context, sampleKey);
   },
 
   // Bộ nạp dữ liệu mẫu thử nghiệm (Presets)
@@ -758,10 +867,22 @@ Lời giải: Oxi được tạo ra từ phản ứng quang phân ly nước tro
         ${isImport ? `
           <!-- Chế độ 3: Bóc Tách Tự Động Từ Văn Bản / File (Smart Import) -->
           <div class="quiz-import-box">
-            <div class="import-guide-banner">
-              <strong>🤖 Hướng Dẫn Bóc Tách Đề Thi Tự Động:</strong><br>
-              Dán toàn bộ đề thi (Copy từ Word/PDF) hoặc tải tệp <code>.docx</code> / <code>.txt</code>. Hệ thống tự động nhận diện:
-              <strong>Câu 1, 2, 3...</strong> • <strong>4 phương án A, B, C, D</strong> (kể cả chung dòng) • <strong>Đáp án đúng</strong> (dòng Đáp án: A, đánh dấu *A., hoặc bảng đáp án ở cuối) • <strong>Lời giải chi tiết</strong>.
+            <div class="import-guide-banner" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <div>
+                <strong>🤖 Hướng Dẫn Bóc Tách Đề Thi Tự Động:</strong><br>
+                Dán đề thi từ Word/PDF hoặc tải tệp <code>.docx</code> / <code>.txt</code>. Tự động nhận diện câu hỏi, 4 phương án, đáp án và lời giải chi tiết.
+              </div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="btn-guide-pill" onclick="Quiz.openGuideModal('${context}')" title="Xem cẩm nang hướng dẫn soạn đề và mẹo hay">
+                  📖 Hướng Dẫn Soạn Chuẩn
+                </button>
+                <button type="button" class="btn-download-pill" onclick="Quiz.downloadSampleFile('docx')" title="Tải tệp Word (.docx) mẫu về máy tính">
+                  📘 Tải Mẫu Word (.docx)
+                </button>
+                <button type="button" class="btn-download-pill" onclick="Quiz.downloadSampleFile('txt')" title="Tải tệp Text (.txt) mẫu về máy tính">
+                  📄 Tải Mẫu Text (.txt)
+                </button>
+              </div>
             </div>
 
             <!-- Thanh chọn mẫu đề & Tải tệp -->

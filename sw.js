@@ -3,7 +3,7 @@
  * Hỗ trợ bộ nhớ đệm ngoại tuyến (Offline cache) và khởi động tức thì đa nền tảng.
  */
 
-const CACHE_NAME = 'edutask-v12.4-cache';
+const CACHE_NAME = 'edutask-v12.5-cache';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -23,6 +23,8 @@ const STATIC_ASSETS = [
   './js/student.js',
   './js/parent.js',
   './js/app.js',
+  './templates/Mau_De_Thi_Trac_Nghiem_Chuan.txt',
+  './templates/Mau_De_Thi_Trac_Nghiem_Chuan.docx',
   './manifest.webmanifest'
 ];
 

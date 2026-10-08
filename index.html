@@ -1698,6 +1698,136 @@
     </div>
   </div>
 
+  <!-- ================= MODAL: HƯỚNG DẪN SOẠN ĐỀ TRẮC NGHIỆM CHUẨN (EXAM FORMAT GUIDE) ================= -->
+  <div class="modal-overlay" id="quizFormatGuideModal" style="z-index: 3950;">
+    <div class="modal-box" style="max-width: 760px; width: 95%; max-height: 94vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 16px;">
+      
+      <!-- Modal Header -->
+      <div class="modal-header" style="padding: 16px 20px; background: linear-gradient(135deg, #1e293b, #334155); color: white;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 24px;">📖</span>
+          <div>
+            <h3 style="margin: 0; font-size: 16px; color: white;">Hướng Dẫn Soạn Đề & Bóc Tách Tự Động Chuẩn</h3>
+            <small style="color: #94a3b8; font-size: 12px;">Hỗ trợ sao chép từ Word/PDF, nhập file .docx / .txt nhận diện 100%</small>
+          </div>
+        </div>
+        <button class="modal-close" style="color: white; opacity: 0.8;" onclick="Quiz.closeGuideModal()">&times;</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body" style="padding: 20px; overflow-y: auto; max-height: calc(94vh - 130px); gap: 16px; background: #f8fafc;">
+        
+        <!-- Khối tải tệp mẫu -->
+        <div style="background: linear-gradient(135deg, #eff6ff, #f0fdf4); border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 14px 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <strong style="color: #1e40af; font-size: 14px; display: block;">📥 Tải Ngay Tệp Mẫu Chuẩn Về Máy Tính:</strong>
+              <small style="color: #475569; font-size: 12px;">Giáo viên có thể mở bằng Word/Notepad, sửa câu hỏi rồi nạp vào đề thi</small>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-sm btn-primary" onclick="Quiz.downloadSampleFile('docx')" style="display: inline-flex; align-items: center; gap: 5px;">
+                📘 Tải Mẫu Word (.docx)
+              </button>
+              <button type="button" class="btn btn-sm btn-outline" onclick="Quiz.downloadSampleFile('txt')" style="background: #ffffff; display: inline-flex; align-items: center; gap: 5px;">
+                📄 Tải Mẫu Text (.txt)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Định dạng chuẩn -->
+        <h4 style="margin: 0; font-size: 14.5px; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+          🎯 3 Cách Soạn Đề Được Hệ Thống Tự Động Nhận Diện
+        </h4>
+
+        <!-- Cách 1 -->
+        <div class="guide-format-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong style="color: #1e293b; font-size: 13.5px;">1. Cách 1: Ghi Đáp Án Ngay Dưới Câu (Khuyên dùng nhất)</strong>
+            <button type="button" class="btn btn-xs btn-outline" onclick="Quiz.applyGuideSample('math')">
+              📋 Thử Mẫu Này Ngay
+            </button>
+          </div>
+          <p style="font-size: 12px; color: #64748b; margin: 0 0 6px 0;">Phương án A, B, C, D có thể ở các dòng riêng hoặc nằm chung trên 1 dòng. Dưới câu có dòng "Đáp án: [A-D]" và "Lời giải: ...".</p>
+          <div class="guide-code-box">Câu 1. Nguyên hàm của hàm số f(x) = 2x là:
+A. x^2 + C
+B. 2x^2 + C
+C. x + C
+D. 2 + C
+Đáp án: A
+Lời giải: Ta có ∫ 2x dx = x^2 + C.</div>
+        </div>
+
+        <!-- Cách 2 -->
+        <div class="guide-format-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong style="color: #1e293b; font-size: 13.5px;">2. Cách 2: Đánh Dấu Sao (*) Trước Đáp Án Đúng</strong>
+            <button type="button" class="btn btn-xs btn-outline" onclick="Quiz.applyGuideSample('bottom_key')">
+              📋 Thử Mẫu Này Ngay
+            </button>
+          </div>
+          <p style="font-size: 12px; color: #64748b; margin: 0 0 6px 0;">Không cần gõ dòng "Đáp án", chỉ cần đặt dấu sao <code>*</code> trước chữ cái phương án đúng (VD: <code>*B.</code>).</p>
+          <div class="guide-code-box">Câu 2: Số nghiệm của phương trình x^2 - 4 = 0 là:
+A. 0
+B. 1
+*C. 2
+D. 3</div>
+        </div>
+
+        <!-- Cách 3 -->
+        <div class="guide-format-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong style="color: #1e293b; font-size: 13.5px;">3. Cách 3: Đề Thi Có Bảng Đáp Án Ở Cuối Đề</strong>
+            <button type="button" class="btn btn-xs btn-outline" onclick="Quiz.applyGuideSample('bottom_key')">
+              📋 Thử Mẫu Này Ngay
+            </button>
+          </div>
+          <p style="font-size: 12px; color: #64748b; margin: 0 0 6px 0;">Phù hợp với các đề thi dài từ trường học. Đặt cụm "BẢNG ĐÁP ÁN" và chuỗi <code>1A 2B 3C...</code> ở cuối tài liệu.</p>
+          <div class="guide-code-box">Câu 1: Thủ đô của Pháp là gì?
+A. Rome    B. Berlin    C. Paris    D. Madrid
+
+Câu 2: Nước sôi ở bao nhiêu độ C?
+A. 90°C    B. 100°C    C. 110°C    D. 120°C
+
+BẢNG ĐÁP ÁN:
+1C 2B</div>
+        </div>
+
+        <!-- Bảng Quy tắc Nên & Không nên -->
+        <h4 style="margin: 0; font-size: 14.5px; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+          ⚖️ Quy Tắc Cần Nhớ (Nên & Không Nên)
+        </h4>
+        <div class="guide-do-dont-grid">
+          <div class="guide-do-box">
+            <strong style="display: block; margin-bottom: 6px;">✅ NÊN:</strong>
+            <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">
+              <li>Bắt đầu câu hỏi bằng <code>Câu 1:</code>, <code>Câu 1.</code>, <code>Bài 1.</code>, hoặc <code>1.</code></li>
+              <li>Có chữ cái phương án in hoa: <code>A.</code>, <code>B.</code>, <code>C.</code>, <code>D.</code> hoặc <code>A)</code>.</li>
+              <li>Đáp án ghi rõ: <code>Đáp án: A</code>, <code>Key: A</code>, <code>Chọn A</code>, hoặc dấu <code>*A.</code></li>
+              <li>Lời giải ghi: <code>Lời giải: ...</code> hoặc <code>Hướng dẫn giải: ...</code></li>
+            </ul>
+          </div>
+          <div class="guide-dont-box">
+            <strong style="display: block; margin-bottom: 6px;">❌ KHÔNG NÊN:</strong>
+            <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">
+              <li>Quên chữ cái phương án (chỉ ghi nội dung mà không có A, B, C, D).</li>
+              <li>Không đánh số câu (hệ thống sẽ khó phân biệt ranh giới giữa các câu).</li>
+              <li>Đáp án đúng nằm ngoài 4 chữ cái A, B, C, D.</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer" style="padding: 12px 20px; background: #ffffff; border-top: 1px solid #e2e8f0; justify-content: space-between;">
+        <span style="font-size: 12px; color: #64748b;">Mẹo: Bạn có thể sao chép văn bản từ bất kỳ nguồn nào rồi dán vào ô nhập!</span>
+        <button class="btn btn-primary" onclick="Quiz.closeGuideModal()">Đã Hiểu & Đóng</button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ================= MODAL: CHỦ ĐỀ THEO MÙA & LỄ HỘI (4 SEASONS & FESTIVALS) ================= -->
   <div class="modal-overlay" id="seasonThemeModal" style="z-index: 4000;">
     <div class="modal-box" style="max-width: 720px; width: 95%; max-height: 94vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 16px;">

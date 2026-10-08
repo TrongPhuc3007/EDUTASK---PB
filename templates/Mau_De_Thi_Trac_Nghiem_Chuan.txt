@@ -1,0 +1,37 @@
+﻿ĐỀ THI TRẮC NGHIỆM MẪU CHUẨN EDUTASK PRO
+(Giáo viên có thể mở file này chỉnh sửa, hoặc Copy & Paste trực tiếp vào ô Bóc Tách Đề Thi)
+
+Câu 1. Nguyên hàm của hàm số f(x) = 3x^2 + 2x là:
+A. x^3 + x^2 + C
+B. 6x + 2 + C
+C. x^3 + 2x^2 + C
+D. 3x^3 + x^2 + C
+Đáp án: A
+Lời giải: Áp dụng công thức nguyên hàm cơ bản: ∫(3x^2 + 2x)dx = x^3 + x^2 + C.
+
+Câu 2. Cho hàm số y = f(x) có đạo hàm f'(x) = x(x - 2)^2. Số điểm cực trị của hàm số là:
+A. 0    B. 1    C. 2    D. 3
+Đáp án: B
+Lời giải: f'(x) đổi dấu duy nhất 1 lần khi qua x = 0 (tại x = 2 là nghiệm bội chẵn nên không phải cực trị).
+
+Câu 3. Trong không gian Oxyz, mặt cầu (S): (x - 1)^2 + (y + 2)^2 + z^2 = 9 có bán kính R bằng:
+*A. 3
+B. 9
+C. 81
+D. √3
+Lời giải: Phương trình mặt cầu có R^2 = 9 suy ra R = 3. Dấu sao (*) trước đáp án A cũng được hệ thống nhận diện tự động.
+
+Câu 4: Kim loại nào sau đây dẫn điện và dẫn nhiệt tốt nhất?
+A. Vàng
+B. Đồng
+C. Bạc
+D. Nhôm
+
+Câu 5: Nước sôi ở bao nhiêu độ C ở điều kiện áp suất khí quyển tiêu chuẩn?
+A. 90°C
+B. 100°C
+C. 110°C
+D. 120°C
+
+BẢNG ĐÁP ÁN:
+4C 5B
