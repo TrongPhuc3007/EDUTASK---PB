@@ -13,6 +13,10 @@ const Grader = {
   currentStamp: '✔️',
   baseImage: null,
   history: [],
+  pagePhotos: [],
+  pageCanvasesData: [],
+  pageHistories: [],
+  currentPageIndex: 0,
 
   init() {
     this.canvas = document.getElementById('gradingCanvas');
@@ -107,12 +111,66 @@ const Grader = {
       }
     }
 
+    // Thiết lập danh sách các trang ảnh bài làm (Hỗ trợ nhiều trang)
+    const photos = (sub.annotatedPhotos && sub.annotatedPhotos.length > 0)
+      ? sub.annotatedPhotos
+      : (sub.photos && sub.photos.length > 0)
+        ? sub.photos
+        : [sub.annotatedPhoto || sub.photoUrl || Store.samplePaperDataUrl];
+
+    this.pagePhotos = photos;
+    this.pageCanvasesData = [...photos];
+    this.pageHistories = photos.map(() => []);
+    this.currentPageIndex = 0;
+    this.history = [];
+    this.updatePageSwitcherUI();
+
     // Mở overlay
     const modal = document.getElementById('graderModal');
     if (modal) modal.classList.add('active');
 
-    // Tải ảnh bài nộp lên Canvas
-    this.loadImage(sub.annotatedPhoto || sub.photoUrl || Store.samplePaperDataUrl);
+    // Tải ảnh trang đầu tiên lên Canvas
+    this.loadImage(this.pageCanvasesData[0]);
+  },
+
+  updatePageSwitcherUI() {
+    const switcher = document.getElementById('graderPageSwitcher');
+    const label = document.getElementById('graderPageLabel');
+    if (switcher && label) {
+      if (this.pagePhotos.length > 1) {
+        switcher.style.display = 'inline-flex';
+        label.textContent = `Trang ${this.currentPageIndex + 1} / ${this.pagePhotos.length}`;
+      } else {
+        switcher.style.display = 'none';
+      }
+    }
+  },
+
+  switchPage(newIndex) {
+    if (newIndex < 0 || newIndex >= this.pagePhotos.length || newIndex === this.currentPageIndex) return;
+
+    // Lưu trạng thái trang hiện tại
+    if (this.canvas) {
+      this.pageCanvasesData[this.currentPageIndex] = this.canvas.toDataURL('image/jpeg', 0.85);
+      this.pageHistories[this.currentPageIndex] = [...this.history];
+    }
+
+    this.currentPageIndex = newIndex;
+    this.history = this.pageHistories[newIndex] || [];
+    this.updatePageSwitcherUI();
+    this.loadImage(this.pageCanvasesData[newIndex]);
+  },
+
+  prevPage() {
+    if (this.currentPageIndex > 0) {
+      this.switchPage(this.currentPageIndex - 1);
+    }
+  },
+
+  nextPage() {
+    if (this.currentPageIndex < this.pagePhotos.length - 1) {
+      this.switchPage(this.currentPageIndex + 1);
+    }
   },
 
   close() {
@@ -188,11 +246,12 @@ const Grader = {
 
   downloadAnnotated() {
     if (!this.canvas) return;
+    const pageNum = (this.pagePhotos && this.pagePhotos.length > 1) ? `_Trang${this.currentPageIndex + 1}` : '';
     const link = document.createElement('a');
-    link.download = `BaiCham_${this.activeSubmission?.studentName || 'HocSinh'}_${new Date().toISOString().slice(0, 10)}.png`;
+    link.download = `BaiCham_${this.activeSubmission?.studentName || 'HocSinh'}${pageNum}_${new Date().toISOString().slice(0, 10)}.png`;
     link.href = this.canvas.toDataURL('image/png');
     link.click();
-    App.showToast('Đã tải xuống ảnh bài tập đã chấm bút đỏ!', 'success');
+    App.showToast(`Đã tải xuống ảnh bài tập đã chấm bút đỏ${pageNum ? ` (Trang ${this.currentPageIndex + 1})` : ''}!`, 'success');
   },
 
   bindEvents() {
@@ -387,8 +446,14 @@ const Grader = {
       return;
     }
 
-    const annotatedDataUrl = this.canvas.toDataURL('image/jpeg', 0.85);
-    Store.updateSubmissionGrading(this.activeSubmission.id, score, feedback, annotatedDataUrl);
+    // Lưu trang hiện tại vào bộ đệm ảnh đã chấm
+    if (this.canvas) {
+      this.pageCanvasesData[this.currentPageIndex] = this.canvas.toDataURL('image/jpeg', 0.85);
+    }
+    const annotatedPhotos = this.pageCanvasesData;
+    const primaryAnnotatedPhoto = annotatedPhotos[0];
+
+    Store.updateSubmissionGrading(this.activeSubmission.id, score, feedback, primaryAnnotatedPhoto, annotatedPhotos);
 
     App.showToast(`Đã chấm xong! Điểm ${score}/10 đã được lưu và cập nhật tiến độ học sinh.`, 'success');
     this.close();

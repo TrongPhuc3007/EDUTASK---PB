@@ -88,6 +88,9 @@ const StudentView = {
 
       let statusBadge = '';
       let actionBtn = '';
+      const pageCount = (sub && Array.isArray(sub.photos) && sub.photos.length > 1) 
+        ? ` (${sub.photos.length} trang)` 
+        : '';
 
       if (!sub) {
         statusBadge = `<span class="badge badge-warning">⏳ Chưa nộp</span>`;
@@ -97,17 +100,17 @@ const StudentView = {
           </button>
         `;
       } else if (sub.status === 'submitted') {
-        statusBadge = `<span class="badge badge-primary">⏳ Chờ gia sư chấm</span>`;
+        statusBadge = `<span class="badge badge-primary">⏳ Chờ gia sư chấm${pageCount}</span>`;
         actionBtn = `
           <button class="btn btn-outline btn-sm" style="width:100%;" onclick="App.openReviewModal('${sub.id}')">
-            🔍 Xem bài đã nộp
+            🔍 Xem bài đã nộp${pageCount}
           </button>
         `;
       } else if (sub.status === 'graded') {
-        statusBadge = `<span class="badge badge-success">✅ Điểm: ${sub.score}/10</span>`;
+        statusBadge = `<span class="badge badge-success">✅ Điểm: ${sub.score}/10${pageCount}</span>`;
         actionBtn = `
           <button class="btn btn-secondary btn-sm" style="width:100%;" onclick="App.openReviewModal('${sub.id}')">
-            🔍 Xem lời phê & bút đỏ (${sub.score}đ)
+            🔍 Xem lời phê & bút đỏ (${sub.score}đ)${pageCount}
           </button>
         `;
       }

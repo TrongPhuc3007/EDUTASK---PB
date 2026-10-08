@@ -182,9 +182,81 @@
     </div>
   </div>
 
-  <!-- ================= MODAL 2: HỌC SINH NỘP BÀI ================= -->
+  <!-- ================= MODAL 1B: CHỈNH SỬA BÀI TẬP ================= -->
+  <div class="modal-overlay" id="editAssignmentModal">
+    <div class="modal-box" style="max-width:680px; max-height:94vh;">
+      <div class="modal-header">
+        <h3>✏️ Chỉnh Sửa Bài Tập</h3>
+        <button class="modal-close" onclick="App.closeModal('editAssignmentModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:13px;">
+        <input type="hidden" id="editAsnId">
+
+        <div class="form-group">
+          <label for="editAsnTitle">Tiêu đề bài tập <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="editAsnTitle" class="form-control" placeholder="VD: Phiếu 06 - Luyện tập Bất đẳng thức Cauchy">
+        </div>
+
+        <div class="form-group">
+          <label for="editAsnDesc">Hướng dẫn / Yêu cầu làm bài</label>
+          <textarea id="editAsnDesc" class="form-control" placeholder="Làm bài ra vở viết tay, trình bày sạch sẽ và chụp ảnh nộp..."></textarea>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label for="editAsnTopic">Chuyên đề / Dạng bài</label>
+            <input type="text" id="editAsnTopic" class="form-control" placeholder="VD: Bất đẳng thức & Cực trị">
+          </div>
+          <div class="form-group">
+            <label for="editAsnDifficulty">Mức độ phân hóa</label>
+            <select id="editAsnDifficulty" class="form-control">
+              <option value="Cơ bản - Lấy gốc">🟢 Cơ bản - Lấy gốc</option>
+              <option value="Thông hiểu - Vận dụng">🟡 Thông hiểu - Vận dụng</option>
+              <option value="Vận dụng cao (9+)">🔴 Vận dụng cao (9+)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="editAsnTargetType">Hình thức giao bài</label>
+          <select id="editAsnTargetType" class="form-control" onchange="TutorView.handleEditTargetTypeChange(this.value)">
+            <option value="individual">🎯 Giao riêng cho học sinh cụ thể (Cá nhân hóa)</option>
+            <option value="group">👥 Giao cho tất cả học sinh trong nhóm</option>
+          </select>
+        </div>
+
+        <!-- Danh sách chọn học sinh nhận bài tập -->
+        <div class="form-group" id="editStudentPickerContainer">
+          <label>Chọn học sinh nhận bài tập:</label>
+          <div class="student-picker-list" id="editStudentCheckboxesList">
+            <!-- Dynamic checkboxes -->
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label for="editAsnDeadline">Hạn chót nộp bài (Deadline)</label>
+            <input type="datetime-local" id="editAsnDeadline" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="editAsnType">Hình thức nộp bài</label>
+            <select id="editAsnType" class="form-control">
+              <option value="photo">📸 Tự luận (Chụp ảnh vở)</option>
+              <option value="quiz">⚡ Trắc nghiệm Online</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="App.closeModal('editAssignmentModal')">Hủy bỏ</button>
+        <button class="btn btn-primary" onclick="TutorView.submitEditAssignment()">💾 Lưu Cập Nhật</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 2: HỌC SINH NỘP BÀI (HỖ TRỢ NHIỀU TRANG) ================= -->
   <div class="modal-overlay" id="submitHomeworkModal">
-    <div class="modal-box" style="max-width:520px;">
+    <div class="modal-box" style="max-width:540px;">
       <div class="modal-header">
         <h3 id="submitModalTitle">Nộp Bài Tập</h3>
         <button class="modal-close" onclick="App.closeModal('submitHomeworkModal')">&times;</button>
@@ -203,41 +275,39 @@
           <div style="font-size:36px; margin-bottom:8px;">📸</div>
           <h4 style="font-size:16px; font-weight:700; margin-bottom:4px;">Tải Lên Ảnh Bài Giải Viết Tay</h4>
           <p style="color:var(--text-muted); font-size:13px; margin:0;">
-            Chụp hoặc chọn ảnh vở bài làm rõ nét để gia sư có thể đọc và chấm bút đỏ chi tiết.
+            Chụp hoặc chọn ảnh vở bài làm rõ nét. Hỗ trợ chụp nhiều trang liên tiếp (Trang 1, Trang 2...).
           </p>
         </div>
 
-        <!-- 2 Nút Chọn Ảnh Thân Thiện Mobile: Chụp Camera Trực Tiếp & Chọn Thư Viện -->
+        <!-- 2 Nút Chọn Ảnh Thân Thiện Mobile: Chụp Camera Trực Tiếp & Chọn Thư Viện (Nhiều ảnh) -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
           <label for="submitCameraInput" class="btn btn-primary" style="margin:0; cursor:pointer; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 8px; gap:4px; border-radius:12px;">
             <span style="font-size:22px;">📸</span>
-            <span style="font-weight:700; font-size:13px;">Chụp Máy Ảnh</span>
-            <small style="font-size:10.5px; opacity:0.9;">Bật camera sau ngay</small>
+            <span style="font-weight:700; font-size:13px;">Chụp Thêm Trang</span>
+            <small style="font-size:10.5px; opacity:0.9;">Bật camera chụp từng trang</small>
             <input type="file" id="submitCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="App.handleHomeworkFileSelect(event)">
           </label>
           <label for="submitGalleryInput" class="btn btn-outline" style="margin:0; cursor:pointer; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 8px; gap:4px; border-radius:12px; border-color:#cbd5e1; background:white;">
             <span style="font-size:22px;">🖼️</span>
             <span style="font-weight:700; font-size:13px; color:var(--text-main);">Chọn Thư Viện</span>
-            <small style="font-size:10.5px; color:var(--text-muted);">Album ảnh trên máy</small>
-            <input type="file" id="submitGalleryInput" accept="image/*" style="display:none;" onchange="App.handleHomeworkFileSelect(event)">
+            <small style="font-size:10.5px; color:var(--text-muted);">Chọn 1 hoặc nhiều ảnh</small>
+            <input type="file" id="submitGalleryInput" accept="image/*" multiple style="display:none;" onchange="App.handleHomeworkFileSelect(event)">
           </label>
         </div>
 
-        <!-- Hộp xem trước ảnh & Xoay ảnh 90 độ -->
-        <div id="submitFilePreview" style="display:none; text-align:center; background:#f1f5f9; padding:12px; border-radius:10px; border:1px solid #cbd5e1;">
-          <div style="position:relative; display:inline-block; max-width:100%;">
-            <img id="submitPreviewImg" style="max-height:200px; max-width:100%; border-radius:8px; box-shadow:var(--shadow-sm); transition:transform 0.2s;" />
-          </div>
-          <div style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
-            <button type="button" class="btn btn-xs btn-white" onclick="App.rotateSubmitPhoto()" title="Xoay ảnh 90 độ nếu chụp ngang">
-              🔄 Xoay ảnh 90°
-            </button>
-            <button type="button" class="btn btn-xs btn-danger" onclick="App.clearSubmitPhoto()" title="Chụp hoặc chọn ảnh khác">
-              🗑️ Đổi ảnh khác
+        <!-- Danh sách các trang ảnh bài làm đã chụp/tải lên (Hỗ trợ nộp nhiều trang) -->
+        <div id="submitPhotosContainer" style="display:none; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-size:13px; color:#334155;">📄 Các trang bài làm (<span id="submitPhotosCount">0</span> trang):</strong>
+            <button type="button" class="btn btn-xs btn-outline" onclick="App.clearAllSubmitPhotos()" style="color:var(--danger); border-color:#fca5a5;">
+              🗑️ Xóa tất cả
             </button>
           </div>
-          <div style="font-size:11.5px; color:#16a34a; font-weight:600; margin-top:6px;">
-            ✓ Ảnh đã được nén tối ưu (sẵn sàng nộp siêu tốc)
+          <div id="submitPhotosGrid" class="submit-photos-grid">
+            <!-- Dynamic thumbnails list -->
+          </div>
+          <div style="font-size:11.5px; color:#16a34a; font-weight:600; display:flex; align-items:center; gap:5px;">
+            <span>✓</span> <span>Tất cả trang đã được nén tối ưu, sẵn sàng đồng bộ siêu tốc</span>
           </div>
         </div>
 
@@ -276,11 +346,17 @@
           <p id="reviewFeedbackText" style="font-size:14px; margin-top:4px; color:#334155; line-height:1.5;"></p>
         </div>
 
-        <!-- Thanh công cụ phóng to / thu nhỏ ảnh bài chấm -->
+        <!-- Thanh công cụ phóng to / thu nhỏ & Chuyển trang bài chấm -->
         <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; padding:8px 12px; border-radius:8px 8px 0 0; color:white; font-size:12px; flex-wrap:wrap; gap:8px;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span>📸 <strong>Xem Chi Tiết Bài Chấm Bút Đỏ:</strong></span>
+            <span>📸 <strong>Bài Chấm Bút Đỏ:</strong></span>
             <span id="reviewZoomLevel" style="color:#38bdf8; font-weight:700;">100%</span>
+            <!-- Thanh chuyển trang khi nộp nhiều trang -->
+            <div id="reviewPageSwitcher" style="display:none; align-items:center; gap:6px; margin-left:8px; background:#334155; padding:2px 8px; border-radius:6px;">
+              <button type="button" class="btn btn-xs btn-white" onclick="App.prevReviewPage()" title="Trang trước" style="padding:1px 6px;">◀</button>
+              <span id="reviewPageLabel" style="font-weight:700; color:#f8fafc;">Trang 1 / 1</span>
+              <button type="button" class="btn btn-xs btn-white" onclick="App.nextReviewPage()" title="Trang sau" style="padding:1px 6px;">▶</button>
+            </div>
           </div>
           <div style="display:flex; gap:6px;">
             <button type="button" class="btn btn-xs btn-white" onclick="App.zoomReviewImage(0.2)" title="Phóng to">🔍+ Phóng to</button>
@@ -309,10 +385,16 @@
     
     <!-- Grader Topbar -->
     <div class="grader-topbar">
-      <div class="grader-info">
+      <div class="grader-info" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <h3 id="graderAssignmentTitle">Phiếu 05: Chuyên Đề Cực Trị</h3>
         <span class="badge badge-primary" id="graderStudentName">Học sinh: Nguyễn Minh Quang</span>
         <span id="graderCheatBadge" class="badge"></span>
+        <!-- Bộ lật trang bài làm (Khi học sinh nộp nhiều ảnh) -->
+        <div id="graderPageSwitcher" style="display:none; align-items:center; gap:6px; background:#1e293b; padding:4px 8px; border-radius:8px; border:1px solid #475569;">
+          <button class="tool-btn" style="padding:3px 8px; font-size:11px;" onclick="Grader.prevPage()" title="Trang trước">◀ Trang trước</button>
+          <span id="graderPageLabel" style="font-size:12px; font-weight:700; color:#38bdf8; min-width:76px; text-align:center;">Trang 1 / 1</span>
+          <button class="tool-btn" style="padding:3px 8px; font-size:11px;" onclick="Grader.nextPage()" title="Trang tiếp theo">Trang sau ▶</button>
+        </div>
       </div>
       <div style="display:flex; gap:10px;">
         <button class="tool-btn" onclick="Grader.downloadAnnotated()">📥 Tải ảnh bài đã chấm</button>

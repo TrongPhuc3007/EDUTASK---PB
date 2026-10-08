@@ -1097,6 +1097,21 @@ const Store = {
     this.save();
   },
 
+  updateAssignment(assignmentId, updatedData) {
+    if (!this.data || !Array.isArray(this.data.assignments)) return false;
+    const index = this.data.assignments.findIndex(a => a.id === assignmentId);
+    if (index >= 0) {
+      this.data.assignments[index] = {
+        ...this.data.assignments[index],
+        ...updatedData,
+        updatedAt: new Date().toISOString()
+      };
+      this.save(false, true);
+      return true;
+    }
+    return false;
+  },
+
   deleteAssignment(assignmentId) {
     if (!this.data.deletedAssignmentIds) this.data.deletedAssignmentIds = [];
     if (!this.data.deletedAssignmentIds.includes(assignmentId)) {
@@ -1127,16 +1142,31 @@ const Store = {
     this.save();
   },
 
-  updateSubmissionGrading(subId, score, feedback, annotatedPhoto) {
+  updateSubmissionGrading(subId, score, feedback, annotatedPhoto, annotatedPhotos = null) {
     const sub = this.data.submissions.find(s => s.id === subId);
     if (sub) {
       sub.status = 'graded';
       sub.score = parseFloat(score);
       sub.feedback = feedback;
       sub.annotatedPhoto = annotatedPhoto;
+      if (Array.isArray(annotatedPhotos) && annotatedPhotos.length > 0) {
+        sub.annotatedPhotos = annotatedPhotos;
+      }
       sub.gradedAt = new Date().toISOString();
       this.save();
     }
+  },
+
+  adjustStudentSessions(studentId, delta) {
+    const std = this.getUserById(studentId);
+    if (!std) return false;
+    const current = std.totalSessions || 0;
+    const nextVal = Math.max(0, current + delta);
+    return this.updateStudent(studentId, { totalSessions: nextVal });
+  },
+
+  resetStudentSessions(studentId) {
+    return this.updateStudent(studentId, { totalSessions: 0 });
   },
 
   addStudent(studentData) {

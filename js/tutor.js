@@ -7,6 +7,7 @@
 const TutorView = {
   currentFilter: 'all',          // 'all', 'pending_grading', 'waiting_submission', 'completed'
   selectedStudentId: null,       // null = tất cả, hoặc 'u_std_quang',...
+  searchKeyword: '',
 
   /**
    * Phân loại trạng thái duy nhất, không trùng lặp cho mỗi đề bài tập:
@@ -322,19 +323,25 @@ const TutorView = {
           }).join('')}
         </div>
 
-        <!-- Filter Tabs (Trạng thái bài tập — 4 Trạng Thái Khép Kín 100%) -->
-        <div class="filter-tabs">
-          <div class="filter-tab ${this.currentFilter === 'all' ? 'active' : ''}" onclick="TutorView.setFilter('all')">
-            📋 Tất cả bài tập (${scopedAssignments.length})
+        <!-- Filter Tabs & Ô Tìm Kiếm Bài Tập Thời Gian Thực -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:0 20px 10px 20px; border-bottom:1px solid #e2e8f0;">
+          <div class="filter-tabs" style="margin:0; border:none; padding:0;">
+            <div class="filter-tab ${this.currentFilter === 'all' ? 'active' : ''}" onclick="TutorView.setFilter('all')">
+              📋 Tất cả (${scopedAssignments.length})
+            </div>
+            <div class="filter-tab ${this.currentFilter === 'pending_grading' ? 'active' : ''}" onclick="TutorView.setFilter('pending_grading')">
+              ⏳ Chờ chấm (${pendingGradingAsns.length})
+            </div>
+            <div class="filter-tab ${this.currentFilter === 'waiting_submission' ? 'active' : ''}" onclick="TutorView.setFilter('waiting_submission')">
+              ✍️ Đang làm (${waitingSubmissionAsns.length})
+            </div>
+            <div class="filter-tab ${this.currentFilter === 'completed' ? 'active' : ''}" onclick="TutorView.setFilter('completed')">
+              ✅ Đã xong (${completedAsns.length})
+            </div>
           </div>
-          <div class="filter-tab ${this.currentFilter === 'pending_grading' ? 'active' : ''}" onclick="TutorView.setFilter('pending_grading')">
-            ⏳ Chờ chấm bài (${pendingGradingAsns.length})
-          </div>
-          <div class="filter-tab ${this.currentFilter === 'waiting_submission' ? 'active' : ''}" onclick="TutorView.setFilter('waiting_submission')">
-            ✍️ Đang làm bài (${waitingSubmissionAsns.length})
-          </div>
-          <div class="filter-tab ${this.currentFilter === 'completed' ? 'active' : ''}" onclick="TutorView.setFilter('completed')">
-            ✅ Đã hoàn thành (${completedAsns.length})
+          <div style="position:relative; min-width:200px; flex:1; max-width:320px;">
+            <input type="text" id="tutorAsnSearchInput" class="form-control" style="font-size:13px; padding:6px 12px 6px 30px; height:34px;" placeholder="Tìm bài tập theo tiêu đề, chuyên đề..." value="${this.searchKeyword}" oninput="TutorView.handleSearch(this.value)">
+            <span style="position:absolute; left:9px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:13px;">🔍</span>
           </div>
         </div>
 
@@ -345,6 +352,16 @@ const TutorView = {
         </div>
       </div>
     `;
+  },
+
+  handleSearch(val) {
+    this.searchKeyword = val;
+    App.renderCurrentView();
+    const input = document.getElementById('tutorAsnSearchInput');
+    if (input) {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
   },
 
   setFilter(filter) {
@@ -363,6 +380,18 @@ const TutorView = {
     // Lọc theo học sinh đã chọn
     if (this.selectedStudentId) {
       filtered = filtered.filter(asn => asn.targetStudentIds && asn.targetStudentIds.includes(this.selectedStudentId));
+    }
+
+    // Lọc theo từ khóa tìm kiếm
+    if (this.searchKeyword) {
+      const kw = this.searchKeyword.toLowerCase().trim();
+      filtered = filtered.filter(asn => {
+        const titleMatch = (asn.title || '').toLowerCase().includes(kw);
+        const descMatch = (asn.description || '').toLowerCase().includes(kw);
+        const topicMatch = (asn.topic || '').toLowerCase().includes(kw);
+        const subjectMatch = (asn.subject || '').toLowerCase().includes(kw);
+        return titleMatch || descMatch || topicMatch || subjectMatch;
+      });
     }
 
     // Lọc theo trạng thái bài tập dựa trên phân loại nhất quán
@@ -439,6 +468,12 @@ const TutorView = {
               <span class="badge ${isOverdue ? 'badge-danger' : 'badge-primary'}" style="font-size:11px;">
                 ${isOverdue ? '⚠️ Quá hạn' : '📸 Tự luận'}
               </span>
+              <button class="btn btn-xs btn-outline" style="padding:2px 7px; font-size:11px;" onclick="TutorView.openEditAssignmentModal('${asn.id}')" title="Chỉnh sửa bài tập này">
+                ✏️ Sửa
+              </button>
+              <button class="btn btn-xs btn-danger" style="padding:2px 6px; font-size:11px;" onclick="TutorView.deleteAssignment('${asn.id}')" title="Xóa bài tập này">
+                🗑️
+              </button>
             </div>
           </div>
 
@@ -590,11 +625,114 @@ const TutorView = {
   },
 
   deleteAssignment(assignmentId) {
-    if (confirm("Bạn có chắc chắn muốn xóa bài tập này?")) {
+    const asn = Store.data.assignments.find(a => a.id === assignmentId);
+    const title = asn ? asn.title : 'bài tập này';
+    const subs = Store.getSubmissionsByAssignment(assignmentId);
+    let confirmMsg = `Bạn có chắc chắn muốn xóa "${title}"?`;
+    if (subs.length > 0) {
+      confirmMsg += `\n\n⚠️ Lưu ý: Bài tập này đã có ${subs.length} bài nộp của học sinh. Xóa bài tập sẽ đồng thời xóa toàn bộ bài làm và điểm số liên quan!`;
+    }
+    if (confirm(confirmMsg)) {
       Store.deleteAssignment(assignmentId);
       App.showToast("Đã xóa bài tập!", "info");
       App.renderCurrentView();
     }
+  },
+
+  handleEditTargetTypeChange(val) {
+    const container = document.getElementById('editStudentPickerContainer');
+    if (container) {
+      container.style.display = val === 'individual' ? 'block' : 'none';
+    }
+  },
+
+  openEditAssignmentModal(assignmentId) {
+    const asn = Store.data.assignments.find(a => a.id === assignmentId);
+    if (!asn) return;
+
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val !== undefined && val !== null ? val : '';
+    };
+
+    setVal('editAsnId', asn.id);
+    setVal('editAsnTitle', asn.title);
+    setVal('editAsnDesc', asn.description || '');
+    setVal('editAsnTopic', asn.topic || '');
+    setVal('editAsnDifficulty', asn.difficulty || 'Thông hiểu - Vận dụng');
+    setVal('editAsnDeadline', asn.deadline || '');
+    setVal('editAsnType', asn.type || 'photo');
+    setVal('editAsnTargetType', asn.targetType || 'individual');
+
+    const currentUser = Auth.getCurrentUser();
+    const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
+    const currentTutorId = currentUser ? currentUser.id : 'u_tutor';
+    const students = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
+
+    const picker = document.getElementById('editStudentPickerContainer');
+    if (picker) {
+      picker.style.display = (asn.targetType === 'group') ? 'none' : 'block';
+    }
+
+    const listEl = document.getElementById('editStudentCheckboxesList');
+    if (listEl) {
+      listEl.innerHTML = students.map(std => {
+        const isChecked = (asn.targetStudentIds || []).includes(std.id);
+        return `
+          <label class="student-checkbox-item" style="display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; background:#f8fafc; border:1px solid #e2e8f0; margin-bottom:4px; cursor:pointer;">
+            <input type="checkbox" name="editTargetStudents" value="${std.id}" ${isChecked ? 'checked' : ''}>
+            <span><strong>${std.name}</strong> (${std.grade})</span>
+          </label>
+        `;
+      }).join('');
+    }
+
+    const modal = document.getElementById('editAssignmentModal');
+    if (modal) modal.classList.add('active');
+  },
+
+  submitEditAssignment() {
+    const id = document.getElementById('editAsnId')?.value;
+    const title = document.getElementById('editAsnTitle')?.value.trim();
+    const deadline = document.getElementById('editAsnDeadline')?.value;
+    if (!id) return;
+    if (!title) {
+      App.showToast('Vui lòng nhập tiêu đề bài tập!', 'error');
+      return;
+    }
+
+    const targetType = document.getElementById('editAsnTargetType')?.value || 'individual';
+    let targetStudentIds = [];
+    if (targetType === 'individual') {
+      const checkedBoxes = document.querySelectorAll('input[name="editTargetStudents"]:checked');
+      targetStudentIds = Array.from(checkedBoxes).map(cb => cb.value);
+      if (targetStudentIds.length === 0) {
+        App.showToast('Vui lòng chọn ít nhất một học sinh nhận bài tập!', 'warning');
+        return;
+      }
+    } else {
+      const currentUser = Auth.getCurrentUser();
+      const currentTutorId = currentUser ? currentUser.id : 'u_tutor';
+      const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
+      const students = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
+      targetStudentIds = students.map(s => s.id);
+    }
+
+    const updatedData = {
+      title: title,
+      description: document.getElementById('editAsnDesc')?.value.trim() || '',
+      topic: document.getElementById('editAsnTopic')?.value.trim() || '',
+      difficulty: document.getElementById('editAsnDifficulty')?.value || 'Thông hiểu - Vận dụng',
+      deadline: deadline || '',
+      type: document.getElementById('editAsnType')?.value || 'photo',
+      targetType: targetType,
+      targetStudentIds: targetStudentIds
+    };
+
+    Store.updateAssignment(id, updatedData);
+    App.closeModal('editAssignmentModal');
+    App.renderCurrentView();
+    App.showToast(`✓ Đã cập nhật thành công bài tập "${title}"!`, 'success');
   },
 
   remindAllStudents() {

@@ -4,16 +4,122 @@
  */
 
 const AdminView = {
-  render(container) {
+  searchQuery: '',
+  filterTutor: 'all',
+  filterGrade: 'all',
+
+  handleSearch(val) {
+    this.searchQuery = val;
+    App.renderCurrentView();
+    const input = document.getElementById('adminStudentSearchInput');
+    if (input) {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  },
+
+  handleFilterTutor(tutorId) {
+    this.filterTutor = tutorId;
+    App.renderCurrentView();
+  },
+
+  handleFilterGrade(grade) {
+    this.filterGrade = grade;
+    App.renderCurrentView();
+  },
+
+  resetFilters() {
+    this.searchQuery = '';
+    this.filterTutor = 'all';
+    this.filterGrade = 'all';
+    App.renderCurrentView();
+  },
+
+  adjustSessions(studentId, delta) {
+    Store.adjustStudentSessions(studentId, delta);
+    App.renderCurrentView();
+    const std = Store.getUserById(studentId);
+    App.showToast(`Đã cập nhật: ${std ? std.name : 'Học sinh'} hiện có ${std ? (std.totalSessions || 0) : 0} buổi học.`, 'info');
+  },
+
+  markPaid(studentId, studentName, amount) {
+    if (confirm(`Xác nhận phụ huynh em "${studentName}" đã thanh toán đủ ${amount.toLocaleString('vi-VN')} đ học phí?\n\nHệ thống sẽ chốt kỳ thu phí và đặt lại số buổi học về 0.`)) {
+      Store.resetStudentSessions(studentId);
+      App.renderCurrentView();
+      App.showToast(`✓ Đã xác nhận thu ${amount.toLocaleString('vi-VN')} đ học phí của em ${studentName}!`, 'success');
+    }
+  },
+
+  exportTuitionCsv() {
     const students = Store.getStudents();
+    if (students.length === 0) {
+      App.showToast('Không có dữ liệu học sinh để xuất báo cáo!', 'warning');
+      return;
+    }
+    const rows = [
+      ['STT', 'Mã Học Sinh', 'Họ Và Tên', 'Giới Tính', 'Khối Lớp', 'Trường Học', 'Gia Sư Phụ Trách', 'Tài Khoản', 'Họ Tên Phụ Huynh', 'SĐT Phụ Huynh', 'Lịch Học', 'Học Phí/Buổi (VNĐ)', 'Số Buổi Đã Học', 'Tổng Học Phí Phải Thu (VNĐ)', 'Trạng Thái']
+    ];
+    students.forEach((s, idx) => {
+      const fee = s.feePerSession || 200000;
+      const sess = s.totalSessions || 0;
+      const total = fee * sess;
+      rows.push([
+        idx + 1,
+        s.id,
+        `"${(s.name || '').replace(/"/g, '""')}"`,
+        s.gender || 'Nam',
+        s.grade || '',
+        `"${(s.school || '').replace(/"/g, '""')}"`,
+        `"${(s.assignedTutorName || '').replace(/"/g, '""')}"`,
+        s.username || '',
+        `"${(s.parentName || '').replace(/"/g, '""')}"`,
+        `'${s.parentPhone || s.phone || ''}`,
+        `"${(s.schedule || '').replace(/"/g, '""')}"`,
+        fee,
+        sess,
+        total,
+        sess > 0 ? 'Chờ thu phí' : 'Đã hoàn tất'
+      ]);
+    });
+    const csvContent = '\uFEFF' + rows.map(r => r.join(',')).join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `BaoCao_HocPhi_EduTask_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    App.showToast('✓ Đã xuất bảng tính Excel/CSV học phí thành công!', 'success');
+  },
+
+  render(container) {
+    const allStudents = Store.getStudents();
     const tutors = Store.getTutors();
     const assignments = Store.getAllAssignments();
     const submissions = Store.data.submissions;
     const pendingGradingCount = submissions.filter(s => s.status === 'submitted').length;
 
-    // Tính tổng học phí dự kiến trong tháng
+    // Lọc danh sách học sinh theo tìm kiếm & bộ lọc
+    const students = allStudents.filter(std => {
+      if (this.filterTutor !== 'all' && std.assignedTutorId !== this.filterTutor) return false;
+      if (this.filterGrade !== 'all' && std.grade !== this.filterGrade) return false;
+      if (this.searchQuery) {
+        const q = this.searchQuery.toLowerCase().trim();
+        const matchName = (std.name || '').toLowerCase().includes(q);
+        const matchUser = (std.username || '').toLowerCase().includes(q);
+        const matchPhone = (std.phone || '').toLowerCase().includes(q);
+        const matchParent = (std.parentName || '').toLowerCase().includes(q) || (std.parentPhone || '').toLowerCase().includes(q);
+        const matchSchool = (std.school || '').toLowerCase().includes(q);
+        if (!matchName && !matchUser && !matchPhone && !matchParent && !matchSchool) return false;
+      }
+      return true;
+    });
+
+    // Tính tổng học phí dự kiến trong tháng (theo toàn bộ học sinh)
     let totalTuition = 0;
-    students.forEach(s => {
+    allStudents.forEach(s => {
       totalTuition += (s.feePerSession || 200000) * (s.totalSessions || 0);
     });
 
@@ -42,7 +148,7 @@ const AdminView = {
         <div class="metric-card">
           <div class="metric-icon-box metric-blue">🎒</div>
           <div class="metric-data">
-            <h4>${students.length}</h4>
+            <h4>${allStudents.length}</h4>
             <span>Học sinh kèm</span>
           </div>
         </div>
@@ -79,11 +185,42 @@ const AdminView = {
       <!-- Bảng Quản Lý Học Sinh Kèm Chi Tiết -->
       <div class="content-card">
         <div class="card-header">
-          <h3>🎒 Danh Sách Học Sinh Kèm & Phân Công Giáo Viên (${students.length} em)</h3>
-          <button class="btn btn-primary btn-sm" onclick="AdminView.openAddStudentModal()">
-            ➕ Thêm học sinh
-          </button>
+          <div>
+            <h3>🎒 Danh Sách Học Sinh Kèm & Phân Công Giáo Viên</h3>
+            <small style="color:var(--text-muted); font-size:12px;">Đang hiển thị <strong>${students.length}</strong> / <strong>${allStudents.length}</strong> học sinh</small>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-outline btn-sm" style="border-color:#10b981; color:#047857; font-weight:700;" onclick="AdminView.exportTuitionCsv()" title="Tải bảng tính Excel/CSV tính tiền học phí">
+              📊 Xuất Excel / CSV
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="AdminView.openAddStudentModal()">
+              ➕ Thêm học sinh
+            </button>
+          </div>
         </div>
+
+        <!-- Thanh Tìm Kiếm & Bộ Lọc Thời Gian Thực -->
+        <div class="admin-search-filter-bar">
+          <div class="admin-search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="adminStudentSearchInput" placeholder="Tìm theo tên học sinh, tài khoản, SĐT phụ huynh, trường..." value="${this.searchQuery}" oninput="AdminView.handleSearch(this.value)">
+          </div>
+          <select class="admin-filter-select" onchange="AdminView.handleFilterTutor(this.value)">
+            <option value="all">👨‍🏫 Tất cả gia sư (${tutors.length})</option>
+            ${tutors.map(t => `<option value="${t.id}" ${this.filterTutor === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+          </select>
+          <select class="admin-filter-select" onchange="AdminView.handleFilterGrade(this.value)">
+            <option value="all" ${this.filterGrade === 'all' ? 'selected' : ''}>🎒 Tất cả khối lớp</option>
+            <option value="Lớp 12" ${this.filterGrade === 'Lớp 12' ? 'selected' : ''}>Lớp 12</option>
+            <option value="Lớp 11" ${this.filterGrade === 'Lớp 11' ? 'selected' : ''}>Lớp 11</option>
+            <option value="Lớp 10" ${this.filterGrade === 'Lớp 10' ? 'selected' : ''}>Lớp 10</option>
+            <option value="Khác" ${this.filterGrade === 'Khác' ? 'selected' : ''}>Khác</option>
+          </select>
+          ${(this.searchQuery || this.filterTutor !== 'all' || this.filterGrade !== 'all') ? `
+            <button class="btn btn-xs btn-outline" onclick="AdminView.resetFilters()" title="Xóa bộ lọc để xem toàn bộ">✕ Xóa lọc</button>
+          ` : ''}
+        </div>
+
         <div class="table-responsive">
           <table class="data-table">
             <thead>
@@ -95,12 +232,18 @@ const AdminView = {
                 <th>Mục Tiêu & Học Lực</th>
                 <th>Lịch Học Kèm</th>
                 <th>Học Phí / Buổi</th>
-                <th>Tháng Này</th>
+                <th>Tháng Này (Số Buổi)</th>
                 <th style="text-align:center;">Thao Tác</th>
               </tr>
             </thead>
             <tbody>
-              ${students.map(std => {
+              ${students.length === 0 ? `
+                <tr>
+                  <td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted);">
+                    🔍 Không tìm thấy học sinh nào phù hợp với bộ lọc hiện tại.
+                  </td>
+                </tr>
+              ` : students.map(std => {
                 const sessionFee = std.feePerSession || 200000;
                 const sessions = std.totalSessions || 0;
                 const total = sessionFee * sessions;
@@ -175,8 +318,19 @@ const AdminView = {
                     </td>
                     <td>${sessionFee.toLocaleString('vi-VN')} đ</td>
                     <td>
-                      <strong>${sessions} buổi</strong><br>
-                      <strong style="color:var(--primary);">${total.toLocaleString('vi-VN')} đ</strong>
+                      <div style="display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+                        <button class="btn btn-xs btn-outline" onclick="AdminView.adjustSessions('${std.id}', -1)" title="Giảm 1 buổi" style="width:22px; height:22px; padding:0; font-weight:800; border-radius:4px;">-</button>
+                        <strong style="font-size:13px; min-width:32px; text-align:center;">${sessions} buổi</strong>
+                        <button class="btn btn-xs btn-primary" onclick="AdminView.adjustSessions('${std.id}', 1)" title="Tăng 1 buổi (Điểm danh)" style="width:22px; height:22px; padding:0; font-weight:800; border-radius:4px;">+</button>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:4px; justify-content:space-between;">
+                        <strong style="color:var(--primary); font-size:12px;">${total.toLocaleString('vi-VN')} đ</strong>
+                        ${sessions > 0 ? `
+                          <button class="btn btn-xs btn-secondary" onclick="AdminView.markPaid('${std.id}', '${std.name}', ${total})" title="Đã thu học phí tháng này (Đặt lại số buổi về 0)" style="padding:1px 5px; font-size:10px;">
+                            💳 Đã thu
+                          </button>
+                        ` : ''}
+                      </div>
                     </td>
                     <td style="text-align:center;">
                       <div style="display:inline-flex; gap:6px; flex-wrap:wrap; justify-content:center;">
@@ -300,6 +454,9 @@ const AdminView = {
           </button>
           <button class="btn btn-outline" onclick="AdminView.exportBackup()">
             💾 Sao Lưu Dữ Liệu Ra File (Backup JSON)
+          </button>
+          <button class="btn btn-secondary" onclick="AdminView.exportTuitionCsv()">
+            📊 Xuất Báo Cáo Học Phí (Excel/CSV)
           </button>
           <button class="btn btn-danger" onclick="AdminView.resetToDefault()">
             🔄 Đặt Lại Dữ Liệu Hệ Thống

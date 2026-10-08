@@ -573,12 +573,12 @@ const App = {
     this.renderCurrentView();
   },
 
-  // ================= MODAL: HỌC SINH NỘP BÀI =================
-  currentUploadedPhotoUrl: null,
+  // ================= MODAL: HỌC SINH NỘP BÀI (HỖ TRỢ NHIỀU TRANG) =================
+  currentUploadedPhotos: [],
 
   openSubmitModal(assignmentId) {
     this.currentSubmittingAssignmentId = assignmentId;
-    this.currentUploadedPhotoUrl = null;
+    this.currentUploadedPhotos = [];
 
     const assignment = Store.data.assignments.find(a => a.id === assignmentId);
     if (!assignment) return;
@@ -589,11 +589,8 @@ const App = {
     if (camInput) camInput.value = '';
     const galInput = document.getElementById('submitGalleryInput');
     if (galInput) galInput.value = '';
-    const fileInput = document.getElementById('submitFileInput');
-    if (fileInput) fileInput.value = '';
 
-    const previewBox = document.getElementById('submitFilePreview');
-    if (previewBox) previewBox.style.display = 'none';
+    this.renderSubmitPhotosGrid();
 
     const noteInput = document.getElementById('submitHomeworkNote');
     if (noteInput) noteInput.value = '';
@@ -609,12 +606,16 @@ const App = {
   },
 
   handleHomeworkFileSelect(event) {
-    const file = event.target.files && event.target.files[0];
-    if (file) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileList = Array.from(files);
+    let processed = 0;
+
+    const processFile = (file) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const rawDataUrl = e.target.result;
-        // Tối ưu hóa dung lượng ảnh chụp từ điện thoại để đồng bộ Realtime siêu tốc
         const img = new Image();
         img.onload = () => {
           const maxDimension = 1400;
@@ -636,32 +637,66 @@ const App = {
           ctx.drawImage(img, 0, 0, width, height);
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
 
-          App.currentUploadedPhotoUrl = compressedDataUrl;
-          const previewBox = document.getElementById('submitFilePreview');
-          const previewImg = document.getElementById('submitPreviewImg');
-          if (previewBox && previewImg) {
-            previewImg.src = compressedDataUrl;
-            previewBox.style.display = 'block';
+          App.currentUploadedPhotos.push(compressedDataUrl);
+          processed++;
+          if (processed === fileList.length) {
+            App.renderSubmitPhotosGrid();
+            App.showToast(`✓ Đã thêm ${fileList.length} ảnh trang bài làm!`, 'success');
           }
         };
         img.onerror = () => {
-          App.currentUploadedPhotoUrl = rawDataUrl;
-          const previewBox = document.getElementById('submitFilePreview');
-          const previewImg = document.getElementById('submitPreviewImg');
-          if (previewBox && previewImg) {
-            previewImg.src = rawDataUrl;
-            previewBox.style.display = 'block';
+          App.currentUploadedPhotos.push(rawDataUrl);
+          processed++;
+          if (processed === fileList.length) {
+            App.renderSubmitPhotosGrid();
           }
         };
         img.src = rawDataUrl;
       };
       reader.readAsDataURL(file);
-    }
+    };
+
+    fileList.forEach(processFile);
+    event.target.value = '';
   },
 
-  // Xoay ảnh 90 độ cho học sinh nếu điện thoại chụp ngang
-  rotateSubmitPhoto() {
-    if (!this.currentUploadedPhotoUrl) return;
+  renderSubmitPhotosGrid() {
+    const container = document.getElementById('submitPhotosContainer');
+    const grid = document.getElementById('submitPhotosGrid');
+    const countEl = document.getElementById('submitPhotosCount');
+
+    if (!container || !grid) return;
+
+    const count = this.currentUploadedPhotos.length;
+    if (countEl) countEl.textContent = count;
+
+    if (count === 0) {
+      container.style.display = 'none';
+      grid.innerHTML = '';
+      return;
+    }
+
+    container.style.display = 'flex';
+    grid.innerHTML = this.currentUploadedPhotos.map((url, idx) => `
+      <div class="submit-photo-card">
+        <div class="submit-photo-thumb-wrap">
+          <span class="submit-photo-page-badge">Trang ${idx + 1}</span>
+          <img src="${url}" alt="Trang ${idx + 1}">
+        </div>
+        <div class="submit-photo-actions">
+          <button type="button" onclick="App.rotateSubmitPhoto(${idx})" title="Xoay ảnh 90° nếu chụp ngang">
+            🔄 Xoay
+          </button>
+          <button type="button" style="color:var(--danger);" onclick="App.removeSubmitPhoto(${idx})" title="Xóa trang này">
+            🗑️ Xóa
+          </button>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  rotateSubmitPhoto(index) {
+    if (!this.currentUploadedPhotos[index]) return;
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
@@ -672,22 +707,22 @@ const App = {
       ctx.rotate((90 * Math.PI) / 180);
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
       const rotatedUrl = canvas.toDataURL('image/jpeg', 0.85);
-      App.currentUploadedPhotoUrl = rotatedUrl;
-      const previewImg = document.getElementById('submitPreviewImg');
-      if (previewImg) previewImg.src = rotatedUrl;
+      App.currentUploadedPhotos[index] = rotatedUrl;
+      App.renderSubmitPhotosGrid();
     };
-    img.src = this.currentUploadedPhotoUrl;
+    img.src = this.currentUploadedPhotos[index];
   },
 
-  // Hủy ảnh đã chọn để chụp lại ảnh khác
-  clearSubmitPhoto() {
-    this.currentUploadedPhotoUrl = null;
-    const previewBox = document.getElementById('submitFilePreview');
-    if (previewBox) previewBox.style.display = 'none';
-    const camInput = document.getElementById('submitCameraInput');
-    if (camInput) camInput.value = '';
-    const galInput = document.getElementById('submitGalleryInput');
-    if (galInput) galInput.value = '';
+  removeSubmitPhoto(index) {
+    this.currentUploadedPhotos.splice(index, 1);
+    this.renderSubmitPhotosGrid();
+    this.showToast('Đã xóa 1 trang bài làm.', 'info');
+  },
+
+  clearAllSubmitPhotos() {
+    this.currentUploadedPhotos = [];
+    this.renderSubmitPhotosGrid();
+    this.showToast('Đã xóa tất cả trang bài làm.', 'info');
   },
 
   confirmStudentSubmission() {
@@ -695,13 +730,19 @@ const App = {
     const student = Auth.getCurrentUser();
     if (!student) return;
 
+    if (this.currentUploadedPhotos.length === 0) {
+      App.showToast('Vui lòng chụp hoặc chọn ít nhất 1 ảnh bài làm để nộp!', 'warning');
+      return;
+    }
+
     // Kết thúc phiên giám sát và thu thập bằng chứng rời tab
     let cheatData = { violationCount: 0, totalDuration: 0, logs: [] };
     if (window.AntiCheat) {
       cheatData = AntiCheat.stopMonitoring();
     }
 
-    const photoUrl = this.currentUploadedPhotoUrl || Store.samplePaperDataUrl;
+    const photos = this.currentUploadedPhotos;
+    const photoUrl = photos[0];
     const noteInput = document.getElementById('submitHomeworkNote');
     const note = noteInput ? noteInput.value.trim() : '';
 
@@ -713,12 +754,14 @@ const App = {
       submittedAt: new Date().toISOString(),
       status: 'submitted',
       photoUrl: photoUrl,
+      photos: photos,
       studentNote: note,
       note: note,
       score: null,
       feedback: '',
       gradedAt: null,
       annotatedPhoto: null,
+      annotatedPhotos: [],
       cheatCount: cheatData.violationCount,
       cheatDuration: cheatData.totalDuration,
       cheatLogs: cheatData.logs
@@ -727,40 +770,89 @@ const App = {
     Store.addSubmission(submission);
     
     if (cheatData.violationCount > 0) {
-      this.showToast(`Đã nộp bài! Hệ thống ghi nhận ${cheatData.violationCount} lần rời tab (${cheatData.totalDuration}s) và đã báo cho gia sư.`, 'warning');
+      this.showToast(`Đã nộp ${photos.length} trang bài! Hệ thống ghi nhận ${cheatData.violationCount} lần rời tab (${cheatData.totalDuration}s).`, 'warning');
     } else {
-      this.showToast('Đã nộp bài tập thành công! Bài làm hoàn toàn trung thực (0 lần rời tab).', 'success');
+      this.showToast(`✓ Đã nộp thành công ${photos.length} trang bài tập! Hoàn toàn trung thực (0 lần rời tab).`, 'success');
     }
 
     this.closeModal('submitHomeworkModal');
     this.renderCurrentView();
   },
 
-  // ================= MODAL: XEM BÀI ĐÃ CHẤM =================
+  // ================= MODAL: XEM BÀI ĐÃ CHẤM (HỖ TRỢ NHIỀU TRANG) =================
   currentReviewZoom: 1.0,
+  currentReviewSub: null,
+  currentReviewPageIndex: 0,
 
   openReviewModal(submissionId) {
     const sub = Store.data.submissions.find(s => s.id === submissionId);
     if (!sub) return;
 
+    this.currentReviewSub = sub;
+    this.currentReviewPageIndex = 0;
     this.currentReviewZoom = 1.0;
+
     const assignment = Store.data.assignments.find(a => a.id === sub.assignmentId);
     document.getElementById('reviewModalTitle').textContent = assignment ? assignment.title : 'Kết Quả Bài Làm';
     document.getElementById('reviewStudentName').textContent = sub.studentName;
     document.getElementById('reviewScoreBadge').textContent = sub.score !== null ? `${sub.score}/10` : 'Chờ chấm';
     document.getElementById('reviewFeedbackText').textContent = sub.feedback || 'Chưa có lời nhận xét từ gia sư.';
-    
-    const img = document.getElementById('reviewPaperImg');
-    if (img) {
-      img.src = sub.annotatedPhoto || sub.photoUrl || Store.samplePaperDataUrl;
-      img.style.transform = 'scale(1)';
-    }
+
+    this.renderReviewPage();
 
     const zoomLabel = document.getElementById('reviewZoomLevel');
     if (zoomLabel) zoomLabel.textContent = '100%';
 
     const modal = document.getElementById('reviewGradedModal');
     modal.classList.add('active');
+  },
+
+  getReviewPages() {
+    if (!this.currentReviewSub) return [Store.samplePaperDataUrl];
+    const sub = this.currentReviewSub;
+    if (Array.isArray(sub.annotatedPhotos) && sub.annotatedPhotos.length > 0) {
+      return sub.annotatedPhotos;
+    }
+    if (Array.isArray(sub.photos) && sub.photos.length > 0) {
+      return sub.photos;
+    }
+    return [sub.annotatedPhoto || sub.photoUrl || Store.samplePaperDataUrl];
+  },
+
+  renderReviewPage() {
+    const pages = this.getReviewPages();
+    const switcher = document.getElementById('reviewPageSwitcher');
+    const label = document.getElementById('reviewPageLabel');
+    const img = document.getElementById('reviewPaperImg');
+
+    if (switcher && label) {
+      if (pages.length > 1) {
+        switcher.style.display = 'inline-flex';
+        label.textContent = `Trang ${this.currentReviewPageIndex + 1} / ${pages.length}`;
+      } else {
+        switcher.style.display = 'none';
+      }
+    }
+
+    if (img) {
+      img.src = pages[this.currentReviewPageIndex] || pages[0];
+      img.style.transform = `scale(${this.currentReviewZoom})`;
+    }
+  },
+
+  prevReviewPage() {
+    if (this.currentReviewPageIndex > 0) {
+      this.currentReviewPageIndex--;
+      this.renderReviewPage();
+    }
+  },
+
+  nextReviewPage() {
+    const pages = this.getReviewPages();
+    if (this.currentReviewPageIndex < pages.length - 1) {
+      this.currentReviewPageIndex++;
+      this.renderReviewPage();
+    }
   },
 
   zoomReviewImage(delta) {
@@ -783,8 +875,9 @@ const App = {
     if (!img || !img.src) return;
 
     const studentName = (document.getElementById('reviewStudentName')?.textContent || 'HocSinh').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
+    const pageNum = this.getReviewPages().length > 1 ? `_Trang${this.currentReviewPageIndex + 1}` : '';
     const link = document.createElement('a');
-    link.download = `BaiCham_${studentName}_${Date.now()}.png`;
+    link.download = `BaiCham_${studentName}${pageNum}_${Date.now()}.png`;
     link.href = img.src;
     link.click();
     this.showToast('Đang tải ảnh bài chấm bút đỏ về thiết bị!', 'success');
