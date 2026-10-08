@@ -12,6 +12,7 @@ const App = {
     Grader.init();
     if (window.AntiCheat) AntiCheat.init();
     if (window.Quiz) Quiz.init();
+    if (window.ThemeManager) ThemeManager.init();
 
     // Hỗ trợ kiểm thử nhanh theo tham số URL hoặc Hash nếu có
     const urlParams = new URLSearchParams(window.location.search);

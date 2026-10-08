@@ -3274,3 +3274,137 @@ button, a, input, select, textarea, .btn, .student-chip, .tool-btn, .fast-score-
     max-height: 90px;
   }
 }
+
+/* ==========================================================================
+   SEASONAL THEME SYSTEM (GIAO DIỆN THEO 4 MÙA TRONG NĂM & LỄ HỘI)
+   ========================================================================== */
+
+/* 1. MÙA XUÂN & TẾT NGUYÊN ĐÁN */
+html.theme-spring, body.theme-spring {
+  --primary: #dc2626;
+  --primary-hover: #b91c1c;
+  --primary-light: #fef2f2;
+  --primary-glow: rgba(220, 38, 38, 0.24);
+  --oxford-navy: #7f1d1d;
+  --gold: #eab308;
+  --gold-hover: #ca8a04;
+  --gold-light: #fef9c3;
+  --border-focus: #fca5a5;
+}
+.theme-spring .top-header {
+  border-bottom: 2px solid rgba(220, 38, 38, 0.2);
+}
+.theme-spring .logo-icon {
+  background: linear-gradient(135deg, #b91c1c, #ef4444) !important;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35) !important;
+}
+.theme-spring .view-banner {
+  background: linear-gradient(135deg, #881337 0%, #be123c 50%, #e11d48 100%) !important;
+}
+
+/* 2. MÙA HÈ & MÙA THI RỰC LỬA */
+html.theme-summer, body.theme-summer {
+  --primary: #0284c7;
+  --primary-hover: #0369a1;
+  --primary-light: #f0f9ff;
+  --primary-glow: rgba(2, 132, 199, 0.24);
+  --oxford-navy: #075985;
+  --gold: #f59e0b;
+  --gold-light: #fef3c7;
+  --border-focus: #7dd3fc;
+}
+.theme-summer .top-header {
+  border-bottom: 2px solid rgba(2, 132, 199, 0.2);
+}
+.theme-summer .logo-icon {
+  background: linear-gradient(135deg, #0369a1, #0ea5e9) !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35) !important;
+}
+.theme-summer .view-banner {
+  background: linear-gradient(135deg, #075985 0%, #0284c7 50%, #06b6d4 100%) !important;
+}
+
+/* 3. MÙA THU TỰU TRƯỜNG & KHAI GIẢNG */
+html.theme-autumn, body.theme-autumn {
+  --primary: #c2410c;
+  --primary-hover: #9a3412;
+  --primary-light: #fff7ed;
+  --primary-glow: rgba(194, 65, 12, 0.24);
+  --oxford-navy: #7c2d12;
+  --gold: #d97706;
+  --gold-light: #fef3c7;
+  --border-focus: #fdba74;
+}
+.theme-autumn .top-header {
+  border-bottom: 2px solid rgba(194, 65, 12, 0.2);
+}
+.theme-autumn .logo-icon {
+  background: linear-gradient(135deg, #9a3412, #ea580c) !important;
+  box-shadow: 0 4px 14px rgba(194, 65, 12, 0.35) !important;
+}
+.theme-autumn .view-banner {
+  background: linear-gradient(135deg, #7c2d12 0%, #c2410c 50%, #d97706 100%) !important;
+}
+
+/* 4. MÙA ĐÔNG & GIÁNG SINH */
+html.theme-winter, body.theme-winter {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+  --primary-glow: rgba(37, 99, 235, 0.24);
+  --oxford-navy: #0f172a;
+  --gold: #06b6d4;
+  --gold-light: #ecfeff;
+  --border-focus: #93c5fd;
+}
+.theme-winter .top-header {
+  border-bottom: 2px solid rgba(59, 130, 246, 0.2);
+}
+.theme-winter .logo-icon {
+  background: linear-gradient(135deg, #1e3a8a, #3b82f6) !important;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35) !important;
+}
+.theme-winter .view-banner {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%) !important;
+}
+
+/* Nút chọn chủ đề theo mùa trên Top Header */
+.season-theme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-color);
+  background: #ffffff;
+  color: var(--text-main);
+  font-family: var(--font-heading);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  user-select: none;
+}
+
+.season-theme-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.season-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary) !important;
+}
+
+@media (max-width: 640px) {
+  .season-btn-text {
+    display: none;
+  }
+  .season-theme-btn {
+    padding: 6px 9px;
+  }
+}
+
