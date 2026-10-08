@@ -1,115 +1,13 @@
 {
-  "meta": {
-    "lastUpdated": "2026-10-07T14:15:00.000Z",
-    "name": "EDUTASK_PB_CENTRAL_DATABASE",
-    "version": 4
-  },
-  "deletedUserIds": [
-    "u_std_1791361091065",
-    "u_std_1791361864132",
-    "u_std_quang",
-    "u_std_1791342637918",
-    "u_std_nam",
-    "u_std_maianh",
-    "u_std_1791383480781",
-    "u_std_1791383505191",
-    "u_tutor",
-    "u_tutor_linh"
-  ],
-  "deletedAssignmentIds": [
-    "asn_001",
-    "asn_002",
-    "asn_003"
-  ],
-  "deletedSubmissionIds": [
-    "sub_001",
-    "sub_002"
-  ],
-  "users": [
-    {
-      "id": "u_admin",
-      "username": "admin",
-      "password": "admin123",
-      "name": "Quản Trị Hệ Thống",
-      "role": "admin",
-      "roleName": "Quản Trị Viên (Admin)",
-      "phone": "0900.123.456",
-      "avatarText": "AD",
-      "accountStatus": "none"
-    },
-    {
-      "avatarText": "BB",
-      "degree": "Giáo viên dạy kèm chuyên môn",
-      "email": "",
-      "gender": "Nữ",
-      "id": "u_tutor_1791305106234",
-      "name": "Cô Bình Bình",
-      "password": "23032004",
-      "phone": "0902.704.416",
-      "role": "tutor",
-      "roleName": "Gia Sư Phụ Trách",
-      "subjects": [
-        "Toán Học THPT"
-      ],
-      "username": "binhbinh",
-      "accountStatus": "none"
-    },
-    {
-      "accountCreatedAt": "2026-10-07T15:08:56.306Z",
-      "accountStatus": "active",
-      "address": "Chưa cập nhật",
-      "assignedTutorId": "u_tutor_1791305106234",
-      "assignedTutorName": "Cô Bình Bình",
-      "avatarText": "CH",
-      "currentScore": 6.5,
-      "dob": "2008-01-01",
-      "feePerSession": 250000,
-      "gender": "Nam",
-      "grade": "Lớp 12",
-      "hasAccount": true,
-      "id": "u_std_1791385736306",
-      "initialScore": 6.5,
-      "learningMode": "1 kèm 1",
-      "name": "Chương",
-      "notes": "Đăng ký tài khoản trực tuyến",
-      "parentJob": "",
-      "parentName": "Phụ huynh em Chương",
-      "parentPhone": "Chưa cập nhật",
-      "password": "123456",
-      "phone": "Chưa cập nhật",
-      "role": "student",
-      "roleName": "Học Sinh",
-      "schedule": "Theo thỏa thuận với gia sư",
-      "school": "THPT",
-      "startDate": "2026-10-07",
-      "strengths": "Chăm chỉ, sẵn sàng rèn luyện",
-      "subject": "Toán Học 12",
-      "targetScore": 9,
-      "totalSessions": 0,
-      "username": "std_chuong",
-      "weaknesses": "Cần củng cố kiến thức phương pháp"
-    }
-  ],
   "assignments": [
     {
-      "id": "asn_004",
-      "tutorId": "u_tutor",
-      "title": "⚡ Đề Thi Trắc Nghiệm: 5 Câu Nguyên Hàm & Tích Phân",
-      "description": "Bài kiểm tra trắc nghiệm online 5 câu hỏi trọng tâm. Thời gian làm bài 15 phút, hệ thống tự động chấm điểm 10/10 ngay lập tức!",
       "attachmentName": "10_Cau_Trac_Nghiem_Nguyen_Ham.pdf",
       "attachmentSize": "560 KB",
       "attachmentType": "pdf",
-      "targetType": "individual",
-      "targetStudentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791342637918"
-      ],
-      "deadline": "2026-10-12T21:00",
       "createdAt": "2026-10-08T08:00",
-      "totalPoints": 10,
-      "type": "quiz",
-      "submissionType": "quiz",
+      "deadline": "2026-10-12T21:00",
+      "description": "Bài kiểm tra trắc nghiệm online 5 câu hỏi trọng tâm. Thời gian làm bài 15 phút, hệ thống tự động chấm điểm 10/10 ngay lập tức!",
+      "id": "asn_004",
       "quizData": {
         "mode": "detailed",
         "durationMinutes": 15,
@@ -175,9 +73,111 @@
             "explanation": "Ta có: ∫(2x + 1)dx = [x² + x] từ 0 đến 1 = (1 + 1) - 0 = 2."
           }
         ]
-      }
+      },
+      "submissionType": "quiz",
+      "targetStudentIds": [
+        "u_std_quang",
+        "u_std_maianh",
+        "u_std_1791342637918"
+      ],
+      "targetType": "individual",
+      "title": "⚡ Đề Thi Trắc Nghiệm: 5 Câu Nguyên Hàm & Tích Phân",
+      "totalPoints": 10,
+      "tutorId": "u_tutor",
+      "type": "quiz"
     }
   ],
-  "submissions": [],
-  "migratedInitialUsers": true
+  "deletedAssignmentIds": [
+    "asn_001",
+    "asn_002",
+    "asn_003"
+  ],
+  "deletedSubmissionIds": [
+    "sub_001",
+    "sub_002"
+  ],
+  "deletedUserIds": [
+    "u_std_1791361091065",
+    "u_std_1791361864132",
+    "u_std_quang",
+    "u_std_1791342637918",
+    "u_std_nam",
+    "u_std_maianh",
+    "u_std_1791383480781",
+    "u_std_1791383505191",
+    "u_tutor",
+    "u_tutor_linh"
+  ],
+  "meta": {
+    "lastUpdated": "2026-10-07T14:15:00.000Z",
+    "name": "EDUTASK_PB_CENTRAL_DATABASE",
+    "version": 4
+  },
+  "migratedInitialUsers": true,
+  "users": [
+    {
+      "accountStatus": "none",
+      "avatarText": "AD",
+      "id": "u_admin",
+      "name": "Quản Trị Hệ Thống",
+      "password": "admin123",
+      "phone": "0900.123.456",
+      "role": "admin",
+      "roleName": "Quản Trị Viên (Admin)",
+      "username": "admin"
+    },
+    {
+      "accountStatus": "none",
+      "avatarText": "BB",
+      "degree": "Giáo viên dạy kèm chuyên môn",
+      "email": "",
+      "gender": "Nữ",
+      "id": "u_tutor_1791305106234",
+      "name": "Cô Bình Bình",
+      "password": "23032004",
+      "phone": "0902.704.416",
+      "role": "tutor",
+      "roleName": "Gia Sư Phụ Trách",
+      "subjects": [
+        "Toán Học THPT"
+      ],
+      "username": "binhbinh"
+    },
+    {
+      "accountCreatedAt": "2026-10-07T15:08:56.306Z",
+      "accountStatus": "active",
+      "address": "Chưa cập nhật",
+      "assignedTutorId": "u_tutor_1791305106234",
+      "assignedTutorName": "Cô Bình Bình",
+      "avatarText": "CH",
+      "currentScore": 6.5,
+      "dob": "2008-01-01",
+      "feePerSession": 250000,
+      "gender": "Nam",
+      "grade": "Lớp 12",
+      "hasAccount": true,
+      "id": "u_std_1791385736306",
+      "initialScore": 6.5,
+      "learningMode": "1 kèm 1",
+      "name": "Chương",
+      "notes": "Đăng ký tài khoản trực tuyến",
+      "parentJob": "",
+      "parentName": "Phụ huynh em Chương",
+      "parentPhone": "Chưa cập nhật",
+      "password": "123456",
+      "phone": "Chưa cập nhật",
+      "role": "student",
+      "roleName": "Học Sinh",
+      "schedule": "Theo thỏa thuận với gia sư",
+      "school": "THPT",
+      "startDate": "2026-10-07",
+      "strengths": "Chăm chỉ, sẵn sàng rèn luyện",
+      "subject": "Toán Học 12",
+      "targetScore": 9,
+      "totalSessions": 0,
+      "username": "std_chuong",
+      "weaknesses": "Cần củng cố kiến thức phương pháp"
+    }
+  ],
+  "submissions": []
 }
