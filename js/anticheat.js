@@ -9,6 +9,8 @@ const AntiCheat = {
   blurTimestamp: null,
   isCurrentlyBlurred: false,
 
+  maxAllowedViolations: 4, // Ngưỡng vi phạm tối đa (quá 4 lần rời màn hình sẽ tự động nộp bài cưỡng chế)
+
   init() {
     // Lắng nghe sự kiện chuyển tab trình duyệt (visibilitychange)
     document.addEventListener('visibilitychange', () => {
@@ -28,7 +30,32 @@ const AntiCheat = {
       this.handleFocusRegained('window_focus');
     });
 
-    console.log("AntiCheat Proctoring Engine initialized!");
+    // Khóa chuột phải khi đang thi
+    document.addEventListener('contextmenu', (e) => {
+      if (this.isMonitoring) {
+        e.preventDefault();
+        App.showToast('🛡️ Chế độ thi bảo mật: Đã khóa chuột phải để bảo vệ đề thi!', 'warning');
+      }
+    });
+
+    // Chặn sao chép câu hỏi để tra cứu công cụ AI ngoài
+    document.addEventListener('copy', (e) => {
+      if (this.isMonitoring) {
+        e.preventDefault();
+        App.showToast('🛡️ Chế độ thi bảo mật: Nghiêm cấm sao chép câu hỏi để tra cứu ngoài!', 'error');
+      }
+    });
+
+    // Chặn phím tắt mở DevTools (F12, Ctrl+Shift+I) hoặc xem nguồn
+    document.addEventListener('keydown', (e) => {
+      if (!this.isMonitoring) return;
+      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(e.key.toLowerCase())) || (e.ctrlKey && e.key.toLowerCase() === 'u')) {
+        e.preventDefault();
+        App.showToast('🚨 Cảnh báo bảo mật: Nghiêm cấm mở DevTools hoặc xem mã nguồn trong lúc thi!', 'error');
+      }
+    });
+
+    console.log("AntiCheat Proctoring Engine initialized with anti-copy & auto-submit safeguards!");
   },
 
   // Bắt đầu phiên giám sát (thường khi học sinh mở bài làm hoặc nộp bài)
@@ -127,6 +154,16 @@ const AntiCheat = {
 
     // Cập nhật banner thời gian thực
     this.updateLiveBanner();
+
+    // Nếu chạm ngưỡng vi phạm tối đa -> Cưỡng chế tự động nộp bài và thu bài thi
+    if (this.activeSession.violationCount >= this.maxAllowedViolations) {
+      setTimeout(() => {
+        if (window.Quiz && Quiz.activeQuiz && Quiz.activeQuiz.assignment) {
+          App.showToast(`🚨 Báo động vi phạm nghiêm trọng: Bạn đã rời màn hình ${this.activeSession.violationCount} lần! Hệ thống đang tự động thu bài thi và khóa quyền làm bài...`, 'error');
+          Quiz.submitQuiz(true);
+        }
+      }, 1500);
+    }
   },
 
   // Phát âm thanh cảnh báo nghiêm khắc
@@ -168,13 +205,16 @@ const AntiCheat = {
     if (levelBadge) {
       if (totalCount === 1) {
         levelBadge.className = 'badge badge-warning';
-        levelBadge.textContent = 'Mức độ: Nhắc nhở lần đầu';
+        levelBadge.textContent = 'Mức độ: Nhắc nhở lần đầu (1/4)';
       } else if (totalCount === 2) {
+        levelBadge.className = 'badge badge-warning';
+        levelBadge.textContent = 'Mức độ: Cảnh cáo lần 2 (2/4)';
+      } else if (totalCount === 3) {
         levelBadge.className = 'badge badge-danger';
-        levelBadge.textContent = 'Mức độ: Cảnh cáo nghiêm khắc';
+        levelBadge.textContent = 'Mức độ: Cảnh báo nghiêm trọng (3/4) — Rời tab lần nữa sẽ bị thu bài!';
       } else {
         levelBadge.className = 'badge badge-danger';
-        levelBadge.textContent = 'Mức độ: Báo động nguy cơ gian lận cao';
+        levelBadge.textContent = 'Mức độ: Đạt ngưỡng tối đa (4/4) — HỆ THỐNG ĐANG TỰ ĐỘNG THU BÀI!';
       }
     }
 
