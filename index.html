@@ -168,12 +168,15 @@
           </div>
           <div class="form-group">
             <label for="newAsnType">Hình thức nộp bài</label>
-            <select id="newAsnType" class="form-control">
+            <select id="newAsnType" class="form-control" onchange="Quiz.toggleBuilder('create', this.value)">
               <option value="photo">📸 Tự luận (Chụp ảnh vở)</option>
               <option value="quiz">⚡ Trắc nghiệm Online</option>
             </select>
           </div>
         </div>
+
+        <!-- Container Thiết Lập Đề Thi Trắc Nghiệm (Hiển thị khi chọn Trắc nghiệm Online) -->
+        <div id="createQuizBuilderContainer" style="display:none; margin-top:8px;"></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="App.closeModal('createAssignmentModal')">Hủy bỏ</button>
@@ -240,12 +243,15 @@
           </div>
           <div class="form-group">
             <label for="editAsnType">Hình thức nộp bài</label>
-            <select id="editAsnType" class="form-control">
+            <select id="editAsnType" class="form-control" onchange="Quiz.toggleBuilder('edit', this.value)">
               <option value="photo">📸 Tự luận (Chụp ảnh vở)</option>
               <option value="quiz">⚡ Trắc nghiệm Online</option>
             </select>
           </div>
         </div>
+
+        <!-- Container Thiết Lập Đề Thi Trắc Nghiệm (Chỉnh sửa) -->
+        <div id="editQuizBuilderContainer" style="display:none; margin-top:8px;"></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="App.closeModal('editAssignmentModal')">Hủy bỏ</button>
@@ -1525,6 +1531,139 @@
     </div>
   </div>
 
+  <!-- ================= MODAL: LÀM BÀI TRẮC NGHIỆM ONLINE (FOCUSED EXAM ROOM) ================= -->
+  <div class="modal-overlay" id="quizTakingModal" style="z-index: 3800;">
+    <div class="modal-box quiz-taking-modal-box" style="max-width: 900px; width: 95%; max-height: 96vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 16px;">
+      
+      <!-- Header phòng thi -->
+      <div class="quiz-taking-header" style="padding: 14px 20px; background: linear-gradient(135deg, #0f2b5c, #1e40af); color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3b82f6;">
+        <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
+          <span style="font-size: 26px;">⚡</span>
+          <div style="overflow: hidden;">
+            <h3 id="quizTakingTitle" style="margin: 0; font-size: 16px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Làm Bài Trắc Nghiệm</h3>
+            <div id="quizTakingDesc" style="font-size: 12px; color: #93c5fd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Chọn đáp án đúng cho từng câu hỏi</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div id="quizCountdownTimer" class="quiz-timer-pill" style="font-size: 15px; font-weight: 800; font-family: var(--font-mono); background: rgba(0,0,0,0.3); border: 1.5px solid rgba(255,255,255,0.3); padding: 5px 14px; border-radius: 20px; color: #fef08a;">
+            ⏱️ 45:00
+          </div>
+          <button class="modal-close" style="color: white; opacity: 0.8;" onclick="App.closeModal('quizTakingModal')">&times;</button>
+        </div>
+      </div>
+
+      <!-- Banner giám sát chống gian lận -->
+      <div class="anti-cheat-live-bar safe" style="display: flex; padding: 8px 16px; font-size: 12px; background: #ecfdf5; border-bottom: 1px solid #a7f3d0; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="pulse-indicator safe" style="width: 8px; height: 8px;"></span>
+          <span style="color: #065f46; font-weight: 600;">🛡️ GIÁM SÁT THI TRỰC TUYẾN: Nghiêm cấm rời tab, mở Google/AI hoặc ứng dụng khác</span>
+        </div>
+        <span id="quizTakingProgress" style="font-weight: 700; color: #047857;">Đã làm: 0/10 câu</span>
+      </div>
+
+      <!-- Đính kèm đề bài nếu có -->
+      <div id="quizTakingAttachmentBox" style="display: none; padding: 8px 20px; background: #eff6ff; border-bottom: 1px solid #bfdbfe; font-size: 12.5px; justify-content: space-between; align-items: center;">
+        <!-- Dynamic attachment info -->
+      </div>
+
+      <!-- Thân làm bài: Chia 2 cột (Cột câu hỏi chính + Cột phiếu trả lời nhanh bubble sheet) -->
+      <div class="quiz-taking-body" style="display: flex; flex: 1; overflow: hidden; background: #f8fafc;">
+        <!-- Danh sách câu hỏi cuộn dọc -->
+        <div id="quizTakingQuestionsList" class="quiz-questions-scroll" style="flex: 1; padding: 20px; overflow-y: auto; max-height: calc(96vh - 190px); display: flex; flex-direction: column; gap: 16px;">
+          <!-- Render danh sách câu hỏi -->
+        </div>
+
+        <!-- Cột bên phải: Phiếu trả lời bubble sheet và nút nộp bài -->
+        <div class="quiz-bubble-sidebar" style="width: 250px; background: #ffffff; border-left: 1px solid #e2e8f0; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <h4 style="margin: 0 0 10px 0; font-size: 13.5px; color: #334155; font-weight: 700;">📝 Phiếu Trả Lời</h4>
+            <div id="quizBubbleSheetGrid" class="bubble-sheet-grid">
+              <!-- Render ô số 1, 2, 3... -->
+            </div>
+          </div>
+          <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid #e2e8f0;">
+            <button class="btn btn-primary" style="width: 100%; padding: 10px 14px; font-weight: 700; background: linear-gradient(135deg, #16a34a, #15803d); border: none; box-shadow: 0 4px 14px rgba(22,163,74,0.3);" onclick="Quiz.submitQuiz()">
+              🚀 Nộp Bài Thi Ngay
+            </button>
+            <div style="font-size: 11px; color: #64748b; text-align: center; margin-top: 6px;">
+              Hệ thống sẽ chấm điểm 10/10 ngay lập tức!
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL: KẾT QUẢ & PHÂN TÍCH BÀI THI TRẮC NGHIỆM ================= -->
+  <div class="modal-overlay" id="quizResultModal" style="z-index: 3900;">
+    <div class="modal-box" style="max-width: 680px; width: 95%; max-height: 94vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 16px;">
+      
+      <!-- Header modal -->
+      <div class="modal-header" style="padding: 16px 20px; background: linear-gradient(135deg, #0f172a, #1e293b); color: white;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 24px;">📊</span>
+          <div>
+            <h3 id="quizResultTitle" style="margin: 0; font-size: 16px; color: white;">Kết Quả Trắc Nghiệm</h3>
+            <small id="quizResultStudent" style="color: #94a3b8; font-size: 12px;">Học sinh</small>
+          </div>
+        </div>
+        <button class="modal-close" style="color: white; opacity: 0.8;" onclick="App.closeModal('quizResultModal')">&times;</button>
+      </div>
+
+      <!-- Thống kê điểm số & chi tiết -->
+      <div class="modal-body" style="padding: 18px 20px; overflow-y: auto; max-height: calc(94vh - 120px); gap: 16px;">
+        
+        <!-- Score Card Banner -->
+        <div class="quiz-score-banner" style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border: 1.5px solid #bfdbfe; border-radius: 14px; padding: 16px; display: flex; align-items: center; justify-content: space-around; text-align: center;">
+          <div>
+            <div style="font-size: 12px; color: #1e40af; font-weight: 700; text-transform: uppercase;">Điểm Đạt Được</div>
+            <div id="quizResultScore" style="font-size: 38px; font-weight: 900; color: #1d4ed8; line-height: 1.1;">10</div>
+            <small style="color: #64748b; font-size: 11px;">Thang điểm 10</small>
+          </div>
+          <div style="border-left: 1px solid #bfdbfe; height: 48px;"></div>
+          <div>
+            <div style="font-size: 12px; color: #166534; font-weight: 700;">ĐÚNG</div>
+            <div id="quizResultCorrect" style="font-size: 22px; font-weight: 800; color: #16a34a;">8/10</div>
+            <small style="color: #16a34a; font-size: 11px;">câu hỏi</small>
+          </div>
+          <div style="border-left: 1px solid #bfdbfe; height: 48px;"></div>
+          <div>
+            <div style="font-size: 12px; color: #991b1b; font-weight: 700;">SAI</div>
+            <div id="quizResultWrong" style="font-size: 22px; font-weight: 800; color: #dc2626;">2</div>
+            <small style="color: #dc2626; font-size: 11px;">câu hỏi</small>
+          </div>
+          <div style="border-left: 1px solid #bfdbfe; height: 48px;"></div>
+          <div>
+            <div style="font-size: 12px; color: #475569; font-weight: 700;">THỜI GIAN</div>
+            <div id="quizResultTime" style="font-size: 18px; font-weight: 800; color: #334155;">12p 30s</div>
+            <small style="color: #64748b; font-size: 11px;">làm bài</small>
+          </div>
+        </div>
+
+        <!-- Trạng thái trung thực chống gian lận -->
+        <div id="quizResultCheatBadge" style="display: flex; justify-content: center;">
+          <!-- Dynamic badge -->
+        </div>
+
+        <!-- Danh sách chi tiết từng câu hỏi & đáp án -->
+        <div>
+          <h4 style="font-size: 14px; color: #1e293b; margin: 0 0 10px 0; font-weight: 700;">📝 Phân Tích Lời Giải Chi Tiết Từng Câu</h4>
+          <div id="quizResultBreakdownList" style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- Render danh sách câu trả lời đúng/sai -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer" style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; justify-content: flex-end;">
+        <button class="btn btn-primary" onclick="App.closeModal('quizResultModal')">Đóng & Tiếp Tục</button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ================= MOBILE BOTTOM NAVIGATION (CHỈ HIỂN THỊ TRÊN ĐIỆN THOẠI) ================= -->
   <nav id="mobileBottomNav" class="mobile-bottom-nav">
     <button class="mobile-nav-item active" id="mNavAssignments" onclick="App.handleMobileNavClick('assignments')">
@@ -1546,18 +1685,19 @@
   </nav>
 
   <!-- JavaScript Modules -->
-  <script src="js/cloud-sync.js?v=12.0"></script>
-  <script src="js/github-sync.js?v=12.0"></script>
-  <script src="js/store.js?v=12.0"></script>
-  <script src="js/auth.js?v=12.0"></script>
-  <script src="js/gateway.js?v=12.0"></script>
-  <script src="js/anticheat.js?v=12.0"></script>
-  <script src="js/grader.js?v=12.0"></script>
-  <script src="js/admin.js?v=12.0"></script>
-  <script src="js/tutor.js?v=12.0"></script>
-  <script src="js/student.js?v=12.0"></script>
-  <script src="js/parent.js?v=12.0"></script>
-  <script src="js/app.js?v=12.0"></script>
+  <script src="js/cloud-sync.js?v=12.2"></script>
+  <script src="js/github-sync.js?v=12.2"></script>
+  <script src="js/store.js?v=12.2"></script>
+  <script src="js/auth.js?v=12.2"></script>
+  <script src="js/gateway.js?v=12.2"></script>
+  <script src="js/anticheat.js?v=12.2"></script>
+  <script src="js/grader.js?v=12.2"></script>
+  <script src="js/admin.js?v=12.2"></script>
+  <script src="js/quiz.js?v=12.2"></script>
+  <script src="js/tutor.js?v=12.2"></script>
+  <script src="js/student.js?v=12.2"></script>
+  <script src="js/parent.js?v=12.2"></script>
+  <script src="js/app.js?v=12.2"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>

@@ -431,6 +431,17 @@ const Store = {
             }
           });
           if (asnUpdated) this.save();
+
+          // Tự động bổ sung bài kiểm tra trắc nghiệm mẫu (asn_004) nếu chưa có
+          const isDeletedAsn = (aid) => Array.isArray(this.data.deletedAssignmentIds) && this.data.deletedAssignmentIds.includes(aid);
+          if (!this.data.assignments.some(a => a.id === 'asn_004') && !isDeletedAsn('asn_004')) {
+            const defaultAsns = this.getDefaultData().assignments;
+            const sampleQuiz = defaultAsns.find(a => a.id === 'asn_004');
+            if (sampleQuiz) {
+              this.data.assignments.push(sampleQuiz);
+              this.save();
+            }
+          }
         }
 
         // Migration: Đảm bảo toàn bộ bài nộp có trường dữ liệu giám sát rời tab
@@ -818,6 +829,63 @@ const Store = {
           createdAt: '2026-10-05T08:00',
           totalPoints: 10,
           submissionType: 'photo'
+        },
+        {
+          id: 'asn_004',
+          tutorId: 'u_tutor',
+          title: '⚡ Đề Thi Trắc Nghiệm: 5 Câu Nguyên Hàm & Tích Phân',
+          description: 'Bài kiểm tra trắc nghiệm online 5 câu hỏi trọng tâm. Thời gian làm bài 15 phút, hệ thống tự động chấm điểm 10/10 ngay lập tức!',
+          attachmentName: '10_Cau_Trac_Nghiem_Nguyen_Ham.pdf',
+          attachmentSize: '560 KB',
+          attachmentType: 'pdf',
+          targetType: 'individual',
+          targetStudentIds: ['u_std_quang', 'u_std_maianh', 'u_std_1791342637918'],
+          deadline: '2026-10-12T21:00',
+          createdAt: '2026-10-08T08:00',
+          totalPoints: 10,
+          type: 'quiz',
+          submissionType: 'quiz',
+          quizData: {
+            mode: 'detailed',
+            durationMinutes: 15,
+            questions: [
+              {
+                id: 1,
+                text: 'Họ nguyên hàm của hàm số f(x) = 3x² + 2x là:',
+                options: ['x³ + x² + C', '3x³ + 2x² + C', '6x + 2 + C', 'x³ + 2x² + C'],
+                correct: 'A',
+                explanation: 'Áp dụng công thức: ∫(3x² + 2x)dx = 3(x³/3) + 2(x²/2) + C = x³ + x² + C.'
+              },
+              {
+                id: 2,
+                text: 'Tìm nguyên hàm của hàm số f(x) = cos(2x):',
+                options: ['sin(2x) + C', '(1/2)sin(2x) + C', '-2sin(2x) + C', '-(1/2)sin(2x) + C'],
+                correct: 'B',
+                explanation: '∫cos(ax)dx = (1/a)sin(ax) + C => ∫cos(2x)dx = (1/2)sin(2x) + C.'
+              },
+              {
+                id: 3,
+                text: 'Cho hàm số f(x) = e^(2x). Khẳng định nào sau đây đúng?',
+                options: ['∫f(x)dx = 2e^(2x) + C', '∫f(x)dx = e^(2x) + C', '∫f(x)dx = (1/2)e^(2x) + C', '∫f(x)dx = e^x + C'],
+                correct: 'C',
+                explanation: 'Công thức ∫e^(ax)dx = (1/a)e^(ax) + C => ∫e^(2x)dx = (1/2)e^(2x) + C.'
+              },
+              {
+                id: 4,
+                text: 'Họ nguyên hàm của hàm số f(x) = 1/x (với x ≠ 0) là:',
+                options: ['ln|x| + C', '-1/x² + C', 'ln(x) + C', '1/x² + C'],
+                correct: 'A',
+                explanation: 'Theo bảng nguyên hàm cơ bản: ∫(1/x)dx = ln|x| + C.'
+              },
+              {
+                id: 5,
+                text: 'Tích phân I = ∫[0 đến 1] (2x + 1) dx có giá trị bằng:',
+                options: ['1', '2', '3', '4'],
+                correct: 'B',
+                explanation: 'Ta có: ∫(2x + 1)dx = [x² + x] từ 0 đến 1 = (1 + 1) - 0 = 2.'
+              }
+            ]
+          }
         }
       ],
 

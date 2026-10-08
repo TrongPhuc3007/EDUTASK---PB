@@ -455,27 +455,28 @@ const TutorView = {
       const targetCount = asn.targetStudentIds.length || 1;
       const submissionRate = Math.round((subs.length / targetCount) * 100);
 
-      return `
-        <div class="assignment-card">
-          <div class="card-top">
-            <span class="target-student-pill ${isIndividual ? 'individual' : ''}">
-              ${isIndividual ? '🎯 Giao riêng:' : '👥 Cả lớp:'} ${targetNames}
-            </span>
-            <div style="display:flex; gap:6px; align-items:center;">
-              <span class="badge" style="${statusInfo.badgeStyle}; font-weight:700; font-size:11.5px;">
-                ${statusInfo.icon} ${statusInfo.label}
-              </span>
-              <span class="badge ${isOverdue ? 'badge-danger' : 'badge-primary'}" style="font-size:11px;">
-                ${isOverdue ? '⚠️ Quá hạn' : '📸 Tự luận'}
-              </span>
-              <button class="btn btn-xs btn-outline" style="padding:2px 7px; font-size:11px;" onclick="TutorView.openEditAssignmentModal('${asn.id}')" title="Chỉnh sửa bài tập này">
-                ✏️ Sửa
-              </button>
-              <button class="btn btn-xs btn-danger" style="padding:2px 6px; font-size:11px;" onclick="TutorView.deleteAssignment('${asn.id}')" title="Xóa bài tập này">
-                🗑️
-              </button>
-            </div>
-          </div>
+              const isQuiz = asn.type === 'quiz' || asn.submissionType === 'quiz';
+              return `
+                <div class="assignment-card">
+                  <div class="card-top">
+                    <span class="target-student-pill ${isIndividual ? 'individual' : ''}">
+                      ${isIndividual ? '🎯 Giao riêng:' : '👥 Cả lớp:'} ${targetNames}
+                    </span>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                      <span class="badge" style="${statusInfo.badgeStyle}; font-weight:700; font-size:11.5px;">
+                        ${statusInfo.icon} ${statusInfo.label}
+                      </span>
+                      <span class="badge ${isQuiz ? 'badge-warning' : (isOverdue ? 'badge-danger' : 'badge-primary')}" style="font-size:11px;">
+                        ${isQuiz ? '⚡ Trắc nghiệm' : (isOverdue ? '⚠️ Quá hạn' : '📸 Tự luận')}
+                      </span>
+                      <button class="btn btn-xs btn-outline" style="padding:2px 7px; font-size:11px;" onclick="TutorView.openEditAssignmentModal('${asn.id}')" title="Chỉnh sửa bài tập này">
+                        ✏️ Sửa
+                      </button>
+                      <button class="btn btn-xs btn-danger" style="padding:2px 6px; font-size:11px;" onclick="TutorView.deleteAssignment('${asn.id}')" title="Xóa bài tập này">
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
 
           <h4>${asn.title}</h4>
           <p style="font-size:13.5px; color:var(--text-muted);">${asn.description}</p>
@@ -595,9 +596,15 @@ const TutorView = {
               ${cheatBadge}
             </div>
             <div style="display:flex; gap:4px;">
-              <button class="btn btn-sm btn-secondary" onclick="App.openReviewModal('${sub.id}')" title="Xem lại bài đã chấm">
-                🔍 Xem
-              </button>
+              ${sub.isQuiz ? `
+                <button class="btn btn-sm btn-primary" onclick="Quiz.openResultModal('${sub.id}')" title="Xem kết quả trắc nghiệm và bảng phân tích">
+                  📊 Kết quả (${sub.score}đ)
+                </button>
+              ` : `
+                <button class="btn btn-sm btn-secondary" onclick="App.openReviewModal('${sub.id}')" title="Xem lại bài đã chấm">
+                  🔍 Xem
+                </button>
+              `}
               <button class="btn btn-sm btn-outline" onclick="TutorView.openZaloModal('${sub.studentId}', '${assignment.id}')" title="Gửi Zalo báo phụ huynh">
                 💬 Zalo
               </button>
@@ -661,8 +668,18 @@ const TutorView = {
     setVal('editAsnTopic', asn.topic || '');
     setVal('editAsnDifficulty', asn.difficulty || 'Thông hiểu - Vận dụng');
     setVal('editAsnDeadline', asn.deadline || '');
-    setVal('editAsnType', asn.type || 'photo');
+    const currentType = asn.type || asn.submissionType || 'photo';
+    setVal('editAsnType', currentType);
     setVal('editAsnTargetType', asn.targetType || 'individual');
+
+    if (window.Quiz) {
+      if (currentType === 'quiz') {
+        Quiz.loadExistingQuiz('edit', asn.quizData);
+        Quiz.toggleBuilder('edit', 'quiz');
+      } else {
+        Quiz.toggleBuilder('edit', 'photo');
+      }
+    }
 
     const currentUser = Auth.getCurrentUser();
     const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
@@ -718,16 +735,22 @@ const TutorView = {
       targetStudentIds = students.map(s => s.id);
     }
 
+    const asnType = document.getElementById('editAsnType')?.value || 'photo';
     const updatedData = {
       title: title,
       description: document.getElementById('editAsnDesc')?.value.trim() || '',
       topic: document.getElementById('editAsnTopic')?.value.trim() || '',
       difficulty: document.getElementById('editAsnDifficulty')?.value || 'Thông hiểu - Vận dụng',
       deadline: deadline || '',
-      type: document.getElementById('editAsnType')?.value || 'photo',
+      type: asnType,
+      submissionType: asnType,
       targetType: targetType,
       targetStudentIds: targetStudentIds
     };
+
+    if (asnType === 'quiz' && window.Quiz) {
+      updatedData.quizData = Quiz.getBuilderData('edit');
+    }
 
     Store.updateAssignment(id, updatedData);
     App.closeModal('editAssignmentModal');

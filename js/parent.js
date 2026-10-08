@@ -107,7 +107,11 @@ const ParentView = {
                   } else if (sub.status === 'graded') {
                     statusHtml = '<span class="badge badge-success">Đã chấm điểm</span>';
                     scoreHtml = `<strong style="color:var(--primary); font-size:15px;">${sub.score}/10</strong>`;
-                    actionHtml = `
+                    actionHtml = sub.isQuiz ? `
+                      <button class="btn btn-sm btn-primary" onclick="Quiz.openResultModal('${sub.id}')">
+                        📊 Xem chi tiết trắc nghiệm
+                      </button>
+                    ` : `
                       <button class="btn btn-sm btn-secondary" onclick="App.openReviewModal('${sub.id}')">
                         🔍 Xem bài chấm bút đỏ
                       </button>

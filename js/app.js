@@ -11,6 +11,7 @@ const App = {
     Auth.init();
     Grader.init();
     if (window.AntiCheat) AntiCheat.init();
+    if (window.Quiz) Quiz.init();
 
     // Hỗ trợ kiểm thử nhanh theo tham số URL hoặc Hash nếu có
     const urlParams = new URLSearchParams(window.location.search);
@@ -60,6 +61,21 @@ const App = {
         if (studentPicker) {
           studentPicker.style.display = e.target.value === 'individual' ? 'block' : 'none';
         }
+      });
+    }
+
+    // Lắng nghe thay đổi loại bài tập (Tự luận vs Trắc nghiệm)
+    const newAsnTypeSelect = document.getElementById('newAsnType');
+    if (newAsnTypeSelect) {
+      newAsnTypeSelect.addEventListener('change', (e) => {
+        if (window.Quiz) Quiz.toggleBuilder('create', e.target.value);
+      });
+    }
+
+    const editAsnTypeSelect = document.getElementById('editAsnType');
+    if (editAsnTypeSelect) {
+      editAsnTypeSelect.addEventListener('change', (e) => {
+        if (window.Quiz) Quiz.toggleBuilder('edit', e.target.value);
       });
     }
 
@@ -388,6 +404,20 @@ const App = {
     const deadlineString = now.toISOString().slice(0, 16);
     document.getElementById('newAsnDeadline').value = deadlineString;
 
+    // Reset form fields
+    const titleInput = document.getElementById('newAsnTitle');
+    if (titleInput) titleInput.value = '';
+    const descInput = document.getElementById('newAsnDesc');
+    if (descInput) descInput.value = '';
+    const topicInput = document.getElementById('newAsnTopic');
+    if (topicInput) topicInput.value = '';
+    const typeSelect = document.getElementById('newAsnType');
+    if (typeSelect) typeSelect.value = 'photo';
+    if (window.Quiz) {
+      Quiz.initDefaultQuestions('create', 10);
+      Quiz.toggleBuilder('create', 'photo');
+    }
+
     // Reset file đính kèm
     this.currentAssignmentAttachment = null;
     const fileInput = document.getElementById('newAsnFileInput');
@@ -502,6 +532,14 @@ const App = {
     if (modalId === 'submitHomeworkModal' && window.AntiCheat && AntiCheat.isMonitoring) {
       AntiCheat.stopMonitoring();
     }
+    if (modalId === 'quizTakingModal') {
+      if (window.Quiz && Quiz.activeQuiz && Quiz.activeQuiz.timerInterval) {
+        clearInterval(Quiz.activeQuiz.timerInterval);
+      }
+      if (window.AntiCheat && AntiCheat.isMonitoring) {
+        AntiCheat.stopMonitoring();
+      }
+    }
     const modal = document.getElementById(modalId);
     if (modal) modal.classList.remove('active');
   },
@@ -563,12 +601,18 @@ const App = {
       createdAt: new Date().toISOString(),
       totalPoints: 10,
       status: 'waiting_submission',
+      type: submissionType,
       submissionType
     };
 
+    if (submissionType === 'quiz' && window.Quiz) {
+      newAssignment.quizData = Quiz.getBuilderData('create');
+    }
+
     Store.addAssignment(newAssignment);
     const attachMsg = this.currentAssignmentAttachment ? ` (có đính kèm "${this.currentAssignmentAttachment.name}")` : '';
-    this.showToast(`Đã giao bài tập thành công cho ${targetStudentIds.length} học sinh${attachMsg}!`, 'success');
+    const quizMsg = submissionType === 'quiz' ? ` (Trắc nghiệm Online: ${newAssignment.quizData?.questions?.length || 10} câu)` : '';
+    this.showToast(`Đã giao bài tập thành công cho ${targetStudentIds.length} học sinh${attachMsg}${quizMsg}!`, 'success');
     this.closeModal('createAssignmentModal');
     this.renderCurrentView();
   },
@@ -787,6 +831,11 @@ const App = {
   openReviewModal(submissionId) {
     const sub = Store.data.submissions.find(s => s.id === submissionId);
     if (!sub) return;
+
+    if (sub.isQuiz && window.Quiz) {
+      Quiz.openResultModal(submissionId);
+      return;
+    }
 
     this.currentReviewSub = sub;
     this.currentReviewPageIndex = 0;

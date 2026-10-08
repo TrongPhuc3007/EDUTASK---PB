@@ -86,33 +86,54 @@ const StudentView = {
         hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
       });
 
+      const isQuiz = asn.type === 'quiz' || asn.submissionType === 'quiz';
       let statusBadge = '';
       let actionBtn = '';
       const pageCount = (sub && Array.isArray(sub.photos) && sub.photos.length > 1) 
         ? ` (${sub.photos.length} trang)` 
         : '';
 
-      if (!sub) {
-        statusBadge = `<span class="badge badge-warning">⏳ Chưa nộp</span>`;
-        actionBtn = `
-          <button class="btn btn-primary btn-sm" style="width:100%;" onclick="App.openSubmitModal('${asn.id}')">
-            📸 Chụp ảnh nộp bài ngay
-          </button>
-        `;
-      } else if (sub.status === 'submitted') {
-        statusBadge = `<span class="badge badge-primary">⏳ Chờ gia sư chấm${pageCount}</span>`;
-        actionBtn = `
-          <button class="btn btn-outline btn-sm" style="width:100%;" onclick="App.openReviewModal('${sub.id}')">
-            🔍 Xem bài đã nộp${pageCount}
-          </button>
-        `;
-      } else if (sub.status === 'graded') {
-        statusBadge = `<span class="badge badge-success">✅ Điểm: ${sub.score}/10${pageCount}</span>`;
-        actionBtn = `
-          <button class="btn btn-secondary btn-sm" style="width:100%;" onclick="App.openReviewModal('${sub.id}')">
-            🔍 Xem lời phê & bút đỏ (${sub.score}đ)${pageCount}
-          </button>
-        `;
+      if (isQuiz) {
+        if (!sub) {
+          statusBadge = `<span class="badge badge-warning">⚡ Trắc nghiệm</span>`;
+          const qCount = (asn.quizData && asn.quizData.questions) ? asn.quizData.questions.length : 10;
+          const durationStr = (asn.quizData && asn.quizData.durationMinutes) ? `${asn.quizData.durationMinutes} phút` : 'Tự do';
+          actionBtn = `
+            <button class="btn btn-primary btn-sm" style="width:100%; font-weight:700; background:linear-gradient(135deg, #2563eb, #1d4ed8); border:none; box-shadow:0 4px 12px rgba(37,99,235,0.28);" onclick="Quiz.startQuiz('${asn.id}')">
+              ⚡ Làm Bài Trắc Nghiệm Ngay (${qCount} câu • ${durationStr})
+            </button>
+          `;
+        } else {
+          statusBadge = `<span class="badge badge-success">✅ Điểm: ${sub.score}/10</span>`;
+          actionBtn = `
+            <button class="btn btn-primary btn-sm" style="width:100%; font-weight:700; background:linear-gradient(135deg, #059669, #10b981); border:none; box-shadow:0 4px 12px rgba(5,150,105,0.25);" onclick="Quiz.openResultModal('${sub.id}')">
+              📊 Xem Kết Quả & Lời Giải (${sub.score}đ)
+            </button>
+          `;
+        }
+      } else {
+        if (!sub) {
+          statusBadge = `<span class="badge badge-warning">⏳ Chưa nộp</span>`;
+          actionBtn = `
+            <button class="btn btn-primary btn-sm" style="width:100%;" onclick="App.openSubmitModal('${asn.id}')">
+              📸 Chụp ảnh nộp bài ngay
+            </button>
+          `;
+        } else if (sub.status === 'submitted') {
+          statusBadge = `<span class="badge badge-primary">⏳ Chờ gia sư chấm${pageCount}</span>`;
+          actionBtn = `
+            <button class="btn btn-outline btn-sm" style="width:100%;" onclick="App.openReviewModal('${sub.id}')">
+              🔍 Xem bài đã nộp${pageCount}
+            </button>
+          `;
+        } else if (sub.status === 'graded') {
+          statusBadge = `<span class="badge badge-success">✅ Điểm: ${sub.score}/10${pageCount}</span>`;
+          actionBtn = `
+            <button class="btn btn-secondary btn-sm" style="width:100%;" onclick="App.openReviewModal('${sub.id}')">
+              🔍 Xem lời phê & bút đỏ (${sub.score}đ)${pageCount}
+            </button>
+          `;
+        }
       }
 
       let honestyRow = '';
@@ -198,7 +219,12 @@ const StudentView = {
             <span class="target-student-pill ${isIndividual ? 'individual' : ''}">
               ${isIndividual ? '🎯 Giao riêng cho bạn' : '👥 Bài tập chung cả lớp'}
             </span>
-            ${statusBadge}
+            <div style="display:flex; gap:6px; align-items:center;">
+              <span class="badge ${isQuiz ? 'badge-warning' : 'badge-primary'}" style="font-size:11px;">
+                ${isQuiz ? '⚡ Trắc nghiệm' : '📸 Tự luận'}
+              </span>
+              ${statusBadge}
+            </div>
           </div>
 
           <h4>${asn.title}</h4>
