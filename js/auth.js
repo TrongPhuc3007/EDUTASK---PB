@@ -199,8 +199,8 @@ const Auth = {
     }
   },
 
-  // DÀNH RIÊNG CHO ADMIN: Giám sát toàn quyền giao diện Gia Sư hoặc Học Sinh
-  adminSupervise(targetUserId) {
+  // DÀNH RIÊNG CHO ADMIN: Giám sát toàn quyền giao diện Gia Sư hoặc Học Sinh (hỗ trợ chuyển thẳng tới lớp học)
+  adminSupervise(targetUserId, targetClassId) {
     if (!this.isRealAdmin()) {
       if (typeof App !== 'undefined' && App.showToast) {
         App.showToast('Chỉ Quản trị viên (Admin) mới có quyền giám sát các giao diện khác!', 'error');
@@ -211,13 +211,19 @@ const Auth = {
     const targetUser = Store.getUserById(targetUserId);
     if (!targetUser) return false;
 
+    if (targetClassId && typeof TutorView !== 'undefined') {
+      TutorView.selectedClassId = targetClassId;
+      TutorView.activeClassTab = 'assignments';
+    }
+
     this.activeUser = targetUser;
     localStorage.setItem(this.SUPERVISE_KEY, targetUserId);
 
     window.dispatchEvent(new CustomEvent('auth:user_changed', { detail: targetUser }));
 
     if (typeof App !== 'undefined' && App.showToast) {
-      App.showToast(`🛡️ Đang giám sát giao diện: ${targetUser.name} (${targetUser.roleName})`, 'info');
+      const classExtra = targetClassId ? ' • Bàn làm việc Lớp học' : '';
+      App.showToast(`🛡️ Đang giám sát giao diện: ${targetUser.name} (${targetUser.roleName})${classExtra}`, 'info');
     }
     return true;
   },

@@ -1510,7 +1510,35 @@ const Store = {
   },
 
   getStudentClass(studentId) {
+    if (!studentId) return null;
     return this.getClasses().find(c => Array.isArray(c.studentIds) && c.studentIds.includes(studentId)) || null;
+  },
+
+  getStudentClasses(studentId) {
+    if (!studentId) return [];
+    return this.getClasses().filter(c => Array.isArray(c.studentIds) && c.studentIds.includes(studentId));
+  },
+
+  setStudentClass(studentId, classId) {
+    if (!studentId) return false;
+    if (Array.isArray(this.data.classes)) {
+      this.data.classes.forEach(c => {
+        if (Array.isArray(c.studentIds)) {
+          c.studentIds = c.studentIds.filter(id => id !== studentId);
+        }
+      });
+    }
+    if (classId && classId !== 'none') {
+      const cls = this.getClassById(classId);
+      if (cls) {
+        if (!Array.isArray(cls.studentIds)) cls.studentIds = [];
+        if (!cls.studentIds.includes(studentId)) {
+          cls.studentIds.push(studentId);
+        }
+      }
+    }
+    this.save(false, true);
+    return true;
   },
 
   addClass(classData) {
