@@ -1,9 +1,28 @@
 /**
  * EDUTASK PRO — STUDENT MODULE (CẤP 3: HỌC SINH)
- * To-Do List bài tập của riêng em, chụp ảnh nộp bài và xem lời phê của gia sư
+ * To-Do List bài tập của riêng em, bộ lọc trạng thái, tìm kiếm nhanh,
+ * tính hạn nộp thông minh, chụp ảnh nộp bài và xem lời phê của gia sư.
  */
 
 const StudentView = {
+  currentFilter: 'all', // 'all', 'pending', 'waiting', 'graded'
+  searchQuery: '',
+
+  setFilter(filter) {
+    this.currentFilter = filter;
+    App.renderCurrentView();
+  },
+
+  setSearch(query) {
+    this.searchQuery = (query || '').toLowerCase().trim();
+    App.renderCurrentView();
+    const searchInput = document.getElementById('studentAssignmentSearchInput');
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+    }
+  },
+
   render(container) {
     const student = Auth.getCurrentUser();
     
@@ -25,10 +44,53 @@ const StudentView = {
       return;
     }
 
-    const myAssignments = Store.getAssignmentsForStudent(student.id);
+    const allAssignments = Store.getAssignmentsForStudent(student.id);
+
+    // Tính toán các nhóm trạng thái
+    const pendingList = [];
+    const waitingList = [];
+    const gradedList = [];
+
+    allAssignments.forEach(asn => {
+      const sub = Store.getSubmission(asn.id, student.id);
+      if (!sub) {
+        pendingList.push(asn);
+      } else if (sub.status === 'submitted') {
+        waitingList.push(asn);
+      } else if (sub.status === 'graded') {
+        gradedList.push(asn);
+      }
+    });
+
+    // Thống kê tiến độ & điểm số
+    const totalCount = allAssignments.length;
+    const completedCount = gradedList.length;
+    const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 100;
+    const avgScore = completedCount > 0 
+      ? (gradedList.reduce((acc, asn) => {
+          const sub = Store.getSubmission(asn.id, student.id);
+          return acc + (sub ? sub.score : 0);
+        }, 0) / completedCount).toFixed(1)
+      : 'Chưa có';
+
+    // Áp dụng bộ lọc
+    let filteredList = allAssignments;
+    if (this.currentFilter === 'pending') filteredList = pendingList;
+    else if (this.currentFilter === 'waiting') filteredList = waitingList;
+    else if (this.currentFilter === 'graded') filteredList = gradedList;
+
+    // Áp dụng tìm kiếm
+    if (this.searchQuery) {
+      filteredList = filteredList.filter(asn => {
+        const titleMatch = (asn.title || '').toLowerCase().includes(this.searchQuery);
+        const descMatch = (asn.description || '').toLowerCase().includes(this.searchQuery);
+        const topicMatch = (asn.topic || '').toLowerCase().includes(this.searchQuery);
+        return titleMatch || descMatch || topicMatch;
+      });
+    }
 
     container.innerHTML = `
-      <!-- Banner Học Sinh -->
+      <!-- Banner Học Sinh & Tiến Độ Mục Tiêu -->
       <div class="view-banner" style="background: linear-gradient(135deg, #065f46 0%, #059669 60%, #10b981 100%);">
         <div class="banner-info">
           <h2>Xin Chào, ${student.name}!</h2>
@@ -37,7 +99,11 @@ const StudentView = {
           </div>
           <p>Giáo viên phụ trách: <strong>${student.assignedTutorName || 'Gia Sư Phụ Trách'}</strong> | Lớp: <strong>${student.grade}</strong></p>
         </div>
-        <div class="banner-actions">
+        <div class="banner-actions" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+          <div style="background:rgba(255,255,255,0.2); backdrop-filter:blur(6px); padding:8px 16px; border-radius:12px; text-align:center;">
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">Tiến độ bài tập</div>
+            <div style="font-size:20px; font-weight:800;">${completedCount}/${totalCount} (${completionRate}%)</div>
+          </div>
           <div style="background:rgba(255,255,255,0.2); backdrop-filter:blur(6px); padding:8px 16px; border-radius:12px; text-align:center;">
             <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">Mục tiêu điểm số</div>
             <div style="font-size:20px; font-weight:800;">${student.currentScore} ➔ ${student.targetScore}</div>
@@ -47,13 +113,63 @@ const StudentView = {
 
       <!-- To-Do List Bài Tập Cá Nhân -->
       <div class="content-card">
-        <div class="card-header">
-          <h3>📚 Danh Sách Bài Tập Của Riêng Bạn (${myAssignments.length} bài)</h3>
-          <span class="badge badge-primary">Chỉ hiển thị bài tập giao riêng cho bạn</span>
+        <div class="card-header" style="flex-wrap:wrap; gap:12px; justify-content:space-between; align-items:center;">
+          <div>
+            <h3 style="margin:0;">📚 Bàn Học & Bài Tập Của Riêng Bạn (${allAssignments.length} bài)</h3>
+            <small style="color:var(--text-muted); font-size:12.5px;">Điểm trung bình các bài đã chấm: <strong style="color:#059669;">${avgScore}/10</strong></small>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <input 
+              type="text" 
+              id="studentAssignmentSearchInput" 
+              placeholder="🔍 Tìm bài tập theo tên..." 
+              value="${this.searchQuery}" 
+              oninput="StudentView.setSearch(this.value)" 
+              class="form-control" 
+              style="width:240px; font-size:13px; padding:6px 12px; border-radius:8px;"
+            >
+          </div>
         </div>
+
+        <!-- Thanh Tabs Lọc Trạng Thái -->
+        <div style="display:flex; gap:8px; padding:12px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; overflow-x:auto; flex-wrap:wrap;">
+          <button 
+            type="button" 
+            class="btn btn-sm ${this.currentFilter === 'all' ? 'btn-primary' : 'btn-outline'}" 
+            style="font-size:12.5px; border-radius:20px; font-weight:600;" 
+            onclick="StudentView.setFilter('all')"
+          >
+            📋 Tất Cả (${allAssignments.length})
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-sm ${this.currentFilter === 'pending' ? 'btn-primary' : 'btn-outline'}" 
+            style="font-size:12.5px; border-radius:20px; font-weight:600;" 
+            onclick="StudentView.setFilter('pending')"
+          >
+            ⚡ Cần Làm Ngay (${pendingList.length})
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-sm ${this.currentFilter === 'waiting' ? 'btn-primary' : 'btn-outline'}" 
+            style="font-size:12.5px; border-radius:20px; font-weight:600;" 
+            onclick="StudentView.setFilter('waiting')"
+          >
+            ⏳ Chờ Gia Sư Chấm (${waitingList.length})
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-sm ${this.currentFilter === 'graded' ? 'btn-primary' : 'btn-outline'}" 
+            style="font-size:12.5px; border-radius:20px; font-weight:600;" 
+            onclick="StudentView.setFilter('graded')"
+          >
+            ✅ Đã Có Điểm (${gradedList.length})
+          </button>
+        </div>
+
         <div class="card-body">
           <div class="assignment-grid">
-            ${this.renderStudentAssignmentCards(myAssignments, student.id)}
+            ${this.renderStudentAssignmentCards(filteredList, student.id)}
           </div>
         </div>
       </div>
@@ -62,22 +178,32 @@ const StudentView = {
 
   renderStudentAssignmentCards(assignments, studentId) {
     if (assignments.length === 0) {
+      const isFiltered = this.currentFilter !== 'all' || this.searchQuery;
       return `
         <div style="grid-column: 1 / -1; text-align:center; padding:48px 20px; background:#f8fafc; border:2px dashed #cbd5e1; border-radius:16px;">
           <div style="font-size:42px; margin-bottom:12px;">🎒</div>
-          <h4 style="color:#1e293b; margin-bottom:6px; font-weight:700;">Bàn học cá nhân đã sẵn sàng!</h4>
+          <h4 style="color:#1e293b; margin-bottom:6px; font-weight:700;">
+            ${isFiltered ? 'Không tìm thấy bài tập phù hợp với bộ lọc!' : 'Bàn học cá nhân đã sẵn sàng!'}
+          </h4>
           <p style="color:#64748b; font-size:14px; max-width:440px; margin:0 auto 16px auto;">
-            Hiện tại Gia sư chưa giao bài tập mới hoặc bạn đã hoàn thành tất cả bài tập. Hãy đợi thông báo từ gia sư phụ trách nhé!
+            ${isFiltered ? 'Hãy thử đổi từ khóa tìm kiếm hoặc chọn tab "Tất Cả" để xem toàn bộ bài tập.' : 'Hiện tại Gia sư chưa giao bài tập mới hoặc bạn đã hoàn thành tất cả bài tập. Hãy đợi thông báo từ gia sư phụ trách nhé!'}
           </p>
-          <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 14px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:20px; color:#065f46; font-size:12.5px; font-weight:600;">
-            <span>✨</span> <span>Tài khoản đã kích hoạt & đồng bộ tự động đa thiết bị</span>
-          </div>
+          ${isFiltered ? `
+            <button class="btn btn-outline btn-sm" onclick="StudentView.setFilter('all'); StudentView.setSearch('');">
+              🔄 Xem Tất Cả Bài Tập
+            </button>
+          ` : `
+            <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 14px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:20px; color:#065f46; font-size:12.5px; font-weight:600;">
+              <span>✨</span> <span>Tài khoản đã kích hoạt & đồng bộ tự động đa thiết bị</span>
+            </div>
+          `}
         </div>
       `;
     }
 
     return assignments.map(asn => {
       const sub = Store.getSubmission(asn.id, studentId);
+      const isIndividual = asn.targetType === 'individual';
       const safeDeadlineStr = (asn.deadline && asn.deadline.includes('T') && asn.deadline.length === 16) 
         ? asn.deadline + ':00' 
         : (asn.deadline || '');
@@ -85,6 +211,22 @@ const StudentView = {
       const deadline = isNaN(parsedDeadline.getTime()) ? 'Chưa ấn định' : parsedDeadline.toLocaleString('vi-VN', {
         hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
       });
+
+      // Tính toán mức độ khẩn cấp của hạn nộp
+      let urgencyBadge = '';
+      if (!sub && !isNaN(parsedDeadline.getTime())) {
+        const now = Date.now();
+        const diffMs = parsedDeadline.getTime() - now;
+        if (diffMs < 0) {
+          urgencyBadge = `<span class="badge badge-danger" style="font-size:10.5px;">🚨 Quá hạn</span>`;
+        } else if (diffMs < 24 * 3600 * 1000) {
+          const hoursLeft = Math.max(1, Math.round(diffMs / (3600 * 1000)));
+          urgencyBadge = `<span class="badge badge-danger" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-size:10.5px;">⏰ Còn ${hoursLeft}h</span>`;
+        } else {
+          const daysLeft = Math.round(diffMs / (24 * 3600 * 1000));
+          urgencyBadge = `<span class="badge badge-success" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size:10.5px;">📅 Còn ${daysLeft} ngày</span>`;
+        }
+      }
 
       const isQuiz = asn.type === 'quiz' || asn.submissionType === 'quiz';
       let statusBadge = '';
@@ -236,7 +378,10 @@ const StudentView = {
           <div class="assignment-meta">
             <div class="meta-row">
               <span>⏰ Hạn nộp:</span>
-              <strong style="color:var(--danger);">${deadline}</strong>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <strong style="color:var(--danger);">${deadline}</strong>
+                ${urgencyBadge}
+              </div>
             </div>
             ${honestyRow}
           </div>
@@ -253,4 +398,3 @@ const StudentView = {
 if (typeof window !== 'undefined') {
   window.StudentView = StudentView;
 }
-

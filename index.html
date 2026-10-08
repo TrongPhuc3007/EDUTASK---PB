@@ -474,6 +474,9 @@
         <button class="tool-btn" onclick="Grader.setTool('stamp', '⚠️')">⚠️ Nhầm dấu</button>
         <button class="tool-btn" onclick="Grader.setTool('stamp', '⭐')">⭐ Rất tốt</button>
         <button class="tool-btn" onclick="Grader.setTool('stamp', '💡')">💡 Chú ý</button>
+        <button class="tool-btn" onclick="Grader.setTool('stamp', '💯')">💯 10đ</button>
+        <button class="tool-btn" onclick="Grader.setTool('stamp', '👌')">👌 Chuẩn</button>
+        <button class="tool-btn" onclick="Grader.setTool('stamp', '❓')">❓ Thiếu bước</button>
       </div>
     </div>
 
@@ -517,17 +520,24 @@
             <button class="fast-score-btn" onclick="Grader.setFastScore(7.5)">7.5</button>
             <button class="fast-score-btn" onclick="Grader.setFastScore(7.0)">7.0</button>
             <button class="fast-score-btn" onclick="Grader.setFastScore(6.0)">6.0</button>
+            <button class="fast-score-btn" onclick="Grader.setFastScore(5.0)">5.0</button>
           </div>
         </div>
 
         <div>
-          <label style="font-size:13px; color:#cbd5e1; display:block; margin-bottom:6px;">Mẫu nhận xét nhanh:</label>
+          <label style="font-size:13px; color:#cbd5e1; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span>Mẫu nhận xét nhanh 1-chạm:</span>
+            <small style="color:#38bdf8; font-size:11px;">Phím tắt: Ctrl+Z hoàn tác</small>
+          </label>
           <div class="quick-comments">
-            <span class="quick-comment-tag" onclick="document.getElementById('graderFeedbackInput').value += 'Bài làm rất tốt, trình bày khoa học. '">Bài làm rất tốt</span>
-            <span class="quick-comment-tag" onclick="document.getElementById('graderFeedbackInput').value += 'Cần chú ý điều kiện của bài toán. '">Chú ý điều kiện</span>
-            <span class="quick-comment-tag" onclick="document.getElementById('graderFeedbackInput').value += 'Nhầm dấu ở bước rút gọn cuối cùng. '">Nhầm dấu</span>
-            <span class="quick-comment-tag" onclick="document.getElementById('graderFeedbackInput').value += 'Chữ viết sạch sẽ, dễ đọc. '">Trình bày sạch sẽ</span>
-            <span class="quick-comment-tag" onclick="document.getElementById('graderFeedbackInput').value += 'Tư duy nhanh, phát huy nhé em! '">Tư duy nhanh</span>
+            <span class="quick-comment-tag" onclick="Grader.insertFeedback('Bài làm rất tốt, trình bày khoa học, sạch đẹp.')">⭐ Bài làm rất tốt</span>
+            <span class="quick-comment-tag" onclick="Grader.insertFeedback('Tư duy sáng tạo, lời giải ngắn gọn xuất sắc.')">💡 Tư duy nhanh</span>
+            <span class="quick-comment-tag" onclick="Grader.insertFeedback('Cần chú ý điều kiện xác định của bài toán.')">⚠️ Chú ý điều kiện</span>
+            <span class="quick-comment-tag" onclick="Grader.insertFeedback('Cần chú ý đổi dấu khi chuyển vế.')">⚠️ Nhầm dấu chuyển vế</span>
+            <span class="quick-comment-tag" onclick="Grader.insertFeedback('Tính toán còn nhầm lẫn ở bước rút gọn cuối cùng.')">❌ Nhầm bước cuối</span>
+            <span class="quick-comment-tag" onclick="Grader.insertFeedback('Chữ viết sạch sẽ, vẽ hình rõ ràng.')">✍️ Trình bày sạch sẽ</span>
+            <span class="quick-comment-tag" onclick="Grader.insertFeedback('Đã có tiến bộ vượt bậc so với bài trước, phát huy nhé em!')">🚀 Tiến bộ rõ rệt</span>
+            <span class="quick-comment-tag" onclick="Grader.insertFeedback('Cần xem lại lý thuyết và công thức bài học này.')">📖 Ôn lại lý thuyết</span>
           </div>
         </div>
 
@@ -1582,17 +1592,22 @@
           <div id="quizCountdownTimer" class="quiz-timer-pill" style="font-size: 15px; font-weight: 800; font-family: var(--font-mono); background: rgba(0,0,0,0.3); border: 1.5px solid rgba(255,255,255,0.3); padding: 5px 14px; border-radius: 20px; color: #fef08a;">
             ⏱️ 45:00
           </div>
-          <button class="modal-close" style="color: white; opacity: 0.8;" onclick="App.closeModal('quizTakingModal')">&times;</button>
+          <button class="modal-close" style="color: white; opacity: 0.8;" onclick="Quiz.confirmExitQuiz()">&times;</button>
         </div>
       </div>
 
-      <!-- Banner giám sát chống gian lận -->
-      <div class="anti-cheat-live-bar safe" style="display: flex; padding: 8px 16px; font-size: 12px; background: #ecfdf5; border-bottom: 1px solid #a7f3d0; justify-content: space-between; align-items: center;">
+      <!-- Banner giám sát chống gian lận & tự động lưu nháp -->
+      <div class="anti-cheat-live-bar safe" style="display: flex; padding: 8px 16px; font-size: 12px; background: #ecfdf5; border-bottom: 1px solid #a7f3d0; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span class="pulse-indicator safe" style="width: 8px; height: 8px;"></span>
           <span style="color: #065f46; font-weight: 600;">🛡️ GIÁM SÁT THI TRỰC TUYẾN: Nghiêm cấm rời tab, mở Google/AI hoặc ứng dụng khác</span>
         </div>
-        <span id="quizTakingProgress" style="font-weight: 700; color: #047857;">Đã làm: 0/10 câu</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 11px; color: #047857; display: inline-flex; align-items: center; gap: 4px; background: #d1fae5; padding: 2px 8px; border-radius: 12px; border: 1px solid #a7f3d0; font-weight: 600;">
+            💾 Tự động lưu nháp
+          </span>
+          <span id="quizTakingProgress" style="font-weight: 700; color: #047857;">Đã làm: 0/10 câu</span>
+        </div>
       </div>
 
       <!-- Đính kèm đề bài nếu có -->
@@ -1691,8 +1706,11 @@
       </div>
 
       <!-- Footer -->
-      <div class="modal-footer" style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; justify-content: flex-end;">
-        <button class="btn btn-primary" onclick="App.closeModal('quizResultModal')">Đóng & Tiếp Tục</button>
+      <div class="modal-footer" style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.print()">
+          🖨️ In Phiếu Kết Quả & Lời Giải
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="App.closeModal('quizResultModal')">Đã Hiểu & Đóng</button>
       </div>
 
     </div>

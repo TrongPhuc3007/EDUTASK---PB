@@ -1028,6 +1028,84 @@ Lời giải: Oxi được tạo ra từ phản ứng quang phân ly nước tro
 
   // ================= HỌC SINH LÀM BÀI TRẮC NGHIỆM ONLINE =================
 
+  // Lưu nháp bài làm tự động vào localStorage
+  saveDraft() {
+    if (!this.activeQuiz || !this.activeQuiz.assignment) return;
+    const student = Auth.getCurrentUser();
+    if (!student) return;
+    const draftKey = `edutask_quiz_draft_${student.id}_${this.activeQuiz.assignment.id}`;
+    try {
+      const draftData = {
+        answers: this.activeQuiz.answers,
+        remainingSeconds: this.activeQuiz.remainingSeconds,
+        startTime: this.activeQuiz.startTime,
+        savedAt: Date.now()
+      };
+      localStorage.setItem(draftKey, JSON.stringify(draftData));
+    } catch (e) {
+      console.warn('[Quiz] Không thể lưu nháp vào localStorage:', e);
+    }
+  },
+
+  clearDraft(studentId, assignmentId) {
+    try {
+      localStorage.removeItem(`edutask_quiz_draft_${studentId}_${assignmentId}`);
+    } catch (e) {}
+  },
+
+  getDraft(studentId, assignmentId) {
+    try {
+      const raw = localStorage.getItem(`edutask_quiz_draft_${studentId}_${assignmentId}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  setupBeforeUnload() {
+    this.removeBeforeUnload();
+    this._beforeUnloadHandler = (e) => {
+      if (this.activeQuiz && this.activeQuiz.assignment) {
+        e.preventDefault();
+        e.returnValue = 'Bạn đang làm bài kiểm tra trắc nghiệm. Dữ liệu chưa nộp có thể bị mất!';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', this._beforeUnloadHandler);
+  },
+
+  removeBeforeUnload() {
+    if (this._beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+      this._beforeUnloadHandler = null;
+    }
+  },
+
+  // Xác nhận thoát phòng thi an toàn (tạm dừng)
+  confirmExitQuiz() {
+    if (!this.activeQuiz || !this.activeQuiz.assignment) {
+      const modal = document.getElementById('quizTakingModal');
+      if (modal) modal.classList.remove('active');
+      return;
+    }
+    const answered = Object.keys(this.activeQuiz.answers || {}).length;
+    const total = this.activeQuiz.quizData?.questions?.length || 0;
+    const msg = `⚠️ Bạn đang trong phòng thi trực tuyến!\n\nBạn đã trả lời ${answered}/${total} câu. Hệ thống đã tự động lưu nháp toàn bộ câu trả lời của bạn.\n\nBạn có muốn tạm dừng và rời phòng thi không?`;
+    if (confirm(msg)) {
+      this.saveDraft();
+      if (this.activeQuiz.timerInterval) {
+        clearInterval(this.activeQuiz.timerInterval);
+      }
+      this.removeBeforeUnload();
+      if (window.AntiCheat) {
+        AntiCheat.stopMonitoring();
+      }
+      const modal = document.getElementById('quizTakingModal');
+      if (modal) modal.classList.remove('active');
+      App.showToast('💾 Tiến trình làm bài của bạn đã được lưu nháp an toàn. Bạn có thể mở lại bất cứ lúc nào!', 'info');
+    }
+  },
+
   startQuiz(assignmentId) {
     const asn = Store.data.assignments.find(a => a.id === assignmentId);
     if (!asn) return;
@@ -1051,14 +1129,36 @@ Lời giải: Oxi được tạo ra từ phản ứng quang phân ly nước tro
       };
     }
 
+    // Kiểm tra xem có bài làm nháp dở dang trước đó không
+    const existingDraft = this.getDraft(student.id, assignmentId);
+    let initialAnswers = {};
+    let initialRemainingSeconds = (quizData.durationMinutes || 45) * 60;
+    let initialStartTime = Date.now();
+
+    if (existingDraft && existingDraft.answers && Object.keys(existingDraft.answers).length > 0) {
+      initialAnswers = existingDraft.answers;
+      if (existingDraft.remainingSeconds > 0 && (quizData.durationMinutes || 0) > 0) {
+        initialRemainingSeconds = existingDraft.remainingSeconds;
+      }
+      if (existingDraft.startTime) {
+        initialStartTime = existingDraft.startTime;
+      }
+      setTimeout(() => {
+        App.showToast(`🔄 Đã tự động khôi phục ${Object.keys(initialAnswers).length} câu trả lời đã làm trước đó của bạn!`, 'success');
+      }, 350);
+    }
+
     this.activeQuiz = {
       assignment: asn,
       quizData: quizData,
-      answers: {},
-      remainingSeconds: (quizData.durationMinutes || 45) * 60,
+      answers: initialAnswers,
+      remainingSeconds: initialRemainingSeconds,
       timerInterval: null,
-      startTime: Date.now()
+      startTime: initialStartTime
     };
+
+    // Thiết lập cảnh báo chống vô tình tắt tab
+    this.setupBeforeUnload();
 
     // Bật giám sát chống gian lận
     if (window.AntiCheat) {
@@ -1200,6 +1300,7 @@ Lời giải: Oxi được tạo ra từ phản ứng quang phân ly nước tro
   // Học sinh bấm chọn 1 đáp án
   selectAnswer(questionId, letter) {
     this.activeQuiz.answers[questionId] = letter;
+    this.saveDraft();
 
     // Cập nhật thẻ câu hỏi
     const card = document.getElementById(`quiz_q_card_${questionId}`);
@@ -1241,10 +1342,12 @@ Lời giải: Oxi được tạo ra từ phản ứng quang phân ly nước tro
       }
     }
 
-    // Dừng đồng hồ đếm ngược
+    // Dừng đồng hồ đếm ngược & dọn dẹp bảo vệ
     if (qz.timerInterval) {
       clearInterval(qz.timerInterval);
     }
+    this.removeBeforeUnload();
+    this.clearDraft(student.id, qz.assignment.id);
 
     // Thu thập kết quả giám sát chống gian lận
     let cheatData = { violationCount: 0, totalDuration: 0, logs: [] };

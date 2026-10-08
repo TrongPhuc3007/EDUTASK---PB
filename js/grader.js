@@ -23,6 +23,19 @@ const Grader = {
     if (!this.canvas) return;
     this.ctx = this.canvas.getContext('2d');
     this.bindEvents();
+
+    // Lắng nghe phím tắt nhanh (Ctrl+Z để hoàn tác khi bàn chấm bài mở)
+    window.addEventListener('keydown', (e) => {
+      const modal = document.getElementById('graderModal');
+      if (!modal || !modal.classList.contains('active')) return;
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        this.undo();
+        App.showToast('↩️ Đã hoàn tác nét vẽ (Ctrl+Z)', 'info');
+      }
+    });
   },
 
   open(submissionId) {
@@ -377,7 +390,7 @@ const Grader = {
 
   drawStamp(x, y, text) {
     this.ctx.save();
-    this.ctx.font = 'bold 26px sans-serif';
+    this.ctx.font = 'bold 24px sans-serif';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
 
@@ -396,8 +409,36 @@ const Grader = {
     } else if (text === '💡' || text === 'Chú ý') {
       this.ctx.fillStyle = '#0284c7';
       this.ctx.fillText('💡 CHÚ Ý', x, y);
+    } else if (text === '💯' || text === '10') {
+      this.ctx.fillStyle = '#ca8a04';
+      this.ctx.fillText('💯 10 ĐIỂM', x, y);
+    } else if (text === '👌' || text === 'Chuẩn') {
+      this.ctx.fillStyle = '#059669';
+      this.ctx.fillText('👌 CHUẨN XÁC', x, y);
+    } else if (text === '❓' || text === 'Thiếu') {
+      this.ctx.fillStyle = '#b45309';
+      this.ctx.fillText('❓ THIẾU BƯỚC', x, y);
+    } else if (text === '🅰️' || text === 'A+') {
+      this.ctx.fillStyle = '#2563eb';
+      this.ctx.fillText('🅰️ XUẤT SẮC (A+)', x, y);
     }
     this.ctx.restore();
+  },
+
+  // Chèn nhận xét mẫu vào ô lời phê một cách mượt mà
+  insertFeedback(text) {
+    const input = document.getElementById('graderFeedbackInput');
+    if (!input) return;
+    const current = input.value.trim();
+    if (!current) {
+      input.value = text;
+    } else if (current.endsWith('.') || current.endsWith('!') || current.endsWith('?')) {
+      input.value = current + ' ' + text;
+    } else {
+      input.value = current + '. ' + text;
+    }
+    input.focus();
+    App.showToast(`💬 Đã chèn nhận xét: "${text}"`, 'info');
   },
 
   saveState() {

@@ -144,15 +144,21 @@ const TutorView = {
           </div>
           <p>Quản lý học sinh phân công dạy kèm, theo dõi lộ trình từng em, chấm bài bút đỏ và gửi báo cáo Zalo.</p>
         </div>
-        <div class="banner-actions">
+        <div class="banner-actions" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <button class="btn btn-white" id="btnTutorCreateAssignment" onclick="App.openCreateAssignmentModal()">
-            ➕ Giao Bài Cá Nhân Hóa (1-1)
+            ➕ Giao Bài (1-1)
           </button>
           <button class="btn btn-secondary" onclick="GatewayView.openRegisterModal('student')" title="Tạo tài khoản học sinh mới vào lớp kèm 1-1">
-            🎒 ➕ Thêm Học Sinh Mới
+            🎒 ➕ Thêm Học Sinh
           </button>
-          <button class="btn btn-secondary" onclick="TutorView.openZaloModal()">
-            💬 Báo Cáo Zalo Phụ Huynh
+          <button class="btn btn-secondary" onclick="TutorView.openZaloModal()" title="Tạo báo cáo chi tiết gửi Zalo phụ huynh">
+            💬 Báo Cáo Zalo
+          </button>
+          <button class="btn btn-secondary" onclick="TutorView.exportGradesCSV()" title="Xuất toàn bộ bảng điểm lớp ra file Excel/CSV">
+            📊 Xuất Bảng Điểm CSV
+          </button>
+          <button class="btn btn-secondary" onclick="TutorView.remindAllStudents()" title="Gom danh sách học sinh chưa nộp bài và tạo tin nhắn Zalo">
+            🔔 Nhắc Nộp Bài
           </button>
         </div>
       </div>
@@ -758,8 +764,140 @@ const TutorView = {
     App.showToast(`✓ Đã cập nhật thành công bài tập "${title}"!`, 'success');
   },
 
+  // Xuất bảng điểm chi tiết toàn bộ học sinh và bài tập ra file Excel/CSV
+  exportGradesCSV() {
+    const currentUser = Auth.getCurrentUser();
+    const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
+    const currentTutorId = currentUser ? currentUser.id : 'u_tutor';
+    const students = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
+
+    const assignments = Store.getAllAssignments().filter(asn => {
+      if (isMasterAdmin) return true;
+      if (asn.tutorId && asn.tutorId === currentTutorId) return true;
+      return asn.targetStudentIds && asn.targetStudentIds.some(sid => students.some(std => std.id === sid));
+    });
+
+    if (assignments.length === 0) {
+      App.showToast('Chưa có bài tập nào để xuất bảng điểm!', 'warning');
+      return;
+    }
+
+    const rows = [
+      ['STT', 'Mã Bài Tập', 'Tên Bài Tập', 'Hình Thức', 'Học Sinh', 'Lớp', 'Tài Khoản', 'Hạn Nộp', 'Trạng Thái', 'Điểm Số', 'Lời Phê / Nhận Xét', 'Giám Sát (Rời tab)', 'Thời Gian Nộp']
+    ];
+
+    let stt = 1;
+    assignments.forEach(asn => {
+      const isQuiz = asn.type === 'quiz' || asn.submissionType === 'quiz';
+      const asnTypeStr = isQuiz ? 'Trắc nghiệm' : 'Tự luận (ảnh)';
+      const targetIds = asn.targetStudentIds || [];
+
+      targetIds.forEach(sid => {
+        const std = students.find(s => s.id === sid) || Store.getUserById(sid);
+        const sub = Store.getSubmission(asn.id, sid);
+
+        let statusStr = 'Chưa nộp';
+        let scoreStr = '—';
+        let feedbackStr = '';
+        let cheatStr = '0 lần';
+        let submitTimeStr = '';
+
+        if (sub) {
+          if (sub.status === 'submitted') {
+            statusStr = 'Chờ gia sư chấm';
+          } else if (sub.status === 'graded') {
+            statusStr = 'Đã chấm điểm';
+            scoreStr = sub.score !== null ? `${sub.score}` : '—';
+            feedbackStr = sub.feedback || '';
+          }
+          if (sub.cheatCount > 0) {
+            cheatStr = `${sub.cheatCount} lần (${sub.cheatDuration || 0}s)`;
+          } else {
+            cheatStr = '0 lần (Trung thực)';
+          }
+          if (sub.submittedAt) {
+            submitTimeStr = new Date(sub.submittedAt).toLocaleString('vi-VN');
+          }
+        }
+
+        rows.push([
+          stt++,
+          asn.id,
+          `"${(asn.title || '').replace(/"/g, '""')}"`,
+          asnTypeStr,
+          `"${(std ? std.name : sid).replace(/"/g, '""')}"`,
+          std ? (std.grade || '') : '',
+          std ? (std.username || '') : '',
+          asn.deadline ? new Date(asn.deadline).toLocaleString('vi-VN') : 'Không hạn',
+          statusStr,
+          scoreStr,
+          `"${feedbackStr.replace(/"/g, '""')}"`,
+          cheatStr,
+          submitTimeStr
+        ]);
+      });
+    });
+
+    const csvContent = '\uFEFF' + rows.map(r => r.join(',')).join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `BangDiem_EduTask_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    App.showToast('✓ Đã xuất bảng điểm toàn lớp ra file Excel/CSV thành công!', 'success');
+  },
+
+  // Nhắc nộp bài thông minh: Gom danh sách học sinh chưa nộp và tạo tin nhắn Zalo
   remindAllStudents() {
-    App.showToast("🔔 Đã gửi thông báo nhắc nhở nộp bài đến tất cả học sinh trong lớp!", "success");
+    const currentUser = Auth.getCurrentUser();
+    const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
+    const currentTutorId = currentUser ? currentUser.id : 'u_tutor';
+    const students = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
+
+    const assignments = Store.getAllAssignments().filter(asn => {
+      if (isMasterAdmin) return true;
+      if (asn.tutorId && asn.tutorId === currentTutorId) return true;
+      return asn.targetStudentIds && asn.targetStudentIds.some(sid => students.some(std => std.id === sid));
+    });
+
+    const pendingList = [];
+    assignments.forEach(asn => {
+      const targetIds = asn.targetStudentIds || [];
+      targetIds.forEach(sid => {
+        const sub = Store.getSubmission(asn.id, sid);
+        if (!sub) {
+          const std = students.find(s => s.id === sid);
+          if (std) {
+            pendingList.push({
+              studentName: std.name,
+              asnTitle: asn.title,
+              deadline: asn.deadline ? new Date(asn.deadline).toLocaleString('vi-VN') : 'Sớm'
+            });
+          }
+        }
+      });
+    });
+
+    if (pendingList.length === 0) {
+      App.showToast('🎉 Tuyệt vời! Tất cả học sinh đều đã nộp bài đầy đủ, không có bài tập nào bị trễ hạn.', 'success');
+      return;
+    }
+
+    let msg = `🔔 THÔNG BÁO NHẮC NỘP BÀI TẬP VỀ NHÀ (${new Date().toLocaleDateString('vi-VN')}):\n`;
+    msg += `Kính gửi Quý phụ huynh và các em học sinh,\nThầy/Cô xin gửi danh sách các bạn còn bài tập chưa nộp trên hệ thống EduTask:\n\n`;
+
+    pendingList.forEach((item, idx) => {
+      msg += `${idx + 1}. Em ${item.studentName}: "${item.asnTitle}" (Hạn nộp: ${item.deadline})\n`;
+    });
+
+    msg += `\nCác em hãy tranh thủ vào hệ thống làm và gửi bài để Thầy/Cô kịp chấm điểm và nhận xét nhé!\nTrân trọng.`;
+
+    this.fallbackCopy(msg);
+    alert(`📋 ĐÃ SAO CHÉP NỘI DUNG NHẮC NỘP BÀI!\n\nBạn có thể dán (Ctrl+V) ngay vào nhóm Zalo lớp học:\n\n${msg}`);
   },
 
   // ================= MODAL BÁO CÁO ZALO GỬI PHỤ HUYNH =================
