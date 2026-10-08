@@ -178,6 +178,14 @@ const Auth = {
 
   // Đăng xuất khỏi hệ thống -> trở về màn hình đăng nhập
   logout() {
+    if (window.Quiz && Quiz.activeQuiz && Quiz.activeQuiz.timerInterval) {
+      clearInterval(Quiz.activeQuiz.timerInterval);
+    }
+    if (window.AntiCheat && AntiCheat.isMonitoring) {
+      AntiCheat.stopMonitoring();
+    }
+    document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+
     this.sessionUser = null;
     this.activeUser = null;
     sessionStorage.removeItem(this.SESSION_KEY);

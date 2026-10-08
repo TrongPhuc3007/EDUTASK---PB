@@ -104,7 +104,7 @@ const TutorView = {
 
     // Phạm vi bài tập đang xét (đã tính theo học sinh được chọn nếu có)
     const scopedAssignments = this.selectedStudentId 
-      ? allAssignments.filter(asn => asn.targetStudentIds.includes(this.selectedStudentId))
+      ? allAssignments.filter(asn => asn.targetStudentIds && asn.targetStudentIds.includes(this.selectedStudentId))
       : allAssignments;
 
     // Phân loại toàn bộ scopedAssignments theo 3 trạng thái loại trừ nhau 100%:
@@ -439,7 +439,7 @@ const TutorView = {
       const isIndividual = asn.targetType === 'individual';
       const statusInfo = this.getAsnStatus(asn, this.selectedStudentId);
       
-      const targetNames = asn.targetStudentIds
+      const targetNames = (asn.targetStudentIds || [])
         .map(id => Store.getUserById(id)?.name || id)
         .join(', ');
 
@@ -452,7 +452,7 @@ const TutorView = {
         hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
       });
 
-      const targetCount = asn.targetStudentIds.length || 1;
+      const targetCount = (asn.targetStudentIds && asn.targetStudentIds.length) || 1;
       const submissionRate = Math.round((subs.length / targetCount) * 100);
 
               const isQuiz = asn.type === 'quiz' || asn.submissionType === 'quiz';
@@ -498,7 +498,7 @@ const TutorView = {
           <!-- Tiến độ nộp bài -->
           <div style="margin: 4px 0;">
             <div style="display:flex; justify-content:space-between; font-size:12.5px; color:var(--text-muted); margin-bottom:2px;">
-              <span>Tiến độ nộp: <strong>${subs.length}/${asn.targetStudentIds.length} em (${submissionRate}%)</strong></span>
+              <span>Tiến độ nộp: <strong>${subs.length}/${(asn.targetStudentIds && asn.targetStudentIds.length) || 0} em (${submissionRate}%)</strong></span>
               <span style="color:${isOverdue ? 'var(--danger)' : 'var(--text-muted)'}; font-weight:600;">
                 ⏰ ${deadlineFormatted}
               </span>
@@ -519,7 +519,7 @@ const TutorView = {
 
   renderSubmissionDetails(assignment, submissions) {
     if (submissions.length === 0) {
-      const targetNames = assignment.targetStudentIds.map(id => Store.getUserById(id)?.name || id).join(', ');
+      const targetNames = (assignment.targetStudentIds || []).map(id => Store.getUserById(id)?.name || id).join(', ');
       return `
         <div style="background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:8px; padding:12px; margin-bottom:4px; display:flex; align-items:center; gap:10px;">
           <div style="font-size:20px;">✍️</div>
@@ -544,7 +544,7 @@ const TutorView = {
       `;
     }
 
-    const pendingStudents = assignment.targetStudentIds
+    const pendingStudents = (assignment.targetStudentIds || [])
       .filter(sid => !submissions.some(s => s.studentId === sid))
       .map(sid => Store.getUserById(sid)?.name || sid);
 
