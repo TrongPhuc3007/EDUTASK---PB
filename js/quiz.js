@@ -19,6 +19,12 @@ const Quiz = {
     }
   },
 
+  // Bộ nhớ đệm lưu câu hỏi bóc tách từ File / Văn bản trước khi nạp vào đề
+  tempParsedQuestions: {
+    create: null,
+    edit: null
+  },
+
   // Trạng thái học sinh đang làm bài thi
   activeQuiz: {
     assignment: null,
@@ -174,13 +180,525 @@ const Quiz = {
     }
   },
 
+  // ================= BỘ ĐỌC & TÁCH ĐỀ THI TỰ ĐỘNG (SMART EXAM PARSER & AI) =================
+
+  // Giải nén và đọc nội dung văn bản từ tệp Word (.docx) thuần JavaScript (Client-side)
+  async extractTextFromDocx(arrayBuffer) {
+    const view = new DataView(arrayBuffer);
+    const bytes = new Uint8Array(arrayBuffer);
+    let offset = 0;
+    let docXmlBytes = null;
+    let isDeflated = false;
+
+    while (offset < bytes.length - 30) {
+      if (view.getUint32(offset, true) === 0x04034b50) {
+        const compMethod = view.getUint16(offset + 8, true);
+        const compSize = view.getUint32(offset + 18, true);
+        const fileNameLen = view.getUint16(offset + 26, true);
+        const extraLen = view.getUint16(offset + 28, true);
+
+        const fileNameBytes = bytes.subarray(offset + 30, offset + 30 + fileNameLen);
+        const fileName = new TextDecoder('utf-8').decode(fileNameBytes);
+        const dataOffset = offset + 30 + fileNameLen + extraLen;
+
+        if (fileName === 'word/document.xml') {
+          let actualCompSize = compSize;
+          if (actualCompSize === 0) {
+            let nextHeader = dataOffset;
+            while (nextHeader < bytes.length - 4) {
+              if (view.getUint32(nextHeader, true) === 0x04034b50 || view.getUint32(nextHeader, true) === 0x02014b50) {
+                break;
+              }
+              nextHeader++;
+            }
+            actualCompSize = nextHeader - dataOffset;
+          }
+          docXmlBytes = bytes.subarray(dataOffset, dataOffset + actualCompSize);
+          isDeflated = (compMethod === 8);
+          break;
+        }
+
+        offset = dataOffset + (compSize > 0 ? compSize : 0);
+        if (compSize === 0) offset++;
+      } else {
+        offset++;
+      }
+    }
+
+    if (!docXmlBytes) {
+      throw new Error('Không tìm thấy nội dung (word/document.xml) trong tệp docx.');
+    }
+
+    let xmlText = '';
+    if (isDeflated && typeof DecompressionStream !== 'undefined') {
+      const ds = new DecompressionStream('deflate-raw');
+      const writer = ds.writable.getWriter();
+      writer.write(docXmlBytes);
+      writer.close();
+      const response = new Response(ds.readable);
+      const decompressed = await response.arrayBuffer();
+      xmlText = new TextDecoder('utf-8').decode(decompressed);
+    } else {
+      xmlText = new TextDecoder('utf-8').decode(docXmlBytes);
+    }
+
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+    const pNodes = xmlDoc.getElementsByTagName('w:p');
+    const lines = [];
+    for (let i = 0; i < pNodes.length; i++) {
+      const tNodes = pNodes[i].getElementsByTagName('w:t');
+      let line = '';
+      for (let j = 0; j < tNodes.length; j++) {
+        line += tNodes[j].textContent || '';
+      }
+      if (line.trim()) lines.push(line.trim());
+    }
+    return lines.join('\n');
+  },
+
+  // Đọc tệp tải lên (.docx, .txt) từ giao diện
+  async readUploadedFile(event, context) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const textarea = document.getElementById(`${context}ImportTextarea`);
+    if (!textarea) return;
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    try {
+      if (ext === 'txt') {
+        const text = await file.text();
+        textarea.value = text;
+        App.showToast(`✓ Đã nạp nội dung tệp text: ${file.name}`, 'success');
+        this.handleParsePreview(context);
+      } else if (ext === 'docx') {
+        App.showToast('⏳ Đang giải nén và đọc nội dung Word (.docx)...', 'info');
+        const buffer = await file.arrayBuffer();
+        const text = await this.extractTextFromDocx(buffer);
+        if (text && text.trim()) {
+          textarea.value = text;
+          App.showToast(`✓ Đã đọc thành công tệp Word: ${file.name}`, 'success');
+          this.handleParsePreview(context);
+        } else {
+          throw new Error('Tệp docx không có nội dung chữ.');
+        }
+      } else {
+        App.showToast('Vui lòng chọn tệp Word (.docx) hoặc Text (.txt)!', 'warning');
+      }
+    } catch (err) {
+      console.warn('Lỗi đọc tệp:', err);
+      App.showToast('Không thể đọc trực tiếp tệp này. Bạn có thể mở Word/PDF, nhấn Ctrl+A rồi dán trực tiếp vào ô bên dưới!', 'warning');
+    }
+  },
+
+  // Thuật toán bóc tách văn bản đề thi thông minh (NLP / Regex Parser)
+  parseExamText(rawText) {
+    if (!rawText || !rawText.trim()) {
+      return { questions: [], totalFound: 0, correctCount: 0, explanationCount: 0 };
+    }
+
+    let text = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // Bước 1: Quét và bóc tách Bảng đáp án ở cuối văn bản (nếu có)
+    const bottomKeys = {};
+    const bottomKeySectionRegex = /(?:BẢNG\s+ĐÁP\s+ÁN|ĐÁP\s+ÁN\s+THAM\s+KHẢO|HƯỚNG\s+DẪN\s+CHẤM|ANSWER\s+KEY|KEY\s*:?)[\s\S]*$/i;
+    const bottomMatch = text.match(bottomKeySectionRegex);
+    if (bottomMatch) {
+      const keySection = bottomMatch[0];
+      const keyPairs = keySection.matchAll(/(\d+)[\s.:\/-]*([A-D])/gi);
+      for (const kp of keyPairs) {
+        bottomKeys[parseInt(kp[1], 10)] = kp[2].toUpperCase();
+      }
+      text = text.substring(0, bottomMatch.index).trim();
+    } else {
+      // Kiểm tra dòng cuối cùng có phải chuỗi đáp án 1A 2B 3C...
+      const lines = text.split('\n');
+      const lastLine = lines[lines.length - 1].trim();
+      const lastPairs = Array.from(lastLine.matchAll(/(\d+)[\s.:\/-]*([A-D])/gi));
+      if (lastPairs.length >= 3) {
+        for (const kp of lastPairs) {
+          bottomKeys[parseInt(kp[1], 10)] = kp[2].toUpperCase();
+        }
+        lines.pop();
+        text = lines.join('\n').trim();
+      }
+    }
+
+    // Bước 2: Nhận diện điểm bắt đầu của từng câu hỏi
+    const qRegex = /(?:^|\n)\s*(?:(?:Câu|Bài|Question|\bQ)\s*(\d+)[\s.:\/-]+|(\d+)[\.\)\/:]\s+)/gi;
+    const qMatches = [];
+    let m;
+    while ((m = qRegex.exec(text)) !== null) {
+      const num = parseInt(m[1] || m[2], 10);
+      qMatches.push({ index: m.index, num });
+    }
+
+    const chunks = [];
+    if (qMatches.length > 0) {
+      for (let i = 0; i < qMatches.length; i++) {
+        const start = qMatches[i].index;
+        const end = (i + 1 < qMatches.length) ? qMatches[i + 1].index : text.length;
+        chunks.push({ num: qMatches[i].num || (i + 1), chunk: text.substring(start, end).trim() });
+      }
+    } else {
+      // Nếu không có đánh số rõ ràng, chia theo đoạn cách nhau 2 dòng
+      const rawChunks = text.split(/\n\s*\n+/).filter(c => c.trim().length > 10);
+      rawChunks.forEach((c, idx) => chunks.push({ num: idx + 1, chunk: c.trim() }));
+    }
+
+    const questions = [];
+    let correctCount = 0;
+    let explanationCount = 0;
+
+    chunks.forEach((item, idx) => {
+      let block = item.chunk;
+
+      // Bước 3a: Bóc tách Lời giải / Hướng dẫn giải
+      let explanation = '';
+      const expMatch = block.match(/(?:Lời\s+giải|Hướng\s+dẫn\s+giải|Giải\s+chi\s+tiết|Explanation|Hướng\s+dẫn|HDG)[\s:=.-]+([\s\S]*)$/i);
+      if (expMatch) {
+        explanation = expMatch[1].trim();
+        block = block.substring(0, expMatch.index).trim();
+        explanationCount++;
+      }
+
+      // Bước 3b: Nhận diện dòng Đáp án đúng (Đáp án: A / Key: B)
+      let detectedCorrect = null;
+      const ansMatch = block.match(/(?:Đáp\s+án|ĐA|Key|Answer|Chọn|Đáp\s+án\s+đúng)[\s:=.-]+([A-D])\b/i);
+      if (ansMatch) {
+        detectedCorrect = ansMatch[1].toUpperCase();
+        block = block.substring(0, ansMatch.index) + block.substring(ansMatch.index + ansMatch[0].length);
+        block = block.trim();
+      }
+
+      // Bước 3c: Tìm vị trí 4 phương án A, B, C, D
+      const optRegex = /(?:^|\s|\n)([*#]?\s*[A-D])[\s.:\)]+\s*/gi;
+      const optMatches = [];
+      let om;
+      while ((om = optRegex.exec(block)) !== null) {
+        const rawLetter = om[1].toUpperCase();
+        const letter = rawLetter.replace(/[^A-D]/g, '');
+        const isStar = rawLetter.includes('*') || rawLetter.includes('#');
+        optMatches.push({ index: om.index, matchLen: om[0].length, letter, isStar });
+      }
+
+      let qText = block;
+      let options = ['Phương án A', 'Phương án B', 'Phương án C', 'Phương án D'];
+
+      if (optMatches.length >= 2) {
+        qText = block.substring(0, optMatches[0].index).trim();
+        const extractedOpts = {};
+        for (let i = 0; i < optMatches.length; i++) {
+          const cur = optMatches[i];
+          const next = optMatches[i + 1];
+          const contentStart = cur.index + cur.matchLen;
+          const contentEnd = next ? next.index : block.length;
+          const optVal = block.substring(contentStart, contentEnd).trim();
+          extractedOpts[cur.letter] = optVal;
+          if (cur.isStar && !detectedCorrect) {
+            detectedCorrect = cur.letter;
+          }
+        }
+        options = [
+          extractedOpts['A'] || 'Phương án A',
+          extractedOpts['B'] || 'Phương án B',
+          extractedOpts['C'] || 'Phương án C',
+          extractedOpts['D'] || 'Phương án D'
+        ];
+      }
+
+      // Kiểm tra đáp án từ bảng đáp án cuối
+      if (!detectedCorrect && bottomKeys[item.num]) {
+        detectedCorrect = bottomKeys[item.num];
+      }
+      if (!detectedCorrect && bottomKeys[idx + 1]) {
+        detectedCorrect = bottomKeys[idx + 1];
+      }
+
+      if (detectedCorrect) {
+        correctCount++;
+      } else {
+        detectedCorrect = 'A';
+      }
+
+      // Chuẩn hóa tên câu
+      if (!qText.match(/^(?:Câu|Bài|Question|\bQ)\s*\d+/i)) {
+        qText = `Câu ${idx + 1}: ${qText}`;
+      }
+
+      questions.push({
+        id: idx + 1,
+        text: qText,
+        options,
+        correct: detectedCorrect,
+        explanation
+      });
+    });
+
+    return { questions, totalFound: questions.length, correctCount, explanationCount };
+  },
+
+  // Bộ nạp dữ liệu mẫu thử nghiệm (Presets)
+  insertSamplePreset(context, type) {
+    const textarea = document.getElementById(`${context}ImportTextarea`);
+    if (!textarea) return;
+
+    if (type === 'math') {
+      textarea.value = `Câu 1. Nguyên hàm của hàm số f(x) = 3x^2 + 2x là:
+A. x^3 + x^2 + C
+B. 6x + 2 + C
+C. x^3 + 2x^2 + C
+D. 3x^3 + x^2 + C
+Đáp án: A
+Lời giải: Ta có ∫(3x^2 + 2x)dx = x^3 + x^2 + C.
+
+Câu 2. Cho hàm số y = f(x) có đạo hàm f'(x) = x(x - 2)^2. Số điểm cực trị của hàm số là:
+A. 0
+B. 1
+C. 2
+D. 3
+Đáp án: B
+Lời giải: Đạo hàm đổi dấu duy nhất 1 lần khi qua x = 0 (tại x = 2 là nghiệm bội chẵn không đổi dấu).
+
+Câu 3. Trong không gian Oxyz, mặt cầu (S): (x - 1)^2 + (y + 2)^2 + z^2 = 9 có bán kính R bằng:
+A. 3
+B. 9
+C. 81
+D. √3
+Đáp án: A
+Lời giải: Bán kính R = √9 = 3.
+
+Câu 4. Giá trị lớn nhất của hàm số f(x) = -x^4 + 2x^2 + 3 trên đoạn [0; 2] bằng:
+A. 3
+B. 4
+C. -5
+D. 1
+Đáp án: B
+Lời giải: f'(x) = -4x^3 + 4x = 0 <=> x = 0 hoặc x = 1. So sánh f(0)=3, f(1)=4, f(2)=-5 -> GTLN là 4.
+
+Câu 5. Nghiệm của phương trình log2(x - 1) = 3 là:
+A. x = 7
+B. x = 8
+C. x = 9
+D. x = 10
+Đáp án: C
+Lời giải: x - 1 = 2^3 = 8 => x = 9.`;
+    } else if (type === 'english') {
+      textarea.value = `Question 1. If I ______ you, I would study harder for the national exam.
+A. was
+B. were
+C. am
+D. be
+Key: B
+Explanation: Second conditional clause: If + S + were...
+
+Question 2. She has worked as a dedicated teacher ______ 2015.
+A. since
+B. for
+C. in
+D. at
+Key: A
+Explanation: "Since" is used with a specific point in time (2015).
+
+Question 3. The new school library ______ last month by the local committee.
+A. is opened
+B. opened
+C. was opened
+D. has been opened
+Key: C
+Explanation: Past simple passive: was/were + V3/ed.
+
+Question 4. Many young students are interested ______ exploring space science.
+A. on
+B. in
+C. with
+D. about
+Key: B
+Explanation: Collocation: interested in + V-ing.`;
+    } else if (type === 'bottom_key') {
+      textarea.value = `ĐỀ THI TỔNG HỢP KIẾN THỨC
+Câu 1: Kim loại nào sau đây dẫn điện và dẫn nhiệt tốt nhất?
+A. Vàng
+B. Đồng
+C. Bạc
+D. Nhôm
+
+Câu 2: Nước sôi ở bao nhiêu độ C ở điều kiện áp suất khí quyển tiêu chuẩn?
+A. 90°C
+B. 100°C
+C. 110°C
+D. 120°C
+
+Câu 3: Ai là tác giả của tác phẩm văn học hiện thực "Tắt đèn"?
+A. Nam Cao
+B. Ngô Tất Tố
+C. Vũ Trọng Phụng
+D. Kim Lân
+
+Câu 4: Quá trình quang hợp ở thực vật nhả ra khí gì vào khí quyển?
+A. Khí Cacbonic (CO2)
+B. Khí Oxi (O2)
+C. Khí Nitơ (N2)
+D. Khí Hidro (H2)
+
+BẢNG ĐÁP ÁN:
+1C 2B 3B 4B`;
+    } else if (type === 'theory') {
+      textarea.value = `Đoạn lý thuyết sinh học & vật lý:
+Quang hợp là quá trình biến đổi năng lượng ánh sáng mặt trời thành năng lượng hóa học dưới dạng các hợp chất hữu cơ.
+Lục lạp là bào quan thực hiện chức năng quang hợp chính ở tế bào thực vật, chứa sắc tố diệp lục hấp thụ ánh sáng.
+Trong pha sáng của quang hợp, nước bị quang phân ly tạo ra khí oxi giải phóng ra môi trường.
+
+--- Hệ thống đã tự động tạo câu hỏi trắc nghiệm từ nội dung trên ---
+Câu 1: Quang hợp là quá trình biến đổi dạng năng lượng nào?
+A. Năng lượng ánh sáng mặt trời thành năng lượng hóa học
+B. Năng lượng nhiệt thành cơ năng
+C. Năng lượng hạt nhân thành hóa năng
+D. Điện năng thành thế năng
+Đáp án: A
+Lời giải: Quang hợp biến đổi quang năng thành hóa năng trong hợp chất hữu cơ.
+
+Câu 2: Bào quan nào thực hiện chức năng quang hợp chính ở tế bào thực vật?
+A. Ty thể
+B. Lục lạp
+C. Không bào
+D. Bộ máy Golgi
+Đáp án: B
+Lời giải: Lục lạp chứa chất diệp lục đảm nhận chức năng quang hợp.
+
+Câu 3: Khí oxi được giải phóng trong quang hợp có nguồn gốc từ đâu?
+A. Khí cacbonic (CO2)
+B. Sự quang phân ly nước (H2O)
+C. Sự phân giải glucozơ
+D. Hợp chất diệp lục
+Đáp án: B
+Lời giải: Oxi được tạo ra từ phản ứng quang phân ly nước trong pha sáng.`;
+    }
+
+    this.handleParsePreview(context);
+    App.showToast(`✓ Đã nạp mẫu đề thi "${type}" thành công!`, 'success');
+  },
+
+  // Xử lý xem trước kết quả bóc tách trực tiếp (Live Preview)
+  handleParsePreview(context) {
+    const textarea = document.getElementById(`${context}ImportTextarea`);
+    const previewBox = document.getElementById(`${context}ImportPreviewBox`);
+    if (!textarea || !previewBox) return;
+
+    const raw = textarea.value;
+    if (!raw.trim()) {
+      previewBox.innerHTML = `
+        <div style="text-align:center; padding:20px; color:#94a3b8; font-size:13px;">
+          📝 Chưa có nội dung. Hãy dán đề bài hoặc tải tệp lên ở trên rồi bấm <strong>"⚡ Phân Tích & Bóc Tách"</strong>.
+        </div>
+      `;
+      previewBox.classList.remove('has-data');
+      this.tempParsedQuestions[context] = null;
+      return;
+    }
+
+    const res = this.parseExamText(raw);
+    this.tempParsedQuestions[context] = res.questions;
+
+    if (res.totalFound === 0) {
+      previewBox.innerHTML = `
+        <div style="text-align:center; padding:16px; color:#b91c1c; background:#fef2f2; border-radius:8px; font-size:13px;">
+          ⚠️ Chưa nhận diện được câu hỏi trắc nghiệm nào. Vui lòng kiểm tra lại cấu trúc đề (VD: Câu 1, A., B., C., D.).
+        </div>
+      `;
+      previewBox.classList.remove('has-data');
+      return;
+    }
+
+    previewBox.classList.add('has-data');
+    previewBox.innerHTML = `
+      <div class="preview-stats-bar">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <span class="preview-stat-pill" style="background:#dcfce7; color:#166534;">
+            🟢 <strong>${res.totalFound}</strong> câu hỏi
+          </span>
+          <span class="preview-stat-pill" style="background:#e0e7ff; color:#3730a3;">
+            🎯 <strong>${res.correctCount}/${res.totalFound}</strong> có đáp án
+          </span>
+          ${res.explanationCount > 0 ? `
+            <span class="preview-stat-pill" style="background:#fef3c7; color:#92400e;">
+              💡 <strong>${res.explanationCount}</strong> câu có lời giải
+            </span>
+          ` : ''}
+        </div>
+        <button type="button" class="btn btn-sm btn-primary" onclick="Quiz.applyParsedQuestions('${context}')" style="box-shadow:0 2px 8px rgba(37,99,235,0.3); font-weight:700;">
+          ✅ Nạp ${res.totalFound} Câu Vào Đề Thi
+        </button>
+      </div>
+
+      <div style="max-height:360px; overflow-y:auto; padding-right:4px;">
+        ${res.questions.map((q, idx) => `
+          <div class="preview-q-card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
+              <strong style="font-size:13px; color:#1e293b;">${q.text}</strong>
+              <span class="badge badge-success" style="font-size:11px; white-space:nowrap;">
+                Đáp án: <strong>${q.correct}</strong>
+              </span>
+            </div>
+            <div class="preview-options-grid">
+              ${['A', 'B', 'C', 'D'].map((letter, optIdx) => `
+                <div class="preview-opt-item ${q.correct === letter ? 'is-correct' : ''}">
+                  <span style="font-weight:800; min-width:18px;">${letter}.</span>
+                  <span>${q.options[optIdx] || ''}</span>
+                  ${q.correct === letter ? '<span style="margin-left:auto; color:#16a34a; font-weight:900;">✓</span>' : ''}
+                </div>
+              `).join('')}
+            </div>
+            ${q.explanation ? `
+              <div class="preview-explanation">
+                <strong>💡 Lời giải:</strong> ${q.explanation}
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="margin-top:12px; text-align:center;">
+        <button type="button" class="btn btn-primary" onclick="Quiz.applyParsedQuestions('${context}')" style="padding:8px 24px; font-size:13.5px; font-weight:700;">
+          🚀 ÁP DỤNG TOÀN BỘ ${res.totalFound} CÂU HỎI VÀO BÀI TẬP
+        </button>
+      </div>
+    `;
+  },
+
+  // Áp dụng danh sách câu hỏi bóc tách vào form đề thi chính
+  applyParsedQuestions(context) {
+    const list = this.tempParsedQuestions[context];
+    if (!list || list.length === 0) {
+      App.showToast('Chưa có câu hỏi nào được bóc tách để nạp!', 'warning');
+      return;
+    }
+
+    this.builderState[context].questions = JSON.parse(JSON.stringify(list));
+    this.builderState[context].mode = 'detailed';
+    this.renderBuilder(context);
+    App.showToast(`✓ Đã nạp thành công ${list.length} câu hỏi vào đề thi! Gia sư có thể xem và chỉnh sửa trước khi giao bài.`, 'success');
+  },
+
+  // Xóa trắng ô nhập liệu import
+  clearImport(context) {
+    const textarea = document.getElementById(`${context}ImportTextarea`);
+    if (textarea) textarea.value = '';
+    this.tempParsedQuestions[context] = null;
+    this.handleParsePreview(context);
+  },
+
   // Render giao diện soạn thảo trắc nghiệm
   renderBuilder(context = 'create') {
     const container = document.getElementById(context === 'create' ? 'createQuizBuilderContainer' : 'editQuizBuilderContainer');
     if (!container) return;
 
     const state = this.builderState[context];
-    const isQuick = state.mode === 'quick';
+    const mode = state.mode || 'quick';
+    const isQuick = mode === 'quick';
+    const isDetailed = mode === 'detailed';
+    const isImport = mode === 'import';
     const totalQ = state.questions.length;
 
     container.innerHTML = `
@@ -196,10 +714,13 @@ const Quiz = {
           <!-- Chuyển đổi chế độ -->
           <div class="quiz-mode-switch">
             <button type="button" class="btn btn-xs ${isQuick ? 'btn-primary' : 'btn-outline'}" onclick="Quiz.setBuilderMode('${context}', 'quick')" title="Nhập bảng đáp án nhanh, kết hợp đề PDF">
-              ⚡ Bảng Đáp Án Nhanh (Azota)
+              ⚡ Bảng Đáp Án (Azota)
             </button>
-            <button type="button" class="btn btn-xs ${!isQuick ? 'btn-primary' : 'btn-outline'}" onclick="Quiz.setBuilderMode('${context}', 'detailed')" title="Soạn chi tiết nội dung từng câu hỏi">
-              📝 Soạn Đề Chi Tiết
+            <button type="button" class="btn btn-xs ${isDetailed ? 'btn-primary' : 'btn-outline'}" onclick="Quiz.setBuilderMode('${context}', 'detailed')" title="Soạn chi tiết nội dung từng câu hỏi">
+              📝 Soạn Chi Tiết
+            </button>
+            <button type="button" class="btn btn-xs ${isImport ? 'btn-primary' : 'btn-outline'}" onclick="Quiz.setBuilderMode('${context}', 'import')" title="Tự động đọc dữ liệu đề thi từ File Word / Text / Dán nội dung" style="${isImport ? 'background:linear-gradient(135deg, #4f46e5, #0ea5e9); border:none; color:#fff;' : 'border-color:#818cf8; color:#4f46e5;'}">
+              🤖 Tách Đề Tự Động (AI / File)
             </button>
           </div>
         </div>
@@ -218,21 +739,83 @@ const Quiz = {
             </select>
           </div>
 
-          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <span style="font-size:12px; color:#64748b; font-weight:600;">Số câu:</span>
-            ${[5, 10, 15, 20, 40].map(cnt => `
-              <button type="button" class="btn btn-xs ${totalQ === cnt ? 'btn-secondary' : 'btn-white'}" onclick="Quiz.setQuestionCount('${context}', ${cnt})" style="padding:2px 8px; font-size:11.5px;">
-                ${cnt} câu
-              </button>
-            `).join('')}
-          </div>
+          ${!isImport ? `
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:12px; color:#64748b; font-weight:600;">Số câu:</span>
+              ${[5, 10, 15, 20, 40].map(cnt => `
+                <button type="button" class="btn btn-xs ${totalQ === cnt ? 'btn-secondary' : 'btn-white'}" onclick="Quiz.setQuestionCount('${context}', ${cnt})" style="padding:2px 8px; font-size:11.5px;">
+                  ${cnt} câu
+                </button>
+              `).join('')}
+            </div>
+          ` : `
+            <div style="font-size:12px; color:#4f46e5; font-weight:700;">
+              ✨ Tự động nhận diện số lượng câu hỏi từ đề thi
+            </div>
+          `}
         </div>
 
-        ${isQuick ? `
+        ${isImport ? `
+          <!-- Chế độ 3: Bóc Tách Tự Động Từ Văn Bản / File (Smart Import) -->
+          <div class="quiz-import-box">
+            <div class="import-guide-banner">
+              <strong>🤖 Hướng Dẫn Bóc Tách Đề Thi Tự Động:</strong><br>
+              Dán toàn bộ đề thi (Copy từ Word/PDF) hoặc tải tệp <code>.docx</code> / <code>.txt</code>. Hệ thống tự động nhận diện:
+              <strong>Câu 1, 2, 3...</strong> • <strong>4 phương án A, B, C, D</strong> (kể cả chung dòng) • <strong>Đáp án đúng</strong> (dòng Đáp án: A, đánh dấu *A., hoặc bảng đáp án ở cuối) • <strong>Lời giải chi tiết</strong>.
+            </div>
+
+            <!-- Thanh chọn mẫu đề & Tải tệp -->
+            <div class="import-presets-bar">
+              <span style="font-size:12px; font-weight:700; color:#334155;">Thử nhanh:</span>
+              <button type="button" class="import-preset-chip" onclick="Quiz.insertSamplePreset('${context}', 'math')">
+                📐 Mẫu Toán THPT (5 câu)
+              </button>
+              <button type="button" class="import-preset-chip" onclick="Quiz.insertSamplePreset('${context}', 'english')">
+                🇬🇧 Mẫu Tiếng Anh (4 câu)
+              </button>
+              <button type="button" class="import-preset-chip" onclick="Quiz.insertSamplePreset('${context}', 'bottom_key')">
+                📑 Mẫu Bảng Đáp Án Cuối
+              </button>
+              <button type="button" class="import-preset-chip" onclick="Quiz.insertSamplePreset('${context}', 'theory')" style="background:#fef3c7; border-color:#fcd34d; color:#92400e;">
+                💡 Sinh từ Lý Thuyết (AI Gen)
+              </button>
+
+              <div style="margin-left:auto;">
+                <input type="file" id="${context}ImportFileInput" accept=".docx,.txt" style="display:none;" onchange="Quiz.readUploadedFile(event, '${context}')">
+                <button type="button" class="btn btn-xs btn-outline" onclick="document.getElementById('${context}ImportFileInput').click()" style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px;">
+                  📁 Tải Tệp Đề (.docx, .txt)
+                </button>
+              </div>
+            </div>
+
+            <textarea id="${context}ImportTextarea" class="import-textarea" placeholder="Dán nội dung toàn bộ đề thi vào đây... Ví dụ:&#10;Câu 1: Cho hàm số y = f(x)...&#10;A. 1&#10;B. 2&#10;C. 3&#10;D. 4&#10;Đáp án: B&#10;Lời giải: Ta có..." oninput="Quiz.handleParsePreview('${context}')"></textarea>
+
+            <div class="import-actions-bar">
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-sm btn-primary" onclick="Quiz.handleParsePreview('${context}')" style="display:inline-flex; align-items:center; gap:6px;">
+                  ⚡ Phân Tích & Bóc Tách Ngay
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" onclick="Quiz.clearImport('${context}')">
+                  🧹 Xóa Trắng
+                </button>
+              </div>
+              <span style="font-size:11.5px; color:#64748b;">
+                Xem trước kết quả ngay bên dưới trước khi áp dụng
+              </span>
+            </div>
+
+            <!-- Vùng xem trước kết quả trực tiếp -->
+            <div id="${context}ImportPreviewBox" class="import-preview-box">
+              <div style="text-align:center; padding:16px; color:#94a3b8; font-size:13px;">
+                📝 Dán đề bài hoặc bấm chọn mẫu thử ở trên để xem trước câu hỏi tại đây.
+              </div>
+            </div>
+          </div>
+        ` : isQuick ? `
           <!-- Chế độ 1: Bảng đáp án nhanh kiểu Azota -->
           <div class="quiz-quick-box">
             <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:12px; color:#1e40af; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-              <span>💡 <strong>Mẹo chuyên nghiệp:</strong> Bạn có thể đính kèm file đề bài (PDF/Word/Ảnh) ở mục trên, sau đó chỉ cần chọn bảng đáp án đúng dưới đây!</span>
+              <span>💡 <strong>Mẹo:</strong> Đính kèm file đề bài (PDF/Word) ở trên, rồi chọn bảng đáp án dưới đây hoặc <a href="javascript:void(0)" onclick="Quiz.setBuilderMode('${context}', 'import')" style="color:#2563eb; font-weight:700; text-decoration:underline;">Tự Động Tách Câu Hỏi từ File</a>.</span>
               <div style="display:flex; gap:6px; align-items:center;">
                 <input type="text" id="${context}QuickAnsInput" placeholder="Dán chuỗi: 1A 2B 3C 4D..." style="font-size:11.5px; padding:3px 8px; border:1px solid #93c5fd; border-radius:4px; width:170px;">
                 <button type="button" class="btn btn-xs btn-primary" onclick="Quiz.parseQuickAnswerString('${context}', document.getElementById('${context}QuickAnsInput').value)">
@@ -259,6 +842,13 @@ const Quiz = {
           </div>
         ` : `
           <!-- Chế độ 2: Soạn câu hỏi chi tiết -->
+          <div style="display:flex; justify-content:space-between; align-items:center; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:8px 12px; margin-bottom:10px;">
+            <span style="font-size:12px; color:#166534;">💡 Có sẵn file Word/PDF hoặc muốn dán toàn bộ đề thi?</span>
+            <button type="button" class="btn btn-xs btn-primary" onclick="Quiz.setBuilderMode('${context}', 'import')" style="font-size:11.5px; padding:3px 10px;">
+              🤖 Bóc Tách Tự Động Từ File / Đề Thi
+            </button>
+          </div>
+
           <div class="quiz-detailed-list">
             ${state.questions.map((q, idx) => `
               <div class="detailed-q-card">
@@ -290,14 +880,16 @@ const Quiz = {
           </div>
         `}
 
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid #e2e8f0;">
-          <span style="font-size:12.5px; color:#475569; font-weight:600;">
-            📊 Tổng cộng: <strong>${totalQ}</strong> câu hỏi trắc nghiệm
-          </span>
-          <button type="button" class="btn btn-sm btn-outline" onclick="Quiz.addQuestion('${context}')">
-            ➕ Thêm 1 câu hỏi
-          </button>
-        </div>
+        ${!isImport ? `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid #e2e8f0;">
+            <span style="font-size:12.5px; color:#475569; font-weight:600;">
+              📊 Tổng cộng: <strong>${totalQ}</strong> câu hỏi trắc nghiệm
+            </span>
+            <button type="button" class="btn btn-sm btn-outline" onclick="Quiz.addQuestion('${context}')">
+              ➕ Thêm 1 câu hỏi
+            </button>
+          </div>
+        ` : ''}
       </div>
     `;
   },
@@ -307,7 +899,7 @@ const Quiz = {
     const durationInput = document.getElementById(`${context}QuizDuration`);
     const duration = durationInput ? parseInt(durationInput.value) : this.builderState[context].durationMinutes;
     return {
-      mode: this.builderState[context].mode,
+      mode: this.builderState[context].mode === 'import' ? 'detailed' : this.builderState[context].mode,
       durationMinutes: isNaN(duration) ? 45 : duration,
       questions: JSON.parse(JSON.stringify(this.builderState[context].questions))
     };

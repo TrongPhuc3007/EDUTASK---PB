@@ -183,9 +183,14 @@
                   <small id="asnFileSize" style="color:var(--text-muted); font-size:11px;">1.4 MB</small>
                 </div>
               </div>
-              <button type="button" class="btn btn-xs btn-danger" onclick="event.stopPropagation(); App.removeAssignmentAttachment()" title="Xóa tệp đính kèm" style="padding:4px 10px; border-radius:6px; font-size:12px;">
-                ✕ Hủy tệp
-              </button>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <button type="button" id="btnExtractQuizFromAttachment" class="btn btn-xs btn-primary" onclick="event.stopPropagation(); App.extractQuizFromCurrentAttachment()" title="Tự động đọc nội dung file này và chuyển thành câu hỏi trắc nghiệm" style="display:none; padding:4px 10px; border-radius:6px; font-size:12px; background:linear-gradient(135deg, #4f46e5, #0ea5e9); border:none;">
+                  ⚡ Tách thành câu hỏi
+                </button>
+                <button type="button" class="btn btn-xs btn-danger" onclick="event.stopPropagation(); App.removeAssignmentAttachment()" title="Xóa tệp đính kèm" style="padding:4px 10px; border-radius:6px; font-size:12px;">
+                  ✕ Hủy tệp
+                </button>
+              </div>
             </div>
           </div>
         </div>

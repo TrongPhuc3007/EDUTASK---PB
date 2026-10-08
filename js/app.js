@@ -466,16 +466,17 @@ const App = {
     const nameEl = document.getElementById('asnFileName');
     const sizeEl = document.getElementById('asnFileSize');
     const iconEl = document.getElementById('asnFileIcon');
+    const extractBtn = document.getElementById('btnExtractQuizFromAttachment');
 
     if (!prompt || !card) return;
 
     if (this.currentAssignmentAttachment) {
       prompt.style.display = 'none';
       card.style.display = 'flex';
+      const ext = this.currentAssignmentAttachment.name.split('.').pop().toLowerCase();
       if (nameEl) nameEl.textContent = this.currentAssignmentAttachment.name;
       if (sizeEl) sizeEl.textContent = this.currentAssignmentAttachment.size;
       if (iconEl) {
-        const ext = this.currentAssignmentAttachment.name.split('.').pop().toLowerCase();
         if (['pdf'].includes(ext)) iconEl.textContent = '📕';
         else if (['doc', 'docx'].includes(ext)) iconEl.textContent = '📘';
         else if (['xls', 'xlsx'].includes(ext)) iconEl.textContent = '📗';
@@ -483,9 +484,68 @@ const App = {
         else if (['zip', 'rar'].includes(ext)) iconEl.textContent = '📦';
         else iconEl.textContent = '📄';
       }
+      if (extractBtn) {
+        extractBtn.style.display = ['docx', 'txt'].includes(ext) ? 'inline-flex' : 'none';
+      }
     } else {
       prompt.style.display = 'flex';
       card.style.display = 'none';
+      if (extractBtn) extractBtn.style.display = 'none';
+    }
+  },
+
+  // Tự động đọc và bóc tách đề thi từ tệp vừa đính kèm (.docx, .txt)
+  extractQuizFromCurrentAttachment() {
+    if (!this.currentAssignmentAttachment) return;
+    const typeSelect = document.getElementById('newAsnType');
+    if (typeSelect) {
+      typeSelect.value = 'quiz';
+      if (window.Quiz) {
+        Quiz.toggleBuilder('create', 'quiz');
+        Quiz.setBuilderMode('create', 'import');
+      }
+    }
+
+    const att = this.currentAssignmentAttachment;
+    const ext = att.name.split('.').pop().toLowerCase();
+
+    if (ext === 'txt') {
+      try {
+        const base64Part = att.dataUrl.split(',')[1];
+        const text = decodeURIComponent(escape(atob(base64Part)));
+        const textarea = document.getElementById('createImportTextarea');
+        if (textarea) {
+          textarea.value = text;
+          Quiz.handleParsePreview('create');
+          this.showToast(`✓ Đã tự động đọc đề bài từ ${att.name}!`, 'success');
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+    } else if (ext === 'docx') {
+      try {
+        const base64Part = att.dataUrl.split(',')[1];
+        const binaryStr = atob(base64Part);
+        const len = binaryStr.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        this.showToast('⏳ Đang giải nén và phân tích tệp Word...', 'info');
+        Quiz.extractTextFromDocx(bytes.buffer).then(text => {
+          const textarea = document.getElementById('createImportTextarea');
+          if (textarea) {
+            textarea.value = text;
+            Quiz.handleParsePreview('create');
+            this.showToast(`✓ Đã bóc tách thành công từ tệp Word ${att.name}!`, 'success');
+          }
+        }).catch(err => {
+          console.warn(err);
+          this.showToast('Không thể giải nén tự động tệp Word này. Bạn có thể mở Word và dán nội dung vào ô bên dưới!', 'warning');
+        });
+      } catch (e) {
+        console.warn(e);
+      }
     }
   },
 
