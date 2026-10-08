@@ -89,6 +89,48 @@ const StudentView = {
       });
     }
 
+    const studentClass = Store.getStudentClass(student.id);
+    let classRankBadge = '';
+    let classAnnouncementsHtml = '';
+
+    if (studentClass) {
+      const gradebook = Store.getClassGradebook(studentClass.id);
+      if (gradebook) {
+        const myRank = gradebook.rankings.findIndex(r => r.student.id === student.id) + 1;
+        let rankIcon = `#${myRank}`;
+        if (myRank === 1) rankIcon = '🥇 Hạng 1';
+        else if (myRank === 2) rankIcon = '🥈 Hạng 2';
+        else if (myRank === 3) rankIcon = '🥉 Hạng 3';
+        classRankBadge = `
+          <div style="background:rgba(255,255,255,0.2); backdrop-filter:blur(6px); padding:8px 16px; border-radius:12px; text-align:center;">
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">Xếp hạng lớp</div>
+            <div style="font-size:20px; font-weight:800; color:#fde68a;">${rankIcon} <small style="font-size:12px; font-weight:normal; opacity:0.9;">/${gradebook.students.length}</small></div>
+          </div>
+        `;
+      }
+
+      if (Array.isArray(studentClass.announcements) && studentClass.announcements.length > 0) {
+        const latestAnn = studentClass.announcements[0];
+        classAnnouncementsHtml = `
+          <div class="content-card" style="background:linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border:1.5px solid #86efac; margin-bottom:16px;">
+            <div style="padding:14px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                  <span class="badge badge-success" style="font-size:11px;">📢 Thông Báo Lớp ${studentClass.name}</span>
+                  <small style="color:#15803d; font-size:11.5px;">${new Date(latestAnn.createdAt).toLocaleString('vi-VN')}</small>
+                </div>
+                <strong style="font-size:14px; color:#14532d;">📌 ${latestAnn.title}</strong>
+                <p style="margin:4px 0 0 0; font-size:13px; color:#166534; line-height:1.5;">${latestAnn.content}</p>
+              </div>
+              <span class="badge" style="background:#ffffff; color:#15803d; border:1px solid #86efac; font-size:11.5px; font-weight:700;">
+                Từ: ${latestAnn.authorName || 'GV Phụ trách'}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+    }
+
     container.innerHTML = `
       <!-- Banner Học Sinh & Tiến Độ Mục Tiêu -->
       <div class="view-banner" style="background: linear-gradient(135deg, #065f46 0%, #059669 60%, #10b981 100%);">
@@ -97,9 +139,10 @@ const StudentView = {
           <div style="font-size:13px; color:rgba(255,255,255,0.95); margin-bottom:4px;">
             Tên tài khoản: <strong style="font-family:var(--font-mono); color:#a7f3d0;">${student.username}</strong>
           </div>
-          <p>Giáo viên phụ trách: <strong>${student.assignedTutorName || 'Gia Sư Phụ Trách'}</strong> | Lớp: <strong>${student.grade}</strong></p>
+          <p>Giáo viên phụ trách: <strong>${student.assignedTutorName || 'Gia Sư Phụ Trách'}</strong> | Lớp: <strong>${studentClass ? `${studentClass.name} (Mã: ${studentClass.code})` : student.grade}</strong></p>
         </div>
         <div class="banner-actions" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+          ${classRankBadge}
           <div style="background:rgba(255,255,255,0.2); backdrop-filter:blur(6px); padding:8px 16px; border-radius:12px; text-align:center;">
             <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">Tiến độ bài tập</div>
             <div style="font-size:20px; font-weight:800;">${completedCount}/${totalCount} (${completionRate}%)</div>
@@ -110,6 +153,8 @@ const StudentView = {
           </div>
         </div>
       </div>
+
+      ${classAnnouncementsHtml}
 
       <!-- To-Do List Bài Tập Cá Nhân -->
       <div class="content-card">

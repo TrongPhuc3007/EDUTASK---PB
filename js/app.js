@@ -355,10 +355,17 @@ const App = {
     if (modal) modal.classList.add('active');
   },
 
-  // ================= MODAL: TẠO BÀI TẬP CÁ NHÂN HÓA =================
+  // ================= MODAL: TẠO BÀI TẬP CÁ NHÂN HÓA HOẶC CẢ LỚP =================
   currentAssignmentAttachment: null,
 
-  openCreateAssignmentModal(targetStudentId = null) {
+  handleTargetTypeChange(type) {
+    const classContainer = document.getElementById('classPickerContainer');
+    const studentContainer = document.getElementById('studentPickerContainer');
+    if (classContainer) classContainer.style.display = (type === 'class') ? 'block' : 'none';
+    if (studentContainer) studentContainer.style.display = (type === 'individual') ? 'block' : 'none';
+  },
+
+  openCreateAssignmentModal(targetStudentId = null, targetClassId = null) {
     const modal = document.getElementById('createAssignmentModal');
     if (!modal) return;
 
@@ -389,14 +396,32 @@ const App = {
       `).join('');
     }
 
+    // Đổ danh sách lớp học
+    const classSelect = document.getElementById('newAsnClassSelect');
+    const classes = isMasterAdmin ? Store.getClasses() : Store.getClassesByTutor(currentTutorId);
+    const availableClasses = classes.length > 0 ? classes : Store.getClasses();
+    if (classSelect) {
+      if (availableClasses.length === 0) {
+        classSelect.innerHTML = `<option value="">Chưa có lớp học nào — Vui lòng tạo lớp học trước</option>`;
+      } else {
+        classSelect.innerHTML = availableClasses.map(cls => `
+          <option value="${cls.id}">${cls.name} (${cls.grade} • Sĩ số: ${(cls.studentIds || []).length} em)</option>
+        `).join('');
+      }
+      if (targetClassId) {
+        classSelect.value = targetClassId;
+      }
+    }
+
     const targetTypeSelect = document.getElementById('newAsnTargetType');
     if (targetStudentId) {
       targetTypeSelect.value = 'individual';
-      document.getElementById('studentPickerContainer').style.display = 'block';
+    } else if (targetClassId || availableClasses.length > 0) {
+      targetTypeSelect.value = 'class';
     } else {
       targetTypeSelect.value = 'individual';
-      document.getElementById('studentPickerContainer').style.display = 'block';
     }
+    this.handleTargetTypeChange(targetTypeSelect.value);
 
     // Đặt hạn nộp mặc định là 2 ngày sau lúc 21h
     const now = new Date();
@@ -624,7 +649,28 @@ const App = {
 
     // Lấy danh sách học sinh được chọn
     let targetStudentIds = [];
-    if (targetType === 'individual') {
+    let classId = null;
+    let className = '';
+
+    if (targetType === 'class') {
+      const classSelect = document.getElementById('newAsnClassSelect');
+      classId = classSelect ? classSelect.value : null;
+      if (!classId) {
+        this.showToast('Vui lòng chọn Lớp học nhận bài tập!', 'error');
+        return;
+      }
+      const cls = Store.getClassById(classId);
+      if (!cls) {
+        this.showToast('Không tìm thấy lớp học đã chọn!', 'error');
+        return;
+      }
+      className = cls.name;
+      targetStudentIds = Array.isArray(cls.studentIds) ? [...cls.studentIds] : [];
+      if (targetStudentIds.length === 0) {
+        this.showToast(`Lớp "${cls.name}" hiện chưa có học sinh nào! Hãy thêm học sinh vào lớp trước khi giao bài.`, 'warning');
+        return;
+      }
+    } else if (targetType === 'individual') {
       const checkedBoxes = document.querySelectorAll('input[name="targetStudent"]:checked');
       targetStudentIds = Array.from(checkedBoxes).map(cb => cb.value);
       if (targetStudentIds.length === 0) {
@@ -657,6 +703,7 @@ const App = {
       tutorName: tutor ? tutor.name : 'Gia Sư Phụ Trách',
       subject: (tutor && tutor.subjects && tutor.subjects[0]) || 'Toán Học',
       targetType,
+      classId: classId,
       targetStudentIds,
       deadline,
       createdAt: new Date().toISOString(),
@@ -673,7 +720,8 @@ const App = {
     Store.addAssignment(newAssignment);
     const attachMsg = this.currentAssignmentAttachment ? ` (có đính kèm "${this.currentAssignmentAttachment.name}")` : '';
     const quizMsg = submissionType === 'quiz' ? ` (Trắc nghiệm Online: ${newAssignment.quizData?.questions?.length || 10} câu)` : '';
-    this.showToast(`Đã giao bài tập thành công cho ${targetStudentIds.length} học sinh${attachMsg}${quizMsg}!`, 'success');
+    const scopeMsg = targetType === 'class' ? `lớp ${className} (${targetStudentIds.length} em)` : `${targetStudentIds.length} học sinh`;
+    this.showToast(`Đã giao bài tập thành công cho ${scopeMsg}${attachMsg}${quizMsg}!`, 'success');
     this.closeModal('createAssignmentModal');
     this.renderCurrentView();
   },

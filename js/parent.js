@@ -28,12 +28,20 @@ const ParentView = {
     const cheatSummary = Store.getStudentCheatSummary ? Store.getStudentCheatSummary(student.id) : null;
     const honestyRate = cheatSummary ? (cheatSummary.honestyRate ?? cheatSummary.integrityRate ?? 100) : 100;
 
+    const studentClass = Store.getStudentClass(student.id);
+    const classGradebook = studentClass ? Store.getClassGradebook(studentClass.id) : null;
+    let rankBadgeText = '';
+    if (classGradebook) {
+      const myRank = classGradebook.rankings.findIndex(r => r.student.id === student.id) + 1;
+      rankBadgeText = `Hạng ${myRank}/${classGradebook.students.length} cả lớp`;
+    }
+
     container.innerHTML = `
       <!-- Banner Phụ Huynh -->
       <div class="view-banner" style="background: linear-gradient(135deg, #78350f 0%, #b45309 60%, #d97706 100%);">
         <div class="banner-info">
           <h2>Kính Chào Quý Phụ Huynh — ${parent.name}</h2>
-          <p>Sổ liên lạc & tiến độ học tập minh bạch của em: <strong>${student.name}</strong> (${student.grade || 'Lớp 12'})</p>
+          <p>Sổ liên lạc & tiến độ học tập minh bạch của em: <strong>${student.name}</strong> • ${studentClass ? `Lớp: <strong>${studentClass.name} (Mã: ${studentClass.code})</strong>` : (student.grade || 'Lớp 12')}</p>
         </div>
         <div class="banner-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
           <button class="btn btn-white" onclick="window.print()" title="In sổ liên lạc hoặc lưu PDF báo cáo">
@@ -65,9 +73,18 @@ const ParentView = {
           <div class="metric-icon-box metric-green">⭐</div>
           <div class="metric-data">
             <h4>${avgScore}/10</h4>
-            <span>Điểm TB (${completedSubs.length}/${assignments.length} bài đã chấm)</span>
+            <span>Điểm TB con ${classGradebook && classGradebook.classAvg !== 'Chưa có' ? `(TB lớp: ${classGradebook.classAvg}đ)` : ''}</span>
           </div>
         </div>
+        ${studentClass ? `
+          <div class="metric-card">
+            <div class="metric-icon-box" style="background:#fef3c7; color:#b45309;">🏫</div>
+            <div class="metric-data">
+              <h4 style="color:#b45309;">${rankBadgeText || studentClass.code}</h4>
+              <span>${studentClass.name}</span>
+            </div>
+          </div>
+        ` : ''}
         <div class="metric-card">
           <div class="metric-icon-box ${honestyRate >= 80 ? 'metric-green' : 'metric-yellow'}">🛡️</div>
           <div class="metric-data">

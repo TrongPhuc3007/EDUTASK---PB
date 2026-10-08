@@ -466,6 +466,12 @@ const Store = {
           });
           if (subUpdated) this.save();
         }
+
+        // Migration: Đảm bảo hệ thống có danh mục Lớp Học (Classrooms)
+        if (!Array.isArray(this.data.classes) || this.data.classes.length === 0) {
+          this.data.classes = this.getDefaultClasses();
+          this.save();
+        }
       } catch (e) {
         this.resetDefault();
       }
@@ -925,6 +931,51 @@ const Store = {
           cheatCount: 0,
           cheatDuration: 0,
           cheatLogs: []
+        }
+      ],
+      // 4. DANH MỤC LỚP HỌC (CLASSROOM EXPANSION)
+      classes: [
+        {
+          id: 'cls_12a1',
+          code: 'TOAN12A1',
+          name: 'Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL',
+          grade: 'Lớp 12',
+          subject: 'Toán Học',
+          room: 'Phòng 302 / Trực Tuyến 01',
+          tutorId: 'u_tutor',
+          tutorName: 'Thầy Minh Đức',
+          studentIds: ['u_std_quang', 'u_std_maianh', 'u_std_1791385736306', 'u_std_1791342637918'],
+          createdAt: '2026-09-01T08:00:00Z',
+          announcements: [
+            {
+              id: 'ann_1',
+              title: 'Chào mừng cả lớp bước vào kỳ ôn thi nước rút!',
+              content: 'Lớp chúng ta sẽ làm bài kiểm tra trắc nghiệm định kỳ vào Thứ 6 hàng tuần. Các em chú ý hoàn thành đúng hạn để thầy chấm điểm bút đỏ nhé.',
+              createdAt: '2026-10-06T08:00:00Z',
+              authorName: 'Thầy Minh Đức'
+            }
+          ]
+        },
+        {
+          id: 'cls_10a2',
+          code: 'TOAN10A2',
+          name: 'Lớp 10A2 — Toán Học Cơ Bản & Nâng Cao',
+          grade: 'Lớp 10',
+          subject: 'Toán Học',
+          room: 'Phòng 201 / Trực Tuyến 02',
+          tutorId: 'u_tutor_linh',
+          tutorName: 'Cô Phương Linh',
+          studentIds: ['u_std_nam'],
+          createdAt: '2026-09-05T08:00:00Z',
+          announcements: [
+            {
+              id: 'ann_2',
+              title: 'Khởi động chuyên đề Lượng giác!',
+              content: 'Các em tải phiếu bài tập 03 về làm và nộp ảnh chụp vở viết tay trước 23h59 Chủ nhật.',
+              createdAt: '2026-10-05T09:00:00Z',
+              authorName: 'Cô Phương Linh'
+            }
+          ]
         }
       ]
     };
@@ -1389,6 +1440,261 @@ const Store = {
       totalDuration,
       submissionsWithCheating,
       integrityRate: studentSubs.length > 0 ? Math.round(((studentSubs.length - submissionsWithCheating) / studentSubs.length) * 100) : 100
+    };
+  },
+
+  // ================= QUẢN LÝ LỚP HỌC (CLASSROOM MODULE) =================
+  getDefaultClasses() {
+    return [
+      {
+        id: 'cls_12a1',
+        code: 'TOAN12A1',
+        name: 'Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL',
+        grade: 'Lớp 12',
+        subject: 'Toán Học',
+        room: 'Phòng 302 / Trực Tuyến 01',
+        tutorId: 'u_tutor',
+        tutorName: 'Thầy Minh Đức',
+        studentIds: ['u_std_quang', 'u_std_maianh', 'u_std_1791385736306', 'u_std_1791342637918'],
+        createdAt: '2026-09-01T08:00:00Z',
+        announcements: [
+          {
+            id: 'ann_1',
+            title: 'Chào mừng cả lớp bước vào kỳ ôn thi nước rút!',
+            content: 'Lớp chúng ta sẽ làm bài kiểm tra trắc nghiệm định kỳ vào Thứ 6 hàng tuần. Các em chú ý hoàn thành đúng hạn để thầy chấm điểm bút đỏ nhé.',
+            createdAt: '2026-10-06T08:00:00Z',
+            authorName: 'Thầy Minh Đức'
+          }
+        ]
+      },
+      {
+        id: 'cls_10a2',
+        code: 'TOAN10A2',
+        name: 'Lớp 10A2 — Toán Học Cơ Bản & Nâng Cao',
+        grade: 'Lớp 10',
+        subject: 'Toán Học',
+        room: 'Phòng 201 / Trực Tuyến 02',
+        tutorId: 'u_tutor_linh',
+        tutorName: 'Cô Phương Linh',
+        studentIds: ['u_std_nam'],
+        createdAt: '2026-09-05T08:00:00Z',
+        announcements: [
+          {
+            id: 'ann_2',
+            title: 'Khởi động chuyên đề Lượng giác!',
+            content: 'Các em tải phiếu bài tập 03 về làm và nộp ảnh chụp vở viết tay trước 23h59 Chủ nhật.',
+            createdAt: '2026-10-05T09:00:00Z',
+            authorName: 'Cô Phương Linh'
+          }
+        ]
+      }
+    ];
+  },
+
+  getClasses() {
+    if (!this.data) return [];
+    if (!Array.isArray(this.data.classes) || this.data.classes.length === 0) {
+      this.data.classes = this.getDefaultClasses();
+      this.save();
+    }
+    return this.data.classes;
+  },
+
+  getClassById(classId) {
+    if (!classId) return null;
+    return this.getClasses().find(c => c.id === classId || c.code === classId) || null;
+  },
+
+  getClassesByTutor(tutorId) {
+    return this.getClasses().filter(c => c.tutorId === tutorId);
+  },
+
+  getStudentClass(studentId) {
+    return this.getClasses().find(c => Array.isArray(c.studentIds) && c.studentIds.includes(studentId)) || null;
+  },
+
+  addClass(classData) {
+    if (!this.data) return null;
+    if (!Array.isArray(this.data.classes)) this.data.classes = [];
+    const newClass = {
+      id: classData.id || ('cls_' + Date.now()),
+      code: (classData.code || ('LOP' + Math.floor(1000 + Math.random() * 9000))).toUpperCase(),
+      name: classData.name || 'Lớp Học Mới',
+      grade: classData.grade || 'Lớp 12',
+      subject: classData.subject || 'Toán Học',
+      room: classData.room || 'Phòng Học Online',
+      tutorId: classData.tutorId || 'u_tutor',
+      tutorName: classData.tutorName || 'Gia Sư Phụ Trách',
+      studentIds: Array.isArray(classData.studentIds) ? classData.studentIds : [],
+      createdAt: new Date().toISOString(),
+      announcements: Array.isArray(classData.announcements) ? classData.announcements : []
+    };
+    this.data.classes.unshift(newClass);
+    this.save(false, true);
+    return newClass;
+  },
+
+  updateClass(classId, updatedData) {
+    if (!this.data || !Array.isArray(this.data.classes)) return false;
+    const index = this.data.classes.findIndex(c => c.id === classId);
+    if (index >= 0) {
+      this.data.classes[index] = {
+        ...this.data.classes[index],
+        ...updatedData,
+        updatedAt: new Date().toISOString()
+      };
+      this.save(false, true);
+      return true;
+    }
+    return false;
+  },
+
+  deleteClass(classId) {
+    if (!this.data || !Array.isArray(this.data.classes)) return false;
+    this.data.classes = this.data.classes.filter(c => c.id !== classId);
+    this.save(false, true);
+    return true;
+  },
+
+  addStudentToClass(classId, studentId) {
+    const cls = this.getClassById(classId);
+    if (!cls) return false;
+    if (!Array.isArray(cls.studentIds)) cls.studentIds = [];
+    if (!cls.studentIds.includes(studentId)) {
+      cls.studentIds.push(studentId);
+      this.save(false, true);
+    }
+    return true;
+  },
+
+  removeStudentFromClass(classId, studentId) {
+    const cls = this.getClassById(classId);
+    if (!cls || !Array.isArray(cls.studentIds)) return false;
+    cls.studentIds = cls.studentIds.filter(id => id !== studentId);
+    this.save(false, true);
+    return true;
+  },
+
+  getStudentsByClass(classId) {
+    const cls = this.getClassById(classId);
+    if (!cls || !Array.isArray(cls.studentIds)) return [];
+    return cls.studentIds.map(id => this.getUserById(id)).filter(Boolean);
+  },
+
+  addClassAnnouncement(classId, { title, content, authorName }) {
+    const cls = this.getClassById(classId);
+    if (!cls) return false;
+    if (!Array.isArray(cls.announcements)) cls.announcements = [];
+    const ann = {
+      id: 'ann_' + Date.now(),
+      title: title || 'Thông báo mới',
+      content: content || '',
+      createdAt: new Date().toISOString(),
+      authorName: authorName || cls.tutorName || 'Giáo viên'
+    };
+    cls.announcements.unshift(ann);
+    this.save(false, true);
+    return ann;
+  },
+
+  // Sổ Điểm Điện Tử & Bảng Ma Trận Điểm Cả Lớp
+  getClassGradebook(classId) {
+    const cls = this.getClassById(classId);
+    if (!cls) return null;
+
+    const students = this.getStudentsByClass(classId);
+    const studentIdSet = new Set(cls.studentIds || []);
+
+    // Lấy tất cả bài tập giao cho lớp này hoặc giao cho học sinh trong lớp
+    const assignments = this.getAllAssignments().filter(a => {
+      if (a.classId === classId) return true;
+      if (Array.isArray(a.targetStudentIds) && a.targetStudentIds.some(id => studentIdSet.has(id))) return true;
+      return false;
+    });
+
+    const matrix = students.map(std => {
+      const studentScores = {};
+      let totalScore = 0;
+      let gradedCount = 0;
+      let submittedCount = 0;
+
+      assignments.forEach(asn => {
+        const sub = this.getSubmission(asn.id, std.id);
+        if (sub) {
+          submittedCount++;
+          if (sub.status === 'graded' && sub.score !== null) {
+            studentScores[asn.id] = sub.score;
+            totalScore += sub.score;
+            gradedCount++;
+          } else {
+            studentScores[asn.id] = 'pending'; // Chờ chấm
+          }
+        } else {
+          studentScores[asn.id] = null; // Chưa nộp
+        }
+      });
+
+      const avgScore = gradedCount > 0 ? Math.round((totalScore / gradedCount) * 10) / 10 : null;
+
+      let classification = 'Chưa xếp loại';
+      if (avgScore !== null) {
+        if (avgScore >= 8.5) classification = 'Giỏi';
+        else if (avgScore >= 7.0) classification = 'Khá';
+        else if (avgScore >= 5.0) classification = 'Trung Bình';
+        else classification = 'Yếu';
+      }
+
+      return {
+        student: std,
+        scores: studentScores,
+        avgScore: avgScore,
+        gradedCount: gradedCount,
+        submittedCount: submittedCount,
+        totalAsns: assignments.length,
+        completionRate: assignments.length > 0 ? Math.round((submittedCount / assignments.length) * 100) : 100,
+        classification: classification
+      };
+    });
+
+    // Sắp xếp thứ hạng theo điểm trung bình giảm dần
+    const rankings = [...matrix].sort((a, b) => {
+      const scoreA = a.avgScore !== null ? a.avgScore : -1;
+      const scoreB = b.avgScore !== null ? b.avgScore : -1;
+      return scoreB - scoreA;
+    });
+
+    // Thống kê phổ điểm cả lớp
+    let totalClassScore = 0;
+    let studentsWithScore = 0;
+    let countExcellent = 0, countGood = 0, countAvg = 0, countWeak = 0;
+
+    matrix.forEach(row => {
+      if (row.avgScore !== null) {
+        totalClassScore += row.avgScore;
+        studentsWithScore++;
+        if (row.avgScore >= 8.5) countExcellent++;
+        else if (row.avgScore >= 7.0) countGood++;
+        else if (row.avgScore >= 5.0) countAvg++;
+        else countWeak++;
+      }
+    });
+
+    const classAvg = studentsWithScore > 0 ? (totalClassScore / studentsWithScore).toFixed(1) : 'Chưa có';
+
+    return {
+      classInfo: cls,
+      students: students,
+      assignments: assignments,
+      matrix: matrix,
+      rankings: rankings,
+      classAvg: classAvg,
+      distribution: {
+        totalRated: studentsWithScore,
+        excellent: { count: countExcellent, percent: studentsWithScore > 0 ? Math.round((countExcellent / studentsWithScore) * 100) : 0 },
+        good: { count: countGood, percent: studentsWithScore > 0 ? Math.round((countGood / studentsWithScore) * 100) : 0 },
+        average: { count: countAvg, percent: studentsWithScore > 0 ? Math.round((countAvg / studentsWithScore) * 100) : 0 },
+        weak: { count: countWeak, percent: studentsWithScore > 0 ? Math.round((countWeak / studentsWithScore) * 100) : 0 }
+      }
     };
   }
 };
