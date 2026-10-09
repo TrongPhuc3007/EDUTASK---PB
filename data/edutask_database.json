@@ -31,7 +31,8 @@
     "u_tutor_1791305106234",
     "u_std_thuyduong",
     "u_std_test_1",
-    "u_std_test_2"
+    "u_std_test_2",
+    "u_tutor_test_1"
   ],
   "deletedAssignmentIds": [
     "asn_001",
@@ -82,15 +83,6 @@
         "Tin học"
       ],
       "username": "trongphuc"
-    },
-    {
-      "id": "u_tutor_test_1",
-      "name": "Thầy Hùng Dạy Toán",
-      "password": "123",
-      "role": "tutor",
-      "roleName": "Gia Sư Phụ Trách",
-      "username": "thayhung",
-      "accountStatus": "none"
     }
   ],
   "assignments": [],
