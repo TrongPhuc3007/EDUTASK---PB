@@ -5,14 +5,10 @@
       "createdAt": "2026-10-09T01:53:25.842Z",
       "description": "Làm hết 10 câu trắc nghiệm",
       "id": "asn_test_1791510805842",
-      "targetStudentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791342637918"
-      ],
+      "targetStudentIds": [],
       "targetType": "class",
       "title": "Kiểm tra 15 phút Toán - Cả Lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
-      "tutorId": "u_tutor",
+      "tutorId": "u_tutor_1791515866006",
       "type": "quiz",
       "attachmentName": null,
       "attachmentSize": null,
@@ -23,14 +19,10 @@
       "createdAt": "2026-10-09T01:57:10.693Z",
       "description": "Làm hết 10 câu trắc nghiệm",
       "id": "asn_test_1791511030693",
-      "targetStudentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791342637918"
-      ],
+      "targetStudentIds": [],
       "targetType": "class",
       "title": "Kiểm tra 15 phút Toán - Cả Lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
-      "tutorId": "u_tutor",
+      "tutorId": "u_tutor_1791515866006",
       "type": "quiz",
       "attachmentName": null,
       "attachmentSize": null,
@@ -41,14 +33,10 @@
       "createdAt": "2026-10-09T01:58:08.862Z",
       "description": "Làm hết 10 câu trắc nghiệm",
       "id": "asn_test_1791511088862",
-      "targetStudentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791342637918"
-      ],
+      "targetStudentIds": [],
       "targetType": "class",
       "title": "Kiểm tra 15 phút Toán - Cả Lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
-      "tutorId": "u_tutor",
+      "tutorId": "u_tutor_1791515866006",
       "type": "quiz",
       "attachmentName": null,
       "attachmentSize": null,
@@ -59,14 +47,10 @@
       "createdAt": "2026-10-09T01:59:16.838Z",
       "description": "Làm hết 10 câu trắc nghiệm",
       "id": "asn_test_1791511156838",
-      "targetStudentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791342637918"
-      ],
+      "targetStudentIds": [],
       "targetType": "class",
       "title": "Kiểm tra 15 phút Toán - Cả Lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
-      "tutorId": "u_tutor",
+      "tutorId": "u_tutor_1791515866006",
       "type": "quiz",
       "attachmentName": null,
       "attachmentSize": null,
@@ -77,51 +61,23 @@
       "createdAt": "2026-10-09T01:59:51.360Z",
       "description": "Làm hết 10 câu trắc nghiệm",
       "id": "asn_test_1791511191360",
-      "targetStudentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791342637918"
-      ],
+      "targetStudentIds": [],
       "targetType": "class",
       "title": "Kiểm tra 15 phút Toán - Cả Lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
-      "tutorId": "u_tutor",
+      "tutorId": "u_tutor_1791515866006",
       "type": "quiz",
       "attachmentName": null,
       "attachmentSize": null,
       "attachmentType": null
     }
   ],
-  "classes": [
-    {
-      "id": "cls_10a2",
-      "code": "TOAN10A2",
-      "name": "Lớp 10A2 — Toán Học Cơ Bản & Nâng Cao",
-      "grade": "Lớp 10",
-      "subject": "Toán Học",
-      "room": "Phòng 201 / Trực Tuyến 02",
-      "tutorId": "u_tutor_linh",
-      "tutorName": "Cô Phương Linh",
-      "studentIds": [
-        "u_std_nam"
-      ],
-      "createdAt": "2026-09-05T08:00:00Z",
-      "announcements": [
-        {
-          "id": "ann_2",
-          "title": "Khởi động chuyên đề Lượng giác!",
-          "content": "Các em tải phiếu bài tập 03 về làm và nộp ảnh chụp vở viết tay trước 23h59 Chủ nhật.",
-          "createdAt": "2026-10-05T09:00:00Z",
-          "authorName": "Cô Phương Linh"
-        }
-      ]
-    }
-  ],
+  "classes": [],
   "deletedAssignmentIds": [
     "asn_001",
     "asn_002",
     "asn_003",
-    "asn_1791516254953",
-    "asn_004"
+    "asn_004",
+    "asn_1791516254953"
   ],
   "deletedSubmissionIds": [
     "sub_001",
@@ -129,17 +85,19 @@
     "sub_1791516331056"
   ],
   "deletedUserIds": [
-    "u_std_1791361091065",
-    "u_std_1791361864132",
+    "u_tutor_1791305106234",
+    "u_std_1791385736306",
     "u_std_quang",
-    "u_std_1791342637918",
-    "u_std_nam",
     "u_std_maianh",
-    "u_std_1791383480781",
-    "u_std_1791383505191",
+    "u_std_nam",
+    "u_std_thuyduong",
+    "u_std_1791342637918",
     "u_tutor",
     "u_tutor_linh",
-    "u_std_1791385736306",
+    "u_std_1791361091065",
+    "u_std_1791361864132",
+    "u_std_1791383480781",
+    "u_std_1791383505191",
     "u_std_1791513678136",
     "u_std_1791513987435",
     "u_std_1791513970707",
@@ -148,9 +106,7 @@
     "u_std_1791514102373",
     "u_std_1791514119943",
     "u_std_1791516057833",
-    "u_std_1791514559444",
-    "u_tutor_1791305106234",
-    "u_std_thuyduong"
+    "u_std_1791514559444"
   ],
   "meta": {
     "lastUpdated": "2026-10-07T14:15:00.000Z",
@@ -191,7 +147,8 @@
   ],
   "deletedClassIds": [
     "cls_12a1",
-    "cls_10a2"
+    "cls_10a2",
+    "cls_1791527580022"
   ],
   "migratedClassesTombstoneV14": true,
   "migratedAdminOnlyV13": true
