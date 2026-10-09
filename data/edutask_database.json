@@ -9,68 +9,68 @@
       "description": "Bài kiểm tra trắc nghiệm online 5 câu hỏi trọng tâm. Thời gian làm bài 15 phút, hệ thống tự động chấm điểm 10/10 ngay lập tức!",
       "id": "asn_004",
       "quizData": {
-        "mode": "detailed",
         "durationMinutes": 15,
+        "mode": "detailed",
         "questions": [
           {
+            "correct": "A",
+            "explanation": "Áp dụng công thức: ∫(3x² + 2x)dx = 3(x³/3) + 2(x²/2) + C = x³ + x² + C.",
             "id": 1,
-            "text": "Họ nguyên hàm của hàm số f(x) = 3x² + 2x là:",
             "options": [
               "x³ + x² + C",
               "3x³ + 2x² + C",
               "6x + 2 + C",
               "x³ + 2x² + C"
             ],
-            "correct": "A",
-            "explanation": "Áp dụng công thức: ∫(3x² + 2x)dx = 3(x³/3) + 2(x²/2) + C = x³ + x² + C."
+            "text": "Họ nguyên hàm của hàm số f(x) = 3x² + 2x là:"
           },
           {
+            "correct": "B",
+            "explanation": "∫cos(ax)dx = (1/a)sin(ax) + C => ∫cos(2x)dx = (1/2)sin(2x) + C.",
             "id": 2,
-            "text": "Tìm nguyên hàm của hàm số f(x) = cos(2x):",
             "options": [
               "sin(2x) + C",
               "(1/2)sin(2x) + C",
               "-2sin(2x) + C",
               "-(1/2)sin(2x) + C"
             ],
-            "correct": "B",
-            "explanation": "∫cos(ax)dx = (1/a)sin(ax) + C => ∫cos(2x)dx = (1/2)sin(2x) + C."
+            "text": "Tìm nguyên hàm của hàm số f(x) = cos(2x):"
           },
           {
+            "correct": "C",
+            "explanation": "Công thức ∫e^(ax)dx = (1/a)e^(ax) + C => ∫e^(2x)dx = (1/2)e^(2x) + C.",
             "id": 3,
-            "text": "Cho hàm số f(x) = e^(2x). Khẳng định nào sau đây đúng?",
             "options": [
               "∫f(x)dx = 2e^(2x) + C",
               "∫f(x)dx = e^(2x) + C",
               "∫f(x)dx = (1/2)e^(2x) + C",
               "∫f(x)dx = e^x + C"
             ],
-            "correct": "C",
-            "explanation": "Công thức ∫e^(ax)dx = (1/a)e^(ax) + C => ∫e^(2x)dx = (1/2)e^(2x) + C."
+            "text": "Cho hàm số f(x) = e^(2x). Khẳng định nào sau đây đúng?"
           },
           {
+            "correct": "A",
+            "explanation": "Theo bảng nguyên hàm cơ bản: ∫(1/x)dx = ln|x| + C.",
             "id": 4,
-            "text": "Họ nguyên hàm của hàm số f(x) = 1/x (với x ≠ 0) là:",
             "options": [
               "ln|x| + C",
               "-1/x² + C",
               "ln(x) + C",
               "1/x² + C"
             ],
-            "correct": "A",
-            "explanation": "Theo bảng nguyên hàm cơ bản: ∫(1/x)dx = ln|x| + C."
+            "text": "Họ nguyên hàm của hàm số f(x) = 1/x (với x ≠ 0) là:"
           },
           {
+            "correct": "B",
+            "explanation": "Ta có: ∫(2x + 1)dx = [x² + x] từ 0 đến 1 = (1 + 1) - 0 = 2.",
             "id": 5,
-            "text": "Tích phân I = ∫[0 đến 1] (2x + 1) dx có giá trị bằng:",
             "options": [
               "1",
               "2",
               "3",
               "4"
             ],
-            "correct": "B",
-            "explanation": "Ta có: ∫(2x + 1)dx = [x² + x] từ 0 đến 1 = (1 + 1) - 0 = 2."
+            "text": "Tích phân I = ∫[0 đến 1] (2x + 1) dx có giá trị bằng:"
           }
         ]
       },
@@ -312,53 +312,88 @@
   "submissions": [],
   "classes": [
     {
-      "id": "cls_12a1",
+      "announcements": [
+        {
+          "authorName": "Thầy Minh Đức",
+          "content": "Lớp chúng ta sẽ làm bài kiểm tra trắc nghiệm định kỳ vào Thứ 6 hàng tuần. Các em chú ý hoàn thành đúng hạn để thầy chấm điểm bút đỏ nhé.",
+          "createdAt": "2026-10-06T08:00:00Z",
+          "id": "ann_1",
+          "title": "Chào mừng cả lớp bước vào kỳ ôn thi nước rút!"
+        }
+      ],
       "code": "TOAN12A1",
-      "name": "Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
+      "createdAt": "2026-09-01T08:00:00Z",
+      "evaluations": [
+        {
+          "actionPlan": "Tuần tới sẽ tăng cường 2 phiếu luyện tập chuyên đề Oxyz và tổ chức 1 bài kiểm tra trắc nghiệm 30 phút để củng cố kỹ năng làm bài nhanh.",
+          "attentionNeeded": "Cần đôn đốc các em hoàn thành đúng hạn các bài tập còn thiếu trước 21h hàng ngày.",
+          "commendations": "Nguyễn Minh Quang (Đạt 9.2đ, tiến bộ vượt bậc), Trần Mai Anh (Trình bày bài cực kỳ chỉn chu, sạch đẹp).",
+          "createdBy": "Thầy Minh Đức",
+          "date": "2026-10-08T18:00:00Z",
+          "id": "eval_12a1_t10",
+          "overallComment": "Cả lớp duy trì nề nếp học tập rất nghiêm túc. Tỷ lệ hoàn thành bài tập về nhà đạt 92%. Đa số các em nắm chắc kiến thức cơ bản về khảo sát hàm số và lũy thừa.",
+          "period": "Đánh Giá Tuần 1 - Tháng 10/2026",
+          "strengths": "Kỹ năng tính đạo hàm và tìm tiệm cận chuẩn xác. Có tinh thần tự giác cao, tích cực trao đổi bài.",
+          "studentNotes": {
+            "u_std_maianh": "Trình bày bài sạch đẹp, cẩn thận. Cần luyện thêm tốc độ phản xạ với câu hỏi trắc nghiệm vận dụng cao.",
+            "u_std_quang": "Tiếp thu bài rất nhanh, tư duy giải đề tốt. Cần rèn thêm tính cẩn thận ở bước tính nhẩm cuối."
+          },
+          "weaknesses": "Một số em còn lúng túng ở dạng bài chứa tham số m và các bài toán hình học không gian Oxyz."
+        }
+      ],
       "grade": "Lớp 12",
-      "subject": "Toán Học",
+      "id": "cls_12a1",
+      "name": "Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
       "room": "Phòng 302 / Trực Tuyến 01",
-      "tutorId": "u_tutor",
-      "tutorName": "Thầy Minh Đức",
       "studentIds": [
         "u_std_quang",
         "u_std_maianh",
         "u_std_1791385736306",
         "u_std_1791342637918"
       ],
-      "createdAt": "2026-09-01T08:00:00Z",
-      "announcements": [
-        {
-          "id": "ann_1",
-          "title": "Chào mừng cả lớp bước vào kỳ ôn thi nước rút!",
-          "content": "Lớp chúng ta sẽ làm bài kiểm tra trắc nghiệm định kỳ vào Thứ 6 hàng tuần. Các em chú ý hoàn thành đúng hạn để thầy chấm điểm bút đỏ nhé.",
-          "createdAt": "2026-10-06T08:00:00Z",
-          "authorName": "Thầy Minh Đức"
-        }
-      ]
+      "subject": "Toán Học",
+      "tutorId": "u_tutor",
+      "tutorName": "Thầy Minh Đức"
     },
     {
-      "id": "cls_10a2",
+      "announcements": [
+        {
+          "authorName": "Cô Phương Linh",
+          "content": "Các em tải phiếu bài tập 03 về làm và nộp ảnh chụp vở viết tay trước 23h59 Chủ nhật.",
+          "createdAt": "2026-10-05T09:00:00Z",
+          "id": "ann_2",
+          "title": "Khởi động chuyên đề Lượng giác!"
+        }
+      ],
       "code": "TOAN10A2",
-      "name": "Lớp 10A2 — Toán Học Cơ Bản & Nâng Cao",
+      "createdAt": "2026-09-05T08:00:00Z",
+      "evaluations": [
+        {
+          "actionPlan": "Dành 15 phút đầu giờ kiểm tra bài cũ và biến đổi công thức lượng giác.",
+          "attentionNeeded": "Nhắc nhở ôn kỹ bảng công thức lượng giác trước khi vào buổi học tới.",
+          "commendations": "Lê Hoàng Nam (Có tinh thần tự giác, nộp bài đúng hẹn).",
+          "createdBy": "Cô Phương Linh",
+          "date": "2026-10-07T17:30:00Z",
+          "id": "eval_10a2_t10",
+          "overallComment": "Lớp học có tinh thần cầu tiến. Học sinh bắt đầu quen với phương pháp tự học và làm bài tập trắc nghiệm trên hệ thống EduTask.",
+          "period": "Đánh Giá Tuần 1 - Tháng 10/2026",
+          "strengths": "Chăm chỉ nộp bài đúng hạn, thái độ học tập nghiêm túc.",
+          "studentNotes": {
+            "u_std_nam": "Có nhiều cố gắng, cần tự tin hơn khi giải bài tập biến đổi lượng giác."
+          },
+          "weaknesses": "Cần củng cố thêm các công thức lượng giác cơ bản và dấu của các giá trị lượng giác."
+        }
+      ],
       "grade": "Lớp 10",
-      "subject": "Toán Học",
+      "id": "cls_10a2",
+      "name": "Lớp 10A2 — Toán Học Cơ Bản & Nâng Cao",
       "room": "Phòng 201 / Trực Tuyến 02",
-      "tutorId": "u_tutor_linh",
-      "tutorName": "Cô Phương Linh",
       "studentIds": [
         "u_std_nam"
       ],
-      "createdAt": "2026-09-05T08:00:00Z",
-      "announcements": [
-        {
-          "id": "ann_2",
-          "title": "Khởi động chuyên đề Lượng giác!",
-          "content": "Các em tải phiếu bài tập 03 về làm và nộp ảnh chụp vở viết tay trước 23h59 Chủ nhật.",
-          "createdAt": "2026-10-05T09:00:00Z",
-          "authorName": "Cô Phương Linh"
-        }
-      ]
+      "subject": "Toán Học",
+      "tutorId": "u_tutor_linh",
+      "tutorName": "Cô Phương Linh"
     }
   ]
 }
