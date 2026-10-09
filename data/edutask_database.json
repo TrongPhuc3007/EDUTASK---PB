@@ -233,7 +233,8 @@
     "u_std_1791514001708",
     "u_std_1791514102373",
     "u_std_1791514119943",
-    "u_std_1791516057833"
+    "u_std_1791516057833",
+    "u_std_1791514559444"
   ],
   "meta": {
     "lastUpdated": "2026-10-07T14:15:00.000Z",
@@ -270,41 +271,6 @@
         "Toán Học THPT"
       ],
       "username": "binhbinh"
-    },
-    {
-      "accountCreatedAt": "2026-10-09T02:55:59.445Z",
-      "accountStatus": "active",
-      "address": "Chưa cập nhật",
-      "assignedTutorId": "u_tutor_1791305106234",
-      "assignedTutorName": "Cô Bình Bình",
-      "avatarText": "HL",
-      "currentScore": 6.5,
-      "dob": "2008-01-01",
-      "feePerSession": 250000,
-      "gender": "Nam",
-      "grade": "Lớp 11",
-      "hasAccount": true,
-      "id": "u_std_1791514559444",
-      "initialScore": 6.5,
-      "learningMode": "1 kèm 1",
-      "name": "HUỲNH PHI LONG",
-      "notes": "Đăng ký tài khoản trực tuyến",
-      "parentJob": "",
-      "parentName": "Phụ huynh em HUỲNH PHI LONG",
-      "parentPhone": "0359000915",
-      "password": "123456",
-      "phone": "0359000915",
-      "role": "student",
-      "roleName": "Học Sinh",
-      "schedule": "Theo thỏa thuận với gia sư",
-      "school": "THPT MẠC ĐĨNH CHI",
-      "startDate": "2026-10-09",
-      "strengths": "Chăm chỉ, sẵn sàng rèn luyện",
-      "subject": "Toán Học 11",
-      "targetScore": 9,
-      "totalSessions": 0,
-      "username": "std_hplong",
-      "weaknesses": "Cần củng cố kiến thức phương pháp"
     },
     {
       "accountStatus": "none",
