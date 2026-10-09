@@ -9,68 +9,68 @@
       "description": "Bài kiểm tra trắc nghiệm online 5 câu hỏi trọng tâm. Thời gian làm bài 15 phút, hệ thống tự động chấm điểm 10/10 ngay lập tức!",
       "id": "asn_004",
       "quizData": {
-        "durationMinutes": 15,
         "mode": "detailed",
+        "durationMinutes": 15,
         "questions": [
           {
-            "correct": "A",
-            "explanation": "Áp dụng công thức: ∫(3x² + 2x)dx = 3(x³/3) + 2(x²/2) + C = x³ + x² + C.",
             "id": 1,
+            "text": "Họ nguyên hàm của hàm số f(x) = 3x² + 2x là:",
             "options": [
               "x³ + x² + C",
               "3x³ + 2x² + C",
               "6x + 2 + C",
               "x³ + 2x² + C"
             ],
-            "text": "Họ nguyên hàm của hàm số f(x) = 3x² + 2x là:"
+            "correct": "A",
+            "explanation": "Áp dụng công thức: ∫(3x² + 2x)dx = 3(x³/3) + 2(x²/2) + C = x³ + x² + C."
           },
           {
-            "correct": "B",
-            "explanation": "∫cos(ax)dx = (1/a)sin(ax) + C => ∫cos(2x)dx = (1/2)sin(2x) + C.",
             "id": 2,
+            "text": "Tìm nguyên hàm của hàm số f(x) = cos(2x):",
             "options": [
               "sin(2x) + C",
               "(1/2)sin(2x) + C",
               "-2sin(2x) + C",
               "-(1/2)sin(2x) + C"
             ],
-            "text": "Tìm nguyên hàm của hàm số f(x) = cos(2x):"
+            "correct": "B",
+            "explanation": "∫cos(ax)dx = (1/a)sin(ax) + C => ∫cos(2x)dx = (1/2)sin(2x) + C."
           },
           {
-            "correct": "C",
-            "explanation": "Công thức ∫e^(ax)dx = (1/a)e^(ax) + C => ∫e^(2x)dx = (1/2)e^(2x) + C.",
             "id": 3,
+            "text": "Cho hàm số f(x) = e^(2x). Khẳng định nào sau đây đúng?",
             "options": [
               "∫f(x)dx = 2e^(2x) + C",
               "∫f(x)dx = e^(2x) + C",
               "∫f(x)dx = (1/2)e^(2x) + C",
               "∫f(x)dx = e^x + C"
             ],
-            "text": "Cho hàm số f(x) = e^(2x). Khẳng định nào sau đây đúng?"
+            "correct": "C",
+            "explanation": "Công thức ∫e^(ax)dx = (1/a)e^(ax) + C => ∫e^(2x)dx = (1/2)e^(2x) + C."
           },
           {
-            "correct": "A",
-            "explanation": "Theo bảng nguyên hàm cơ bản: ∫(1/x)dx = ln|x| + C.",
             "id": 4,
+            "text": "Họ nguyên hàm của hàm số f(x) = 1/x (với x ≠ 0) là:",
             "options": [
               "ln|x| + C",
               "-1/x² + C",
               "ln(x) + C",
               "1/x² + C"
             ],
-            "text": "Họ nguyên hàm của hàm số f(x) = 1/x (với x ≠ 0) là:"
+            "correct": "A",
+            "explanation": "Theo bảng nguyên hàm cơ bản: ∫(1/x)dx = ln|x| + C."
           },
           {
-            "correct": "B",
-            "explanation": "Ta có: ∫(2x + 1)dx = [x² + x] từ 0 đến 1 = (1 + 1) - 0 = 2.",
             "id": 5,
+            "text": "Tích phân I = ∫[0 đến 1] (2x + 1) dx có giá trị bằng:",
             "options": [
               "1",
               "2",
               "3",
               "4"
             ],
-            "text": "Tích phân I = ∫[0 đến 1] (2x + 1) dx có giá trị bằng:"
+            "correct": "B",
+            "explanation": "Ta có: ∫(2x + 1)dx = [x² + x] từ 0 đến 1 = (1 + 1) - 0 = 2."
           }
         ]
       },
@@ -179,28 +179,53 @@
   ],
   "classes": [
     {
-      "id": "cls_1791515799825",
-      "code": "LOP10A16",
-      "name": "Lớp 10A16",
-      "grade": "Lớp 10",
-      "subject": "Tin học",
-      "room": "Phòng Học Trực Tuyến",
-      "tutorId": "u_tutor_1791515866006",
-      "tutorName": "Trọng Phúc",
+      "id": "cls_12a1",
+      "code": "TOAN12A1",
+      "name": "Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
+      "grade": "Lớp 12",
+      "subject": "Toán Học",
+      "room": "Phòng 302 / Trực Tuyến 01",
+      "tutorId": "u_tutor",
+      "tutorName": "Thầy Minh Đức",
       "studentIds": [
-        "u_std_1791516057833"
+        "u_std_quang",
+        "u_std_maianh",
+        "u_std_1791385736306",
+        "u_std_1791342637918"
       ],
-      "createdAt": "2026-10-09T03:16:39.826Z",
+      "createdAt": "2026-09-01T08:00:00Z",
       "announcements": [
         {
-          "id": "ann_1791515799825",
-          "title": "Chào mừng các em đến với Lớp 10A16!",
-          "content": "Lớp học được quản lý trên hệ thống EduTask PB. Giáo viên phụ trách: Cô Bình Bình. Chúc các em học tốt!",
-          "authorName": "Hệ thống Quản trị EduTask",
-          "createdAt": "2026-10-09T03:16:39.825Z"
+          "id": "ann_1",
+          "title": "Chào mừng cả lớp bước vào kỳ ôn thi nước rút!",
+          "content": "Lớp chúng ta sẽ làm bài kiểm tra trắc nghiệm định kỳ vào Thứ 6 hàng tuần. Các em chú ý hoàn thành đúng hạn để thầy chấm điểm bút đỏ nhé.",
+          "createdAt": "2026-10-06T08:00:00Z",
+          "authorName": "Thầy Minh Đức"
         }
+      ]
+    },
+    {
+      "id": "cls_10a2",
+      "code": "TOAN10A2",
+      "name": "Lớp 10A2 — Toán Học Cơ Bản & Nâng Cao",
+      "grade": "Lớp 10",
+      "subject": "Toán Học",
+      "room": "Phòng 201 / Trực Tuyến 02",
+      "tutorId": "u_tutor_linh",
+      "tutorName": "Cô Phương Linh",
+      "studentIds": [
+        "u_std_nam"
       ],
-      "updatedAt": "2026-10-09T03:17:58.697Z"
+      "createdAt": "2026-09-05T08:00:00Z",
+      "announcements": [
+        {
+          "id": "ann_2",
+          "title": "Khởi động chuyên đề Lượng giác!",
+          "content": "Các em tải phiếu bài tập 03 về làm và nộp ảnh chụp vở viết tay trước 23h59 Chủ nhật.",
+          "createdAt": "2026-10-05T09:00:00Z",
+          "authorName": "Cô Phương Linh"
+        }
+      ]
     }
   ],
   "deletedAssignmentIds": [
