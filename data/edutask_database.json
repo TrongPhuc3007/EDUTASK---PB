@@ -593,29 +593,6 @@
         }
       ],
       "updatedAt": "2026-10-09T03:17:58.697Z"
-    },
-    {
-      "announcements": [
-        {
-          "authorName": "Cô Phương Linh",
-          "content": "Các em tải phiếu bài tập 03 về làm và nộp ảnh chụp vở viết tay trước 23h59 Chủ nhật.",
-          "createdAt": "2026-10-05T09:00:00Z",
-          "id": "ann_2",
-          "title": "Khởi động chuyên đề Lượng giác!"
-        }
-      ],
-      "code": "TOAN10A2",
-      "createdAt": "2026-09-05T08:00:00Z",
-      "grade": "Lớp 10",
-      "id": "cls_10a2",
-      "name": "Lớp 10A2 — Toán Học Cơ Bản & Nâng Cao",
-      "room": "Phòng 201 / Trực Tuyến 02",
-      "studentIds": [
-        "u_std_nam"
-      ],
-      "subject": "Toán Học",
-      "tutorId": "u_tutor_linh",
-      "tutorName": "Cô Phương Linh"
     }
   ]
 }
