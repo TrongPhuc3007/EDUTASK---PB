@@ -288,5 +288,10 @@
       ],
       "username": "trongphuc"
     }
-  ]
+  ],
+  "deletedClassIds": [
+    "cls_12a1",
+    "cls_10a2"
+  ],
+  "migratedClassesTombstoneV14": true
 }
