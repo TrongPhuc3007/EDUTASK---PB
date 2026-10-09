@@ -75,11 +75,15 @@
         ]
       },
       "submissionType": "quiz",
-      "targetStudentIds": [],
+      "targetStudentIds": [
+        "u_std_quang",
+        "u_std_maianh",
+        "u_std_1791342637918"
+      ],
       "targetType": "individual",
       "title": "⚡ Đề Thi Trắc Nghiệm: 5 Câu Nguyên Hàm & Tích Phân",
       "totalPoints": 10,
-      "tutorId": "u_tutor_1791305106234",
+      "tutorId": "u_tutor",
       "type": "quiz"
     },
     {
@@ -89,11 +93,14 @@
       "classId": "cls_12a1",
       "targetType": "class",
       "targetStudentIds": [
-        "u_std_1791385736306"
+        "u_std_quang",
+        "u_std_maianh",
+        "u_std_1791385736306",
+        "u_std_1791342637918"
       ],
       "type": "quiz",
       "createdAt": "2026-10-09T01:53:25.842Z",
-      "tutorId": "u_tutor_1791305106234",
+      "tutorId": "u_tutor",
       "attachmentName": null,
       "attachmentSize": null,
       "attachmentType": null
@@ -105,11 +112,14 @@
       "classId": "cls_12a1",
       "targetType": "class",
       "targetStudentIds": [
-        "u_std_1791385736306"
+        "u_std_quang",
+        "u_std_maianh",
+        "u_std_1791385736306",
+        "u_std_1791342637918"
       ],
       "type": "quiz",
       "createdAt": "2026-10-09T01:57:10.693Z",
-      "tutorId": "u_tutor_1791305106234",
+      "tutorId": "u_tutor",
       "attachmentName": null,
       "attachmentSize": null,
       "attachmentType": null
@@ -121,11 +131,14 @@
       "classId": "cls_12a1",
       "targetType": "class",
       "targetStudentIds": [
-        "u_std_1791385736306"
+        "u_std_quang",
+        "u_std_maianh",
+        "u_std_1791385736306",
+        "u_std_1791342637918"
       ],
       "type": "quiz",
       "createdAt": "2026-10-09T01:58:08.862Z",
-      "tutorId": "u_tutor_1791305106234",
+      "tutorId": "u_tutor",
       "attachmentName": null,
       "attachmentSize": null,
       "attachmentType": null
@@ -137,11 +150,14 @@
       "classId": "cls_12a1",
       "targetType": "class",
       "targetStudentIds": [
-        "u_std_1791385736306"
+        "u_std_quang",
+        "u_std_maianh",
+        "u_std_1791385736306",
+        "u_std_1791342637918"
       ],
       "type": "quiz",
       "createdAt": "2026-10-09T01:59:16.838Z",
-      "tutorId": "u_tutor_1791305106234",
+      "tutorId": "u_tutor",
       "attachmentName": null,
       "attachmentSize": null,
       "attachmentType": null
@@ -153,11 +169,14 @@
       "classId": "cls_12a1",
       "targetType": "class",
       "targetStudentIds": [
-        "u_std_1791385736306"
+        "u_std_quang",
+        "u_std_maianh",
+        "u_std_1791385736306",
+        "u_std_1791342637918"
       ],
       "type": "quiz",
       "createdAt": "2026-10-09T01:59:51.360Z",
-      "tutorId": "u_tutor_1791305106234",
+      "tutorId": "u_tutor",
       "attachmentName": null,
       "attachmentSize": null,
       "attachmentType": null
@@ -264,9 +283,14 @@
       "grade": "Lớp 12",
       "subject": "Toán Học",
       "room": "Phòng 302 / Trực Tuyến 01",
-      "tutorId": "u_tutor_1791305106234",
-      "tutorName": "Cô Bình Bình",
-      "studentIds": [],
+      "tutorId": "u_tutor",
+      "tutorName": "Thầy Minh Đức",
+      "studentIds": [
+        "u_std_quang",
+        "u_std_maianh",
+        "u_std_1791385736306",
+        "u_std_1791342637918"
+      ],
       "createdAt": "2026-09-01T08:00:00Z",
       "announcements": [
         {
@@ -276,8 +300,7 @@
           "createdAt": "2026-10-06T08:00:00Z",
           "authorName": "Thầy Minh Đức"
         }
-      ],
-      "evaluations": []
+      ]
     },
     {
       "id": "cls_10a2",
@@ -286,9 +309,11 @@
       "grade": "Lớp 10",
       "subject": "Toán Học",
       "room": "Phòng 201 / Trực Tuyến 02",
-      "tutorId": "u_tutor_1791305106234",
-      "tutorName": "Cô Bình Bình",
-      "studentIds": [],
+      "tutorId": "u_tutor_linh",
+      "tutorName": "Cô Phương Linh",
+      "studentIds": [
+        "u_std_nam"
+      ],
       "createdAt": "2026-09-05T08:00:00Z",
       "announcements": [
         {
