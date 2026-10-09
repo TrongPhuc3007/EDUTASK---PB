@@ -85,6 +85,21 @@
       "totalPoints": 10,
       "tutorId": "u_tutor",
       "type": "quiz"
+    },
+    {
+      "id": "asn_test_1791510805842",
+      "title": "Kiểm tra 15 phút Toán - Cả Lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
+      "description": "Làm hết 10 câu trắc nghiệm",
+      "classId": "cls_12a1",
+      "targetType": "class",
+      "targetStudentIds": [
+        "u_std_quang",
+        "u_std_maianh",
+        "u_std_1791385736306",
+        "u_std_1791342637918"
+      ],
+      "type": "quiz",
+      "createdAt": "2026-10-09T01:53:25.842Z"
     }
   ],
   "deletedAssignmentIds": [
