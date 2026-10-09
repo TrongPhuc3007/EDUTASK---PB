@@ -1,92 +1,6 @@
 {
   "assignments": [
     {
-      "attachmentName": "10_Cau_Trac_Nghiem_Nguyen_Ham.pdf",
-      "attachmentSize": "560 KB",
-      "attachmentType": "pdf",
-      "createdAt": "2026-10-08T08:00",
-      "deadline": "2026-10-12T21:00",
-      "description": "Bài kiểm tra trắc nghiệm online 5 câu hỏi trọng tâm. Thời gian làm bài 15 phút, hệ thống tự động chấm điểm 10/10 ngay lập tức!",
-      "id": "asn_004",
-      "quizData": {
-        "durationMinutes": 15,
-        "mode": "detailed",
-        "questions": [
-          {
-            "correct": "A",
-            "explanation": "Áp dụng công thức: ∫(3x² + 2x)dx = 3(x³/3) + 2(x²/2) + C = x³ + x² + C.",
-            "id": 1,
-            "options": [
-              "x³ + x² + C",
-              "3x³ + 2x² + C",
-              "6x + 2 + C",
-              "x³ + 2x² + C"
-            ],
-            "text": "Họ nguyên hàm của hàm số f(x) = 3x² + 2x là:"
-          },
-          {
-            "correct": "B",
-            "explanation": "∫cos(ax)dx = (1/a)sin(ax) + C => ∫cos(2x)dx = (1/2)sin(2x) + C.",
-            "id": 2,
-            "options": [
-              "sin(2x) + C",
-              "(1/2)sin(2x) + C",
-              "-2sin(2x) + C",
-              "-(1/2)sin(2x) + C"
-            ],
-            "text": "Tìm nguyên hàm của hàm số f(x) = cos(2x):"
-          },
-          {
-            "correct": "C",
-            "explanation": "Công thức ∫e^(ax)dx = (1/a)e^(ax) + C => ∫e^(2x)dx = (1/2)e^(2x) + C.",
-            "id": 3,
-            "options": [
-              "∫f(x)dx = 2e^(2x) + C",
-              "∫f(x)dx = e^(2x) + C",
-              "∫f(x)dx = (1/2)e^(2x) + C",
-              "∫f(x)dx = e^x + C"
-            ],
-            "text": "Cho hàm số f(x) = e^(2x). Khẳng định nào sau đây đúng?"
-          },
-          {
-            "correct": "A",
-            "explanation": "Theo bảng nguyên hàm cơ bản: ∫(1/x)dx = ln|x| + C.",
-            "id": 4,
-            "options": [
-              "ln|x| + C",
-              "-1/x² + C",
-              "ln(x) + C",
-              "1/x² + C"
-            ],
-            "text": "Họ nguyên hàm của hàm số f(x) = 1/x (với x ≠ 0) là:"
-          },
-          {
-            "correct": "B",
-            "explanation": "Ta có: ∫(2x + 1)dx = [x² + x] từ 0 đến 1 = (1 + 1) - 0 = 2.",
-            "id": 5,
-            "options": [
-              "1",
-              "2",
-              "3",
-              "4"
-            ],
-            "text": "Tích phân I = ∫[0 đến 1] (2x + 1) dx có giá trị bằng:"
-          }
-        ]
-      },
-      "submissionType": "quiz",
-      "targetStudentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791342637918"
-      ],
-      "targetType": "individual",
-      "title": "⚡ Đề Thi Trắc Nghiệm: 5 Câu Nguyên Hàm & Tích Phân",
-      "totalPoints": 10,
-      "tutorId": "u_tutor",
-      "type": "quiz"
-    },
-    {
       "classId": "cls_12a1",
       "createdAt": "2026-10-09T01:53:25.842Z",
       "description": "Làm hết 10 câu trắc nghiệm",
@@ -177,35 +91,12 @@
       "attachmentType": null
     }
   ],
-  "classes": [
-    {
-      "id": "cls_10a2",
-      "code": "TOAN10A2",
-      "name": "Lớp 10A2 — Toán Học Cơ Bản & Nâng Cao",
-      "grade": "Lớp 10",
-      "subject": "Toán Học",
-      "room": "Phòng 201 / Trực Tuyến 02",
-      "tutorId": "u_tutor_linh",
-      "tutorName": "Cô Phương Linh",
-      "studentIds": [
-        "u_std_nam"
-      ],
-      "createdAt": "2026-09-05T08:00:00Z",
-      "announcements": [
-        {
-          "id": "ann_2",
-          "title": "Khởi động chuyên đề Lượng giác!",
-          "content": "Các em tải phiếu bài tập 03 về làm và nộp ảnh chụp vở viết tay trước 23h59 Chủ nhật.",
-          "createdAt": "2026-10-05T09:00:00Z",
-          "authorName": "Cô Phương Linh"
-        }
-      ]
-    }
-  ],
+  "classes": [],
   "deletedAssignmentIds": [
     "asn_001",
     "asn_002",
     "asn_003",
+    "asn_004",
     "asn_1791516254953"
   ],
   "deletedSubmissionIds": [
@@ -214,17 +105,19 @@
     "sub_1791516331056"
   ],
   "deletedUserIds": [
-    "u_std_1791361091065",
-    "u_std_1791361864132",
+    "u_tutor_1791305106234",
+    "u_std_1791385736306",
     "u_std_quang",
-    "u_std_1791342637918",
-    "u_std_nam",
     "u_std_maianh",
-    "u_std_1791383480781",
-    "u_std_1791383505191",
+    "u_std_nam",
+    "u_std_thuyduong",
+    "u_std_1791342637918",
     "u_tutor",
     "u_tutor_linh",
-    "u_std_1791385736306",
+    "u_std_1791361091065",
+    "u_std_1791361864132",
+    "u_std_1791383480781",
+    "u_std_1791383505191",
     "u_std_1791513678136",
     "u_std_1791513987435",
     "u_std_1791513970707",
@@ -256,23 +149,6 @@
     },
     {
       "accountStatus": "none",
-      "avatarText": "BB",
-      "degree": "Giáo viên dạy kèm chuyên môn",
-      "email": "",
-      "gender": "Nữ",
-      "id": "u_tutor_1791305106234",
-      "name": "Cô Bình Bình",
-      "password": "23032004",
-      "phone": "0902.704.416",
-      "role": "tutor",
-      "roleName": "Gia Sư Phụ Trách",
-      "subjects": [
-        "Toán Học THPT"
-      ],
-      "username": "binhbinh"
-    },
-    {
-      "accountStatus": "none",
       "avatarText": "TP",
       "degree": "Giáo viên dạy kèm chuyên môn",
       "email": "trongphuc10a@gmail.com",
@@ -293,5 +169,6 @@
     "cls_12a1",
     "cls_10a2"
   ],
-  "migratedClassesTombstoneV14": true
+  "migratedClassesTombstoneV14": true,
+  "migratedAdminOnlyV13": true
 }
