@@ -203,6 +203,29 @@
           "authorName": "Thầy Minh Đức"
         }
       ]
+    },
+    {
+      "id": "cls_10a2",
+      "code": "TOAN10A2",
+      "name": "Lớp 10A2 — Toán Học Cơ Bản & Nâng Cao",
+      "grade": "Lớp 10",
+      "subject": "Toán Học",
+      "room": "Phòng 201 / Trực Tuyến 02",
+      "tutorId": "u_tutor_linh",
+      "tutorName": "Cô Phương Linh",
+      "studentIds": [
+        "u_std_nam"
+      ],
+      "createdAt": "2026-09-05T08:00:00Z",
+      "announcements": [
+        {
+          "id": "ann_2",
+          "title": "Khởi động chuyên đề Lượng giác!",
+          "content": "Các em tải phiếu bài tập 03 về làm và nộp ảnh chụp vở viết tay trước 23h59 Chủ nhật.",
+          "createdAt": "2026-10-05T09:00:00Z",
+          "authorName": "Cô Phương Linh"
+        }
+      ]
     }
   ],
   "deletedAssignmentIds": [
