@@ -94,7 +94,6 @@
       "targetStudentIds": [
         "u_std_quang",
         "u_std_maianh",
-        "u_std_1791385736306",
         "u_std_1791342637918"
       ],
       "targetType": "class",
@@ -113,7 +112,6 @@
       "targetStudentIds": [
         "u_std_quang",
         "u_std_maianh",
-        "u_std_1791385736306",
         "u_std_1791342637918"
       ],
       "targetType": "class",
@@ -132,7 +130,6 @@
       "targetStudentIds": [
         "u_std_quang",
         "u_std_maianh",
-        "u_std_1791385736306",
         "u_std_1791342637918"
       ],
       "targetType": "class",
@@ -151,7 +148,6 @@
       "targetStudentIds": [
         "u_std_quang",
         "u_std_maianh",
-        "u_std_1791385736306",
         "u_std_1791342637918"
       ],
       "targetType": "class",
@@ -170,7 +166,6 @@
       "targetStudentIds": [
         "u_std_quang",
         "u_std_maianh",
-        "u_std_1791385736306",
         "u_std_1791342637918"
       ],
       "targetType": "class",
@@ -252,7 +247,8 @@
     "u_std_1791383480781",
     "u_std_1791383505191",
     "u_tutor",
-    "u_tutor_linh"
+    "u_tutor_linh",
+    "u_std_1791385736306"
   ],
   "meta": {
     "lastUpdated": "2026-10-07T14:15:00.000Z",
@@ -329,41 +325,6 @@
         "Toán Học THPT"
       ],
       "username": "binhbinh"
-    },
-    {
-      "accountCreatedAt": "2026-10-07T15:08:56.306Z",
-      "accountStatus": "active",
-      "address": "Chưa cập nhật",
-      "assignedTutorId": "u_tutor_1791305106234",
-      "assignedTutorName": "Cô Bình Bình",
-      "avatarText": "CH",
-      "currentScore": 6.5,
-      "dob": "2008-01-01",
-      "feePerSession": 250000,
-      "gender": "Nam",
-      "grade": "Lớp 12",
-      "hasAccount": true,
-      "id": "u_std_1791385736306",
-      "initialScore": 6.5,
-      "learningMode": "1 kèm 1",
-      "name": "Chương",
-      "notes": "Đăng ký tài khoản trực tuyến",
-      "parentJob": "",
-      "parentName": "Phụ huynh em Chương",
-      "parentPhone": "Chưa cập nhật",
-      "password": "123456",
-      "phone": "Chưa cập nhật",
-      "role": "student",
-      "roleName": "Học Sinh",
-      "schedule": "Theo thỏa thuận với gia sư",
-      "school": "THPT",
-      "startDate": "2026-10-07",
-      "strengths": "Chăm chỉ, sẵn sàng rèn luyện",
-      "subject": "Toán Học 12",
-      "targetScore": 9,
-      "totalSessions": 0,
-      "username": "std_chuong",
-      "weaknesses": "Cần củng cố kiến thức phương pháp"
     },
     {
       "accountCreatedAt": "2026-10-09T02:41:18.136Z",
