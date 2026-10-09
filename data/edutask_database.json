@@ -8,17 +8,19 @@
   "migratedAdminOnlyV13": true,
   "migratedClassesTombstoneV14": true,
   "deletedUserIds": [
-    "u_std_1791361091065",
-    "u_std_1791361864132",
+    "u_tutor_1791305106234",
+    "u_std_1791385736306",
     "u_std_quang",
-    "u_std_1791342637918",
-    "u_std_nam",
     "u_std_maianh",
-    "u_std_1791383480781",
-    "u_std_1791383505191",
+    "u_std_nam",
+    "u_std_thuyduong",
+    "u_std_1791342637918",
     "u_tutor",
     "u_tutor_linh",
-    "u_std_1791385736306",
+    "u_std_1791361091065",
+    "u_std_1791361864132",
+    "u_std_1791383480781",
+    "u_std_1791383505191",
     "u_std_1791513678136",
     "u_std_1791513987435",
     "u_std_1791513970707",
@@ -27,16 +29,14 @@
     "u_std_1791514102373",
     "u_std_1791514119943",
     "u_std_1791516057833",
-    "u_std_1791514559444",
-    "u_tutor_1791305106234",
-    "u_std_thuyduong"
+    "u_std_1791514559444"
   ],
   "deletedAssignmentIds": [
     "asn_001",
     "asn_002",
     "asn_003",
-    "asn_1791516254953",
-    "asn_004"
+    "asn_004",
+    "asn_1791516254953"
   ],
   "deletedSubmissionIds": [
     "sub_001",
@@ -205,32 +205,5 @@
     }
   ],
   "submissions": [],
-  "classes": [
-    {
-      "id": "cls_12a1",
-      "code": "TOAN12A1",
-      "name": "Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
-      "grade": "Lớp 12",
-      "subject": "Toán Học",
-      "room": "Phòng 302 / Trực Tuyến 01",
-      "tutorId": "u_tutor",
-      "tutorName": "Thầy Minh Đức",
-      "studentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791385736306",
-        "u_std_1791342637918"
-      ],
-      "createdAt": "2026-09-01T08:00:00Z",
-      "announcements": [
-        {
-          "id": "ann_1",
-          "title": "Chào mừng cả lớp bước vào kỳ ôn thi nước rút!",
-          "content": "Lớp chúng ta sẽ làm bài kiểm tra trắc nghiệm định kỳ vào Thứ 6 hàng tuần. Các em chú ý hoàn thành đúng hạn để thầy chấm điểm bút đỏ nhé.",
-          "createdAt": "2026-10-06T08:00:00Z",
-          "authorName": "Thầy Minh Đức"
-        }
-      ]
-    }
-  ]
+  "classes": []
 }
