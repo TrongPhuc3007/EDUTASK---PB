@@ -557,6 +557,27 @@
   "submissions": [],
   "classes": [
     {
+      "id": "cls_1791515799825",
+      "code": "LOP10A16",
+      "name": "Lớp 10A16",
+      "grade": "Lớp 10",
+      "subject": "Tin học",
+      "room": "Phòng Học Trực Tuyến",
+      "tutorId": "u_tutor_1791305106234",
+      "tutorName": "Cô Bình Bình",
+      "studentIds": [],
+      "createdAt": "2026-10-09T03:16:39.826Z",
+      "announcements": [
+        {
+          "id": "ann_1791515799825",
+          "title": "Chào mừng các em đến với Lớp 10A16!",
+          "content": "Lớp học được quản lý trên hệ thống EduTask PB. Giáo viên phụ trách: Cô Bình Bình. Chúc các em học tốt!",
+          "authorName": "Hệ thống Quản trị EduTask",
+          "createdAt": "2026-10-09T03:16:39.825Z"
+        }
+      ]
+    },
+    {
       "announcements": [
         {
           "authorName": "Thầy Minh Đức",
