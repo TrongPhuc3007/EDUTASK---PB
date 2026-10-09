@@ -199,7 +199,12 @@
       "totalPoints": 10,
       "tutorId": "u_tutor_1791515866006",
       "tutorName": "Trọng Phúc",
-      "type": "photo"
+      "type": "photo",
+      "attachmentName": null,
+      "attachmentSize": null,
+      "attachmentType": null,
+      "attachmentDataUrl": null,
+      "classId": null
     }
   ],
   "classes": [
@@ -713,7 +718,7 @@
       "strengths": "Chăm chỉ, sẵn sàng rèn luyện",
       "subject": "Toán Học 10",
       "targetScore": 9,
-      "totalSessions": 1,
+      "totalSessions": 0,
       "username": "Khưu Tú Châu",
       "weaknesses": "Cần củng cố kiến thức phương pháp"
     }
