@@ -233,6 +233,15 @@
       "updatedAt": "2026-10-09T03:17:58.697Z"
     }
   ],
+  "deletedAssignmentIds": [
+    "asn_001",
+    "asn_002",
+    "asn_003"
+  ],
+  "deletedSubmissionIds": [
+    "sub_001",
+    "sub_002"
+  ],
   "deletedUserIds": [
     "u_std_1791361091065",
     "u_std_1791361864132",
@@ -245,6 +254,11 @@
     "u_tutor",
     "u_tutor_linh"
   ],
+  "meta": {
+    "lastUpdated": "2026-10-07T14:15:00.000Z",
+    "name": "EDUTASK_PB_CENTRAL_DATABASE",
+    "version": 4
+  },
   "migratedInitialUsers": true,
   "submissions": [
     {
@@ -289,6 +303,7 @@
   ],
   "users": [
     {
+      "accountStatus": "none",
       "avatarText": "AD",
       "id": "u_admin",
       "name": "Quản Trị Hệ Thống",
@@ -296,11 +311,13 @@
       "phone": "0900.123.456",
       "role": "admin",
       "roleName": "Quản Trị Viên (Admin)",
-      "username": "admin",
-      "accountStatus": "none"
+      "username": "admin"
     },
     {
+      "accountStatus": "none",
       "avatarText": "BB",
+      "degree": "Giáo viên dạy kèm chuyên môn",
+      "email": "",
       "gender": "Nữ",
       "id": "u_tutor_1791305106234",
       "name": "Cô Bình Bình",
@@ -311,10 +328,7 @@
       "subjects": [
         "Toán Học THPT"
       ],
-      "username": "binhbinh",
-      "accountStatus": "none",
-      "degree": "Giáo viên dạy kèm chuyên môn",
-      "email": ""
+      "username": "binhbinh"
     },
     {
       "accountCreatedAt": "2026-10-07T15:08:56.306Z",
@@ -683,19 +697,5 @@
       "username": "Khưu Tú Châu",
       "weaknesses": "Cần củng cố kiến thức phương pháp"
     }
-  ],
-  "deletedAssignmentIds": [
-    "asn_001",
-    "asn_002",
-    "asn_003"
-  ],
-  "deletedSubmissionIds": [
-    "sub_001",
-    "sub_002"
-  ],
-  "meta": {
-    "lastUpdated": "2026-10-07T14:15:00.000Z",
-    "name": "EDUTASK_PB_CENTRAL_DATABASE",
-    "version": 4
-  }
+  ]
 }
