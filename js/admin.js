@@ -162,11 +162,11 @@ const AdminView = {
       if (this.filterTutor !== 'all' && std.assignedTutorId !== this.filterTutor) return false;
       if (this.filterGrade !== 'all' && std.grade !== this.filterGrade) return false;
       if (this.filterClass !== 'all') {
-        const stdClass = Store.getStudentClass(std.id);
+        const stdClasses = Store.getStudentClasses(std.id);
         if (this.filterClass === 'none') {
-          if (stdClass) return false;
+          if (stdClasses.length > 0) return false;
         } else {
-          if (!stdClass || stdClass.id !== this.filterClass) return false;
+          if (!stdClasses.some(c => c.id === this.filterClass)) return false;
         }
       }
       if (this.searchQuery) {
@@ -497,7 +497,7 @@ const AdminView = {
                 const schoolInfo = std.school ? `${std.grade} • ${std.school}` : std.grade;
                 const hasAcc = std.hasAccount === true && std.accountStatus === 'active';
                 const tutors = Store.getTutors();
-                const stdClass = Store.getStudentClass(std.id);
+                const stdClasses = Store.getStudentClasses(std.id);
 
                 return `
                   <tr>
@@ -513,12 +513,12 @@ const AdminView = {
                             TK: ${std.username || 'Chưa cấp'}
                           </div>
                           <small style="color:var(--text-muted); font-weight:600;">${schoolInfo}</small>
-                          <div style="margin-top:3px;">
-                            ${stdClass ? `
-                              <span class="badge" style="background:#e0e7ff; color:#3730a3; border:1px solid #c7d2fe; font-size:11px; font-weight:700; cursor:pointer;" onclick="AdminView.openClassGradebookModal('${stdClass.id}')" title="Bấm để xem sổ điểm lớp ${stdClass.name}">
-                                🏫 ${stdClass.name.split('—')[0].trim()}
+                          <div style="margin-top:3px; display:flex; gap:4px; flex-wrap:wrap;">
+                            ${stdClasses.length > 0 ? stdClasses.map(sc => `
+                              <span class="badge" style="background:#e0e7ff; color:#3730a3; border:1px solid #c7d2fe; font-size:11px; font-weight:700; cursor:pointer;" onclick="AdminView.openClassGradebookModal('${sc.id}')" title="Bấm để xem sổ điểm lớp ${sc.name}">
+                                🏫 ${sc.name.split('—')[0].trim()}
                               </span>
-                            ` : `
+                            `).join('') : `
                               <span class="badge" style="background:#f1f5f9; color:#64748b; font-size:11px;">
                                 Học kèm 1-1
                               </span>
@@ -1288,6 +1288,13 @@ const AdminView = {
     const targetClassId = document.getElementById('editStdClass')?.value;
     if (targetClassId) {
       Store.setStudentClass(studentId, targetClassId);
+    }
+
+    if (window.CloudSync && typeof CloudSync.pushData === 'function') {
+      CloudSync.pushData(Store.data, true);
+    }
+    if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
+      GitHubSync.pushToGitHub(Store.data, false);
     }
 
     App.closeModal('editStudentModal');
@@ -2183,24 +2190,38 @@ const AdminView = {
     const cls = Store.getClassById(targetClassId);
     if (!cls) return;
 
+    const titleEl = document.getElementById('adminAddStudentToClassModalTitle');
+    if (titleEl) titleEl.textContent = `Thêm Học Sinh Vào: ${cls.name}`;
+    const subEl = document.getElementById('adminAddStudentToClassModalSubtitle');
+    if (subEl) subEl.textContent = `Chọn học sinh để thêm vào lớp ${cls.name} (Mã: ${cls.code}):`;
+
     const allStudents = Store.getStudents();
     const currentStudentIds = Array.isArray(cls.studentIds) ? cls.studentIds : [];
     const availableStudents = allStudents.filter(s => !currentStudentIds.includes(s.id));
 
     const listEl = document.getElementById('adminAvailableStudentsForClassList');
     if (listEl) {
-      if (availableStudents.length === 0) {
+      if (allStudents.length === 0) {
         listEl.innerHTML = `
           <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:13px;">
-            ✓ Tất cả học sinh trong hệ thống đã có mặt trong lớp này!
+            Hệ thống hiện chưa có tài khoản học sinh nào! Vui lòng tạo tài khoản học sinh trước.
+          </div>
+        `;
+      } else if (availableStudents.length === 0) {
+        listEl.innerHTML = `
+          <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:13px;">
+            ✓ Tất cả ${allStudents.length} học sinh trong hệ thống đã có mặt trong lớp này!
           </div>
         `;
       } else {
         listEl.innerHTML = availableStudents.map(s => `
           <label style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:6px; background:#ffffff; border:1px solid #e2e8f0; cursor:pointer; font-size:13px;">
             <input type="checkbox" value="${s.id}" class="admin-add-cls-cb">
-            <strong>${s.name}</strong>
-            <span style="color:var(--text-muted); font-size:12px;">(${s.grade || 'Lớp 12'} • ${s.assignedTutorName || 'Gia sư'})</span>
+            <div style="flex:1;">
+              <strong>${s.name}</strong>
+              <span style="color:var(--text-muted); font-size:12px;"> (${s.grade || 'Lớp 12'} • TK: <code>${s.username || 'chưa cấp'}</code>)</span>
+              <div style="font-size:11px; color:#64748b;">Phụ trách: ${s.assignedTutorName || 'Chưa phân công'}</div>
+            </div>
           </label>
         `).join('');
       }

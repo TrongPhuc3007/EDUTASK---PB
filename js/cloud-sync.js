@@ -479,11 +479,16 @@ const CloudSync = {
         if (!ps || ps.status !== ns.status || ps.score !== ns.score || ps.submittedAt !== ns.submittedAt) return true;
       }
 
-      // Kiểm tra các lớp học phụ trách (phát hiện ngay khi có lớp bị xóa hoặc thêm mới)
+      // Kiểm tra các lớp học phụ trách (phát hiện ngay khi có lớp bị xóa hoặc thêm mới hoặc sĩ số thay đổi)
       const prevTutorClasses = (prev.classes || []).filter(c => c && !prevDelCls.has(c.id) && (c.tutorId === tutorId || c.assignedTutorId === tutorId));
       if (prevTutorClasses.length !== myClasses.length) return true;
       for (const mc of myClasses) {
-        if (!prevTutorClasses.some(pc => pc.id === mc.id)) return true;
+        const pc = prevTutorClasses.find(c => c.id === mc.id);
+        if (!pc) return true;
+        const s1 = pc.studentIds || [];
+        const s2 = mc.studentIds || [];
+        if (s1.length !== s2.length) return true;
+        if (pc.updatedAt !== mc.updatedAt) return true;
       }
 
       // Nếu không liên quan đến học sinh hoặc lớp của gia sư này -> Không re-render
@@ -510,6 +515,17 @@ const CloudSync = {
     const nc = (next.classes || []).filter(c => c && !nextDelClasses.has(c.id));
     if (pc.length !== nc.length) return true;
 
+    for (let i = 0; i < nc.length; i++) {
+      const c2 = nc[i];
+      const c1 = pc.find(c => c && c.id === c2.id);
+      if (!c1) return true;
+      if (c1.name !== c2.name || c1.tutorId !== c2.tutorId) return true;
+      const s1 = c1.studentIds || [];
+      const s2 = c2.studentIds || [];
+      if (s1.length !== s2.length) return true;
+      if (c1.updatedAt !== c2.updatedAt) return true;
+    }
+
     for (let i = 0; i < ns.length; i++) {
       const s2 = ns[i];
       const s1 = ps.find(s => s && s.id === s2.id);
@@ -520,6 +536,12 @@ const CloudSync = {
       const a2 = na[i];
       const a1 = pa.find(a => a && a.id === a2.id);
       if (!a1 || a1.title !== a2.title || a1.deadline !== a2.deadline || a1.updatedAt !== a2.updatedAt) return true;
+    }
+
+    for (let i = 0; i < nu.length; i++) {
+      const u2 = nu[i];
+      const u1 = pu.find(u => u && u.id === u2.id);
+      if (!u1 || u1.assignedTutorId !== u2.assignedTutorId || u1.name !== u2.name) return true;
     }
 
     return false;
@@ -723,7 +745,7 @@ const CloudSync = {
       } else {
         const rc = classesMap.get(lc.id);
 
-        // Hợp nhất danh sách học sinh (studentIds) với Set union
+        // Hợp nhất danh sách học sinh (studentIds)
         let mergedStudentIds = [];
         if (currentUserRole === 'student' && currentUserId) {
           const remoteOthers = (Array.isArray(rc.studentIds) ? rc.studentIds : []).filter(id => id !== currentUserId);
@@ -737,10 +759,18 @@ const CloudSync = {
             mergedStudentIds = allOthers;
           }
         } else {
-          mergedStudentIds = Array.from(new Set([
-            ...(Array.isArray(rc.studentIds) ? rc.studentIds : []),
-            ...(Array.isArray(lc.studentIds) ? lc.studentIds : [])
-          ]));
+          const lTime = lc.updatedAt || lc.createdAt || '';
+          const rTime = rc.updatedAt || rc.createdAt || '';
+          if (lTime > rTime) {
+            mergedStudentIds = Array.isArray(lc.studentIds) ? [...lc.studentIds] : [];
+          } else if (rTime > lTime) {
+            mergedStudentIds = Array.isArray(rc.studentIds) ? [...rc.studentIds] : [];
+          } else {
+            mergedStudentIds = Array.from(new Set([
+              ...(Array.isArray(rc.studentIds) ? rc.studentIds : []),
+              ...(Array.isArray(lc.studentIds) ? lc.studentIds : [])
+            ]));
+          }
         }
 
         // Hợp nhất thông báo lớp học (announcements)

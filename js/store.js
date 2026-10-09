@@ -678,7 +678,10 @@ const Store = {
   },
 
   getStudentsByTutor(tutorId) {
-    return this.getStudents().filter(s => s.assignedTutorId === tutorId);
+    if (!tutorId) return [];
+    const tutorClasses = this.getClassesByTutor(tutorId);
+    const classStudentIds = new Set(tutorClasses.flatMap(c => Array.isArray(c.studentIds) ? c.studentIds : []));
+    return this.getStudents().filter(s => s.assignedTutorId === tutorId || classStudentIds.has(s.id));
   },
 
   assignStudentTutor(studentId, tutorId) {
@@ -1109,10 +1112,12 @@ const Store = {
 
   setStudentClass(studentId, classId) {
     if (!studentId) return false;
+    const now = new Date().toISOString();
     if (Array.isArray(this.data.classes)) {
       this.data.classes.forEach(c => {
-        if (Array.isArray(c.studentIds)) {
+        if (Array.isArray(c.studentIds) && c.studentIds.includes(studentId)) {
           c.studentIds = c.studentIds.filter(id => id !== studentId);
+          c.updatedAt = now;
         }
       });
     }
@@ -1122,6 +1127,28 @@ const Store = {
         if (!Array.isArray(cls.studentIds)) cls.studentIds = [];
         if (!cls.studentIds.includes(studentId)) {
           cls.studentIds.push(studentId);
+        }
+        cls.updatedAt = now;
+
+        const std = this.getUserById(studentId);
+        if (std && cls.tutorId) {
+          if (!std.assignedTutorId || std.assignedTutorId === 'u_tutor') {
+            std.assignedTutorId = cls.tutorId;
+            std.assignedTutorName = cls.tutorName;
+          }
+          std.updatedAt = now;
+        }
+
+        // Tự động đồng bộ các bài tập đã giao cho toàn lớp để học sinh mới cũng nhận được
+        if (Array.isArray(this.data?.assignments)) {
+          this.data.assignments.forEach(asn => {
+            if (asn && asn.classId === classId) {
+              if (!Array.isArray(asn.targetStudentIds)) asn.targetStudentIds = [];
+              if (!asn.targetStudentIds.includes(studentId)) {
+                asn.targetStudentIds.push(studentId);
+              }
+            }
+          });
         }
       }
     }
@@ -1147,15 +1174,30 @@ const Store = {
       return { success: false, message: `Bạn đã tham gia lớp "${cls.name}" từ trước rồi!`, class: cls };
     }
 
+    const now = new Date().toISOString();
     cls.studentIds.push(studentId);
-    cls.updatedAt = new Date().toISOString();
+    cls.updatedAt = now;
 
     // Đồng bộ thông tin gia sư phụ trách cho học sinh
     const student = this.getUserById(studentId);
     if (student && cls.tutorId) {
-      student.assignedTutorId = cls.tutorId;
-      student.assignedTutorName = cls.tutorName;
-      student.updatedAt = new Date().toISOString();
+      if (!student.assignedTutorId || student.assignedTutorId === 'u_tutor') {
+        student.assignedTutorId = cls.tutorId;
+        student.assignedTutorName = cls.tutorName;
+      }
+      student.updatedAt = now;
+    }
+
+    // Tự động đồng bộ các bài tập đã giao cho toàn lớp để học sinh mới cũng nhận được
+    if (Array.isArray(this.data?.assignments)) {
+      this.data.assignments.forEach(asn => {
+        if (asn && asn.classId === cls.id) {
+          if (!Array.isArray(asn.targetStudentIds)) asn.targetStudentIds = [];
+          if (!asn.targetStudentIds.includes(studentId)) {
+            asn.targetStudentIds.push(studentId);
+          }
+        }
+      });
     }
 
     this.save(false, true);
@@ -1175,6 +1217,19 @@ const Store = {
     }
     cls.studentIds = cls.studentIds.filter(id => id !== studentId);
     cls.updatedAt = new Date().toISOString();
+
+    // Nếu học sinh chưa nộp bài của bài tập lớp này, loại khỏi targetStudentIds
+    if (Array.isArray(this.data?.assignments)) {
+      this.data.assignments.forEach(asn => {
+        if (asn && asn.classId === classId && Array.isArray(asn.targetStudentIds)) {
+          const sub = this.getSubmission(asn.id, studentId);
+          if (!sub) {
+            asn.targetStudentIds = asn.targetStudentIds.filter(id => id !== studentId);
+          }
+        }
+      });
+    }
+
     this.save(false, true);
     return { success: true, message: `Đã rời lớp "${cls.name}" thành công!` };
   },
@@ -1182,6 +1237,7 @@ const Store = {
   addClass(classData) {
     if (!this.data) return null;
     if (!Array.isArray(this.data.classes)) this.data.classes = [];
+    const now = new Date().toISOString();
     const newClass = {
       id: classData.id || ('cls_' + Date.now()),
       code: (classData.code || ('LOP' + Math.floor(1000 + Math.random() * 9000))).toUpperCase(),
@@ -1192,13 +1248,27 @@ const Store = {
       tutorId: classData.tutorId || 'u_tutor',
       tutorName: classData.tutorName || 'Gia Sư Phụ Trách',
       studentIds: Array.isArray(classData.studentIds) ? classData.studentIds : [],
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
       announcements: Array.isArray(classData.announcements) ? classData.announcements : []
     };
     if (Array.isArray(this.data.deletedClassIds)) {
       this.data.deletedClassIds = this.data.deletedClassIds.filter(id => id !== newClass.id);
     }
     this.data.classes.unshift(newClass);
+
+    // Đồng bộ gia sư cho các học sinh mới vào lớp nếu chưa có gia sư
+    if (newClass.studentIds.length > 0 && newClass.tutorId) {
+      newClass.studentIds.forEach(sid => {
+        const std = this.getUserById(sid);
+        if (std && (!std.assignedTutorId || std.assignedTutorId === 'u_tutor')) {
+          std.assignedTutorId = newClass.tutorId;
+          std.assignedTutorName = newClass.tutorName;
+          std.updatedAt = now;
+        }
+      });
+    }
+
     this.save(false, true);
     return newClass;
   },
@@ -1207,11 +1277,39 @@ const Store = {
     if (!this.data || !Array.isArray(this.data.classes)) return false;
     const index = this.data.classes.findIndex(c => c.id === classId);
     if (index >= 0) {
-      this.data.classes[index] = {
-        ...this.data.classes[index],
+      const now = new Date().toISOString();
+      const prevClass = this.data.classes[index];
+      const updatedClass = {
+        ...prevClass,
         ...updatedData,
-        updatedAt: new Date().toISOString()
+        updatedAt: now
       };
+      this.data.classes[index] = updatedClass;
+
+      // Đồng bộ thông tin học sinh và bài tập nếu danh sách học sinh thay đổi
+      if (Array.isArray(updatedClass.studentIds)) {
+        updatedClass.studentIds.forEach(sid => {
+          // 1. Đồng bộ gia sư
+          const std = this.getUserById(sid);
+          if (std && updatedClass.tutorId && (!std.assignedTutorId || std.assignedTutorId === 'u_tutor')) {
+            std.assignedTutorId = updatedClass.tutorId;
+            std.assignedTutorName = updatedClass.tutorName;
+            std.updatedAt = now;
+          }
+          // 2. Đồng bộ bài tập của lớp
+          if (Array.isArray(this.data.assignments)) {
+            this.data.assignments.forEach(asn => {
+              if (asn && asn.classId === classId) {
+                if (!Array.isArray(asn.targetStudentIds)) asn.targetStudentIds = [];
+                if (!asn.targetStudentIds.includes(sid)) {
+                  asn.targetStudentIds.push(sid);
+                }
+              }
+            });
+          }
+        });
+      }
+
       this.save(false, true);
       return true;
     }
@@ -1243,10 +1341,23 @@ const Store = {
     if (!cls.studentIds.includes(studentId)) {
       cls.studentIds.push(studentId);
     }
+    const now = new Date().toISOString();
+    cls.updatedAt = now;
+
+    // Đồng bộ gia sư cho học sinh nếu chưa có hoặc mặc định
+    const std = this.getUserById(studentId);
+    if (std && cls.tutorId) {
+      if (!std.assignedTutorId || std.assignedTutorId === 'u_tutor') {
+        std.assignedTutorId = cls.tutorId;
+        std.assignedTutorName = cls.tutorName;
+      }
+      std.updatedAt = now;
+    }
+
     // Tự động đồng bộ các bài tập đã giao cho toàn lớp để học sinh mới cũng nhận được
     if (Array.isArray(this.data?.assignments)) {
       this.data.assignments.forEach(asn => {
-        if (asn.classId === classId) {
+        if (asn && asn.classId === classId) {
           if (!Array.isArray(asn.targetStudentIds)) asn.targetStudentIds = [];
           if (!asn.targetStudentIds.includes(studentId)) {
             asn.targetStudentIds.push(studentId);
@@ -1262,10 +1373,12 @@ const Store = {
     const cls = this.getClassById(classId);
     if (!cls || !Array.isArray(cls.studentIds)) return false;
     cls.studentIds = cls.studentIds.filter(id => id !== studentId);
+    cls.updatedAt = new Date().toISOString();
+
     // Nếu học sinh chưa nộp bài của bài tập lớp này, loại khỏi targetStudentIds
     if (Array.isArray(this.data?.assignments)) {
       this.data.assignments.forEach(asn => {
-        if (asn.classId === classId && Array.isArray(asn.targetStudentIds)) {
+        if (asn && asn.classId === classId && Array.isArray(asn.targetStudentIds)) {
           const sub = this.getSubmission(asn.id, studentId);
           if (!sub) {
             asn.targetStudentIds = asn.targetStudentIds.filter(id => id !== studentId);

@@ -264,12 +264,18 @@ const GitHubSync = {
       if (ls.status === 'graded' && rs.status !== 'graded') return true;
     }
 
-    // 4. Kiểm tra lớp học mới
+    // 4. Kiểm tra lớp học mới hoặc thay đổi danh sách học sinh trong lớp
     const localClasses = (Array.isArray(local.classes) ? local.classes : []).filter(c => !allDelClasses.has(c.id));
     const remoteClasses = (Array.isArray(remote.classes) ? remote.classes : []).filter(c => !allDelClasses.has(c.id));
-    const remoteClassIds = new Set(remoteClasses.map(c => c.id));
+    const remoteClassMap = new Map();
+    remoteClasses.forEach(c => remoteClassMap.set(c.id, c));
     for (const c of localClasses) {
-      if (!remoteClassIds.has(c.id)) return true;
+      const rc = remoteClassMap.get(c.id);
+      if (!rc) return true;
+      const ls = c.studentIds || [];
+      const rs = rc.studentIds || [];
+      if (ls.length !== rs.length) return true;
+      if (c.updatedAt && rc.updatedAt && c.updatedAt > rc.updatedAt) return true;
     }
 
     return false;

@@ -123,21 +123,29 @@ const TutorView = {
   // ================= CÁC HÀM QUẢN LÝ LỚP HỌC (CLASSROOM EXPANSION) =================
   openCreateClassModal() {
     const user = Auth.getCurrentUser();
-    const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
     const currentTutorId = user ? user.id : '';
-    const students = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
+    const students = Store.getStudents();
+    students.sort((a, b) => {
+      const aMine = (a.assignedTutorId === currentTutorId) ? 1 : 0;
+      const bMine = (b.assignedTutorId === currentTutorId) ? 1 : 0;
+      return bMine - aMine;
+    });
 
     const container = document.getElementById('newClassStudentCheckboxes');
     if (container) {
       if (students.length === 0) {
-        container.innerHTML = '<div style="color:var(--text-muted); font-size:12.5px; text-align:center; padding:10px;">Chưa có học sinh nào.</div>';
+        container.innerHTML = '<div style="color:var(--text-muted); font-size:12.5px; text-align:center; padding:10px;">Chưa có tài khoản học sinh nào trong hệ thống.</div>';
       } else {
-        container.innerHTML = students.map(std => `
-          <label style="display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; background:#f8fafc; border:1px solid #e2e8f0; margin-bottom:4px; cursor:pointer;">
-            <input type="checkbox" name="newClassStudents" value="${std.id}">
-            <span><strong>${std.name}</strong> <small style="color:var(--text-muted);">(${std.grade})</small></span>
-          </label>
-        `).join('');
+        container.innerHTML = students.map(std => {
+          const isMine = std.assignedTutorId === currentTutorId;
+          return `
+            <label style="display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; background:${isMine ? '#eff6ff' : '#f8fafc'}; border:1px solid ${isMine ? '#bfdbfe' : '#e2e8f0'}; margin-bottom:4px; cursor:pointer;">
+              <input type="checkbox" name="newClassStudents" value="${std.id}">
+              <span style="flex:1;"><strong>${std.name}</strong> <small style="color:var(--text-muted);">(${std.grade})</small></span>
+              ${isMine ? `<span class="badge" style="background:#dbeafe; color:#1e40af; font-size:10px; padding:2px 5px;">Phụ trách</span>` : ''}
+            </label>
+          `;
+        }).join('');
       }
     }
 
@@ -182,6 +190,13 @@ const TutorView = {
       studentIds
     });
 
+    if (window.CloudSync && typeof CloudSync.pushData === 'function') {
+      CloudSync.pushData(Store.data, true);
+    }
+    if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
+      GitHubSync.pushToGitHub(Store.data, false);
+    }
+
     App.closeModal('createClassModal');
     this.selectedClassId = newCls.id;
     this.activeClassTab = 'assignments';
@@ -200,30 +215,46 @@ const TutorView = {
     if (titleEl) titleEl.textContent = `Thêm Học Sinh Vào ${cls.name}`;
 
     const user = Auth.getCurrentUser();
-    const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
     const currentTutorId = user ? user.id : '';
-    const allStudents = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
-    const existingIds = cls.studentIds || [];
+    const allStudents = Store.getStudents();
+    const existingIds = Array.isArray(cls.studentIds) ? cls.studentIds : [];
     const availableStudents = allStudents.filter(s => !existingIds.includes(s.id));
+
+    // Sắp xếp: Ưu tiên học sinh đã được phân công cho gia sư này lên đầu
+    availableStudents.sort((a, b) => {
+      const aMine = (a.assignedTutorId === currentTutorId) ? 1 : 0;
+      const bMine = (b.assignedTutorId === currentTutorId) ? 1 : 0;
+      return bMine - aMine;
+    });
 
     const container = document.getElementById('availableStudentsForClassList');
     if (container) {
-      if (availableStudents.length === 0) {
+      if (allStudents.length === 0) {
         container.innerHTML = `
           <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:13px;">
-            Tất cả học sinh trong danh sách phụ trách đều đã có mặt trong lớp này!
+            Chưa có tài khoản học sinh nào trên hệ thống. Vui lòng liên hệ Quản Trị Viên tạo học sinh.
+          </div>
+        `;
+      } else if (availableStudents.length === 0) {
+        container.innerHTML = `
+          <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:13px;">
+            ✓ Tất cả ${allStudents.length} học sinh đều đã có mặt trong lớp này!
           </div>
         `;
       } else {
-        container.innerHTML = availableStudents.map(std => `
-          <label style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:#f8fafc; border:1px solid #e2e8f0; cursor:pointer;">
-            <input type="checkbox" name="studentsToAddToClass" value="${std.id}">
-            <div>
-              <strong>${std.name}</strong> <span style="font-family:var(--font-mono); font-size:11.5px; color:var(--primary); font-weight:600;">(TK: ${std.username || 'Chưa cấp'})</span>
-              <small style="display:block; color:var(--text-muted);">${std.school || ''} • ${std.grade}</small>
-            </div>
-          </label>
-        `).join('');
+        container.innerHTML = availableStudents.map(std => {
+          const isMine = std.assignedTutorId === currentTutorId;
+          return `
+            <label style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:${isMine ? '#eff6ff' : '#f8fafc'}; border:1px solid ${isMine ? '#bfdbfe' : '#e2e8f0'}; cursor:pointer;">
+              <input type="checkbox" name="studentsToAddToClass" value="${std.id}">
+              <div style="flex:1;">
+                <strong>${std.name}</strong> <span style="font-family:var(--font-mono); font-size:11.5px; color:var(--primary); font-weight:600;">(TK: ${std.username || 'Chưa cấp'})</span>
+                <small style="display:block; color:var(--text-muted);">${std.school || ''} • ${std.grade} • Phụ trách: ${std.assignedTutorName || 'Gia sư'}</small>
+              </div>
+              ${isMine ? `<span class="badge" style="background:#dbeafe; color:#1e40af; font-size:10.5px; padding:2px 6px;">Phụ trách</span>` : ''}
+            </label>
+          `;
+        }).join('');
       }
     }
 
@@ -247,14 +278,27 @@ const TutorView = {
       Store.addStudentToClass(classId, sid);
     });
 
+    if (window.CloudSync && typeof CloudSync.pushData === 'function') {
+      CloudSync.pushData(Store.data, true);
+    }
+    if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
+      GitHubSync.pushToGitHub(Store.data, false);
+    }
+
     App.closeModal('addStudentToClassModal');
-    App.showToast(`✓ Đã thêm ${studentIds.length} học sinh vào lớp học!`, 'success');
+    App.showToast(`✓ Đã thêm ${studentIds.length} học sinh vào lớp học thành công!`, 'success');
     App.renderCurrentView();
   },
 
   removeStudentFromClass(classId, studentId, studentName) {
     if (!confirm(`Bạn có chắc muốn đưa học sinh "${studentName}" ra khỏi lớp học này?`)) return;
     Store.removeStudentFromClass(classId, studentId);
+    if (window.CloudSync && typeof CloudSync.pushData === 'function') {
+      CloudSync.pushData(Store.data, true);
+    }
+    if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
+      GitHubSync.pushToGitHub(Store.data, false);
+    }
     App.showToast(`Đã đưa học sinh "${studentName}" ra khỏi lớp!`, 'info');
     App.renderCurrentView();
   },
