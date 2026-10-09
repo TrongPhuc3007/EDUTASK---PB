@@ -180,6 +180,31 @@
       "attachmentName": null,
       "attachmentSize": null,
       "attachmentType": null
+    },
+    {
+      "id": "asn_1791516254953",
+      "title": "Infographic",
+      "description": "Sử dụng AI tạo 1 Infographic về chủ đề \"Tuần lễ học tập suốt đời\"",
+      "topic": "Chuyên đề ôn tập",
+      "difficulty": "Thông hiểu - Vận dụng",
+      "attachmentName": null,
+      "attachmentSize": null,
+      "attachmentType": null,
+      "attachmentDataUrl": null,
+      "tutorId": "u_tutor_1791515866006",
+      "tutorName": "Trọng Phúc",
+      "subject": "Tin học",
+      "targetType": "group",
+      "classId": null,
+      "targetStudentIds": [
+        "u_std_1791516057833"
+      ],
+      "deadline": "2026-10-11T14:00",
+      "createdAt": "2026-10-09T03:24:14.953Z",
+      "totalPoints": 10,
+      "status": "waiting_submission",
+      "type": "photo",
+      "submissionType": "photo"
     }
   ],
   "deletedAssignmentIds": [
