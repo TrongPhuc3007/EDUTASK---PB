@@ -552,6 +552,22 @@
       "weaknesses": "Cần củng cố kiến thức phương pháp",
       "notes": "Đăng ký tài khoản trực tuyến",
       "avatarText": "HL"
+    },
+    {
+      "id": "u_tutor_1791515866006",
+      "username": "trongphuc",
+      "password": "23032004",
+      "name": "Trọng Phúc",
+      "gender": "Nam",
+      "phone": "0704936450",
+      "email": "trongphuc10a@gmail.com",
+      "role": "tutor",
+      "roleName": "Gia Sư Phụ Trách",
+      "subjects": [
+        "Tin học"
+      ],
+      "degree": "Giáo viên dạy kèm chuyên môn",
+      "avatarText": "TP"
     }
   ],
   "submissions": [],
