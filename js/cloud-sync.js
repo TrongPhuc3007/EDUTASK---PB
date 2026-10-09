@@ -42,6 +42,7 @@ const CloudSync = {
   myDeviceId: null,
   pushTimer: null,
   lastPushedTimestamp: 0,
+  lastAppliedRemoteTimestamp: 0,
   isApplyingRemote: false,
   initialized: false,
 
@@ -299,12 +300,10 @@ const CloudSync = {
         if (payload && payload.data && Array.isArray(payload.data.users)) {
           const remoteTime = payload.lastUpdated || 0;
           const isFromOther = payload.deviceId !== this.myDeviceId;
-          const currentUsersCount = (Store.data && Store.data.users) ? Store.data.users.length : 0;
-          const remoteUsersCount = payload.data.users.length;
-          const hasDifferentUsers = remoteUsersCount !== currentUsersCount;
-
-          if (isFromOther && (remoteTime > this.lastPushedTimestamp || hasDifferentUsers)) {
+          
+          if (isFromOther && remoteTime > this.lastAppliedRemoteTimestamp && remoteTime > this.lastPushedTimestamp) {
             console.log(`[CloudSync] ⚡ Phát hiện thay đổi từ thiết bị khác (${payload.author || payload.deviceId}), nạp ngay!`);
+            this.lastAppliedRemoteTimestamp = remoteTime;
             this.applyRemoteData(payload);
           }
         }
@@ -312,14 +311,17 @@ const CloudSync = {
     } catch (e) {}
   },
 
-  // Nhịp tim đồng bộ kiểm tra thay đổi liên tục mỗi 2.5 giây
+  // Nhịp tim đồng bộ kiểm tra thay đổi liên tục
   heartbeatTimer: null,
   startHeartbeat() {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.heartbeatTimer = setInterval(() => {
       if (document.hidden) return;
+      // Khi kết nối Firebase WebSocket đang hoạt động tốt, máy chủ đã tự động gửi sự kiện tức thì qua handleRemoteSnapshot.
+      // Không cần dội REST polling liên tục để tránh dồn tải và nghẽn mạng khi nhiều máy cùng kết nối.
+      if (this.isConnected && this.syncRef) return;
       this.checkCloudChanges();
-    }, 2500);
+    }, 4500);
   },
 
   // Xử lý dữ liệu nhận về từ Firebase SDK WebSocket
@@ -340,9 +342,187 @@ const CloudSync = {
       return;
     }
 
-    // Trường hợp 3: Dữ liệu do một thiết bị khác (điện thoại hoặc máy tính khác) cập nhật!
-    console.log(`Nhận dữ liệu mới từ thiết bị: ${payload.author || payload.deviceId}`);
-    this.applyRemoteData(payload);
+    // Bỏ qua nếu dữ liệu này đã được áp dụng trước đó
+    const remoteTime = payload.lastUpdated || 0;
+    if (remoteTime > 0 && remoteTime <= this.lastAppliedRemoteTimestamp) {
+      return;
+    }
+
+    // Coalesce buffer (60ms): Khi nhiều học sinh cùng vào lớp hoặc nộp bài, Firebase phát sự kiện liên tục.
+    // Gom nhiều snapshot liên tiếp thành 1 lần xử lý duy nhất để CPU máy học sinh không bị quá tải, thao tác không bị đơ giật!
+    this.pendingRemotePayload = payload;
+    if (this.remoteApplyTimer) clearTimeout(this.remoteApplyTimer);
+    this.remoteApplyTimer = setTimeout(() => {
+      if (this.pendingRemotePayload) {
+        const p = this.pendingRemotePayload;
+        this.pendingRemotePayload = null;
+        this.applyRemoteData(p);
+      }
+    }, 60);
+  },
+
+  // So sánh dữ liệu thông minh theo vai trò và ngữ cảnh người dùng đang đăng nhập:
+  // Ngăn chặn triệt để tình trạng một học sinh/gia sư thao tác làm toàn bộ các máy khác bị giật đùng đùng!
+  hasDataChanged(prev, next) {
+    if (!prev || !next) return true;
+
+    const currentUser = (window.Auth && typeof Auth.getCurrentUser === 'function') ? Auth.getCurrentUser() : null;
+
+    // 1. Trường hợp chưa đăng nhập (đang ở cổng Gateway Login):
+    if (!currentUser || !currentUser.role) {
+      const pu = prev.users || [];
+      const nu = next.users || [];
+      // Chỉ re-render cổng khi danh sách tài khoản thay đổi (để cập nhật dropdown học sinh/gia sư)
+      if (pu.length !== nu.length) return true;
+      for (let i = 0; i < nu.length; i++) {
+        const u2 = nu[i];
+        const u1 = pu.find(u => u && u.id === u2.id);
+        if (!u1 || u1.accountStatus !== u2.accountStatus || u1.name !== u2.name) return true;
+      }
+      return false; // Tuyệt đối không re-render cổng login khi các máy khác nộp bài hoặc làm trắc nghiệm!
+    }
+
+    // 2. Trường hợp là HỌC SINH (Student):
+    if (currentUser.role === 'student') {
+      const myId = currentUser.id;
+
+      // a. Kiểm tra tài khoản bản thân có đổi không (đổi tên, trạng thái tài khoản, đổi gia sư phụ trách)
+      const prevMe = (prev.users || []).find(u => u.id === myId);
+      const nextMe = (next.users || []).find(u => u.id === myId);
+      if (!prevMe || !nextMe || prevMe.name !== nextMe.name || prevMe.assignedTutorId !== nextMe.assignedTutorId || prevMe.accountStatus !== nextMe.accountStatus) return true;
+
+      // b. Kiểm tra lớp học của học sinh này (tham gia lớp, đổi lớp, rời lớp, thông báo mới)
+      const prevClasses = (prev.classes || []).filter(c => c.studentIds && c.studentIds.includes(myId));
+      const nextClasses = (next.classes || []).filter(c => c.studentIds && c.studentIds.includes(myId));
+      if (prevClasses.length !== nextClasses.length) return true;
+      for (const nc of nextClasses) {
+        const pc = prevClasses.find(c => c.id === nc.id);
+        if (!pc) return true;
+        if (pc.name !== nc.name || pc.room !== nc.room || (pc.announcements || []).length !== (nc.announcements || []).length) return true;
+      }
+
+      // c. Kiểm tra bài tập liên quan đến học sinh này (giao riêng hoặc giao theo lớp)
+      const myClassIds = nextClasses.map(c => c.id);
+      const isMyAsn = (a) => {
+        if (!a) return false;
+        if (a.targetStudentIds && a.targetStudentIds.includes(myId)) return true;
+        if (a.classId && myClassIds.includes(a.classId)) return true;
+        return false;
+      };
+
+      const prevMyAsns = (prev.assignments || []).filter(isMyAsn);
+      const nextMyAsns = (next.assignments || []).filter(isMyAsn);
+      if (prevMyAsns.length !== nextMyAsns.length) return true;
+      for (const na of nextMyAsns) {
+        const pa = prevMyAsns.find(a => a.id === na.id);
+        if (!pa || pa.title !== na.title || pa.deadline !== na.deadline || pa.updatedAt !== na.updatedAt || pa.maxScore !== na.maxScore) return true;
+      }
+
+      // d. Kiểm tra bài nộp của CHÍNH HỌC SINH NÀY (được chấm điểm, cập nhật lời phê, đổi điểm)
+      const prevMySubs = (prev.submissions || []).filter(s => s.studentId === myId);
+      const nextMySubs = (next.submissions || []).filter(s => s.studentId === myId);
+      if (prevMySubs.length !== nextMySubs.length) return true;
+      for (const ns of nextMySubs) {
+        const ps = prevMySubs.find(s => s.id === ns.id);
+        if (!ps || ps.status !== ns.status || ps.score !== ns.score || ps.gradedAt !== ns.gradedAt || ps.tutorFeedback !== ns.tutorFeedback) return true;
+      }
+
+      // Toàn bộ dữ liệu của học sinh này không đổi -> KHÔNG RE-RENDER! (Loại bỏ 100% giật khi các bạn khác thao tác)
+      return false;
+    }
+
+    // 3. Trường hợp là PHỤ HUYNH (Parent):
+    if (currentUser.role === 'parent') {
+      const childId = currentUser.studentId;
+      if (!childId) return false;
+
+      const prevSubs = (prev.submissions || []).filter(s => s.studentId === childId);
+      const nextSubs = (next.submissions || []).filter(s => s.studentId === childId);
+      if (prevSubs.length !== nextSubs.length) return true;
+      for (const ns of nextSubs) {
+        const ps = prevSubs.find(s => s.id === ns.id);
+        if (!ps || ps.status !== ns.status || ps.score !== ns.score || ps.gradedAt !== ns.gradedAt) return true;
+      }
+      return false;
+    }
+
+    // 4. Trường hợp là GIA SƯ (Tutor):
+    if (currentUser.role === 'tutor') {
+      const tutorId = currentUser.id;
+      const prevDelCls = new Set(prev.deletedClassIds || []);
+      const nextDelCls = new Set(next.deletedClassIds || []);
+
+      // Danh sách lớp phụ trách (loại trừ các lớp đã xóa)
+      const myClasses = (next.classes || []).filter(c => c && !nextDelCls.has(c.id) && (c.tutorId === tutorId || c.assignedTutorId === tutorId));
+      const myClassIds = new Set(myClasses.map(c => c.id));
+      const myStudentIds = new Set([
+        ...(next.users || []).filter(u => u.role === 'student' && (u.assignedTutorId === tutorId || u.tutorId === tutorId)).map(u => u.id),
+        ...myClasses.flatMap(c => c.studentIds || [])
+      ]);
+
+      // Kiểm tra thay đổi sĩ số học sinh phụ trách
+      const prevStdCount = (prev.users || []).filter(u => myStudentIds.has(u.id)).length;
+      const nextStdCount = (next.users || []).filter(u => myStudentIds.has(u.id)).length;
+      if (prevStdCount !== nextStdCount) return true;
+
+      // Kiểm tra thay đổi bài tập của gia sư này hoặc lớp của gia sư này
+      const prevTutorAsns = (prev.assignments || []).filter(a => a.tutorId === tutorId || (a.classId && myClassIds.has(a.classId)));
+      const nextTutorAsns = (next.assignments || []).filter(a => a.tutorId === tutorId || (a.classId && myClassIds.has(a.classId)));
+      if (prevTutorAsns.length !== nextTutorAsns.length) return true;
+
+      // Kiểm tra bài nộp của học sinh thuộc gia sư này
+      const prevTutorSubs = (prev.submissions || []).filter(s => myStudentIds.has(s.studentId));
+      const nextTutorSubs = (next.submissions || []).filter(s => myStudentIds.has(s.studentId));
+      if (prevTutorSubs.length !== nextTutorSubs.length) return true;
+      for (const ns of nextTutorSubs) {
+        const ps = prevTutorSubs.find(s => s.id === ns.id);
+        if (!ps || ps.status !== ns.status || ps.score !== ns.score || ps.submittedAt !== ns.submittedAt) return true;
+      }
+
+      // Kiểm tra các lớp học phụ trách (phát hiện ngay khi có lớp bị xóa hoặc thêm mới)
+      const prevTutorClasses = (prev.classes || []).filter(c => c && !prevDelCls.has(c.id) && (c.tutorId === tutorId || c.assignedTutorId === tutorId));
+      if (prevTutorClasses.length !== myClasses.length) return true;
+      for (const mc of myClasses) {
+        if (!prevTutorClasses.some(pc => pc.id === mc.id)) return true;
+      }
+
+      // Nếu không liên quan đến học sinh hoặc lớp của gia sư này -> Không re-render
+      return false;
+    }
+
+    // 5. Trường hợp là ADMIN:
+    // Kiểm tra biến động tổng thể trên toàn bộ dữ liệu
+    const pu = prev.users || [];
+    const nu = next.users || [];
+    if (pu.length !== nu.length) return true;
+
+    const pa = prev.assignments || [];
+    const na = next.assignments || [];
+    if (pa.length !== na.length) return true;
+
+    const ps = prev.submissions || [];
+    const ns = next.submissions || [];
+    if (ps.length !== ns.length) return true;
+
+    const prevDelClasses = new Set(prev.deletedClassIds || []);
+    const nextDelClasses = new Set(next.deletedClassIds || []);
+    const pc = (prev.classes || []).filter(c => c && !prevDelClasses.has(c.id));
+    const nc = (next.classes || []).filter(c => c && !nextDelClasses.has(c.id));
+    if (pc.length !== nc.length) return true;
+
+    for (let i = 0; i < ns.length; i++) {
+      const s2 = ns[i];
+      const s1 = ps.find(s => s && s.id === s2.id);
+      if (!s1 || s1.status !== s2.status || s1.score !== s2.score || s1.submittedAt !== s2.submittedAt) return true;
+    }
+
+    for (let i = 0; i < na.length; i++) {
+      const a2 = na[i];
+      const a1 = pa.find(a => a && a.id === a2.id);
+      if (!a1 || a1.title !== a2.title || a1.deadline !== a2.deadline || a1.updatedAt !== a2.updatedAt) return true;
+    }
+
+    return false;
   },
 
   // Áp dụng dữ liệu từ Cloud vào Store với cơ chế Smart Merge
@@ -354,70 +534,54 @@ const CloudSync = {
         return;
       }
 
-      // Xác định các tài khoản mới xuất hiện từ thiết bị khác
-      if (remoteData && window.Store && typeof Store.healAllData === 'function') {
-        Store.healAllData(remoteData);
-      }
-      const oldUserIds = (Store.data && Store.data.users) ? Store.data.users.map(u => u.id) : [];
+      // Lưu snapshot trước khi merge để đối soát
+      const prevData = Store.data ? JSON.parse(JSON.stringify(Store.data)) : null;
+
       const mergedData = this.smartMerge(Store.data, remoteData);
       if (window.Store && typeof Store.healAllData === 'function') {
         Store.healAllData(mergedData);
       }
-      const newUsers = mergedData.users.filter(u => !oldUserIds.includes(u.id));
 
       Store.data = mergedData;
+      this.lastAppliedRemoteTimestamp = remotePayload.lastUpdated || Date.now();
 
       // Lưu vào LocalStorage (không kích hoạt push ngược lại)
-      localStorage.setItem(Store.STORAGE_KEY, JSON.stringify(Store.data));
+      try {
+        localStorage.setItem(Store.STORAGE_KEY, JSON.stringify(Store.data));
+      } catch (stErr) {
+        console.warn('Lỗi lưu localStorage sau merge:', stErr);
+      }
 
       // Làm mới session tài khoản đang đăng nhập nếu có cập nhật
       if (window.Auth && typeof Auth.refreshUserFromStore === 'function') {
         Auth.refreshUserFromStore();
       }
 
-      // BẮC CẦU TỰ ĐỘNG: Ghi bản sao lưu bền vững lên kho GitHub trung tâm (background)
-      if (window.GitHubSync && typeof GitHubSync.schedulePush === 'function') {
-        GitHubSync.schedulePush(false);
+      // Kích hoạt thông báo tương tác đa thiết bị thông minh (Gia sư <-> Học sinh)
+      if (prevData && window.App && typeof App.checkCrossDeviceNotifications === 'function') {
+        App.checkCrossDeviceNotifications(prevData, Store.data);
       }
 
-      // TỰ HOÀN THIỆN: Nếu dữ liệu cục bộ có thông tin hoặc danh sách xóa mới mà Firebase đang thiếu, đẩy ngược lại lên Cloud
-      const remoteAsnsCount = Array.isArray(remoteData.assignments) ? remoteData.assignments.length : 0;
-      const mergedAsnsCount = Array.isArray(mergedData.assignments) ? mergedData.assignments.length : 0;
-      const remoteUsersCount = Array.isArray(remoteData.users) ? remoteData.users.length : 0;
-      const mergedUsersCount = Array.isArray(mergedData.users) ? mergedData.users.length : 0;
-      const remoteDelUsersCount = Array.isArray(remoteData.deletedUserIds) ? remoteData.deletedUserIds.length : 0;
-      const mergedDelUsersCount = Array.isArray(mergedData.deletedUserIds) ? mergedData.deletedUserIds.length : 0;
-      const remoteDelAsnsCount = Array.isArray(remoteData.deletedAssignmentIds) ? remoteData.deletedAssignmentIds.length : 0;
-      const mergedDelAsnsCount = Array.isArray(mergedData.deletedAssignmentIds) ? mergedData.deletedAssignmentIds.length : 0;
+      // TUYỆT ĐỐI KHÔNG tự động đẩy ngược lên Cloud hay GitHub khi đang nhận dữ liệu từ xa!
+      // (Ngăn chặn triệt để vòng lặp bão Ping-Pong khi nhiều máy cùng đăng nhập)
 
-      if (mergedUsersCount !== remoteUsersCount || mergedAsnsCount !== remoteAsnsCount || mergedDelUsersCount !== remoteDelUsersCount || mergedDelAsnsCount !== remoteDelAsnsCount) {
-        console.log('[CloudSync] 🔄 Tự động bù đắp dữ liệu hoàn chỉnh lên Firebase...');
-        setTimeout(() => this.pushData(mergedData, true), 600);
-      }
-
-      // Cập nhật giao diện tức thì
-      const isGrader = window.Grader && Grader.activeSubmission;
-      const hasActiveModal = document.querySelector('.modal-overlay.active');
-
-      if (!isGrader && !hasActiveModal) {
-        if (window.App && typeof App.renderCurrentView === 'function') {
-          App.updateHeaderProfile();
-          App.renderCurrentView();
-        }
-      }
-
-      // Nếu người dùng đang ở cổng Học Sinh và có tài khoản mới từ thiết bị khác, tự điền tên đăng nhập
-      if (newUsers.length > 0) {
-        const firstNew = newUsers[0];
-        const uField = document.getElementById('loginUsername');
-        if (uField && !uField.value && firstNew.username) {
-          uField.value = firstNew.username;
+      // Kiểm tra xem dữ liệu có thực sự thay đổi hiển thị hay không trước khi vẽ lại giao diện
+      const hasChanged = this.hasDataChanged(prevData, Store.data);
+      if (hasChanged) {
+        if (window.App && typeof App.safeRenderCurrentView === 'function') {
+          App.safeRenderCurrentView();
         }
       }
     } catch (e) {
       console.error('Lỗi khi áp dụng dữ liệu đám mây:', e);
     } finally {
       this.isApplyingRemote = false;
+      // Nếu trong lúc áp dụng remote data, học sinh vừa thực hiện thao tác (vào lớp, nộp bài, v.v.),
+      // tiến hành đẩy ngay dữ liệu vừa merge lên Firebase để bảo toàn 100% thao tác!
+      if (this.hasQueuedPush) {
+        this.hasQueuedPush = false;
+        setTimeout(() => this.schedulePush(), 50);
+      }
     }
   },
 
@@ -441,10 +605,16 @@ const CloudSync = {
       ...(Array.isArray(local.deletedSubmissionIds) ? local.deletedSubmissionIds : []),
       ...(Array.isArray(remote.deletedSubmissionIds) ? remote.deletedSubmissionIds : [])
     ]);
+    const deletedClassIds = new Set([
+      'cls_12a1', 'cls_10a2',
+      ...(Array.isArray(local.deletedClassIds) ? local.deletedClassIds : []),
+      ...(Array.isArray(remote.deletedClassIds) ? remote.deletedClassIds : [])
+    ]);
 
     merged.deletedUserIds = Array.from(deletedUserIds);
     merged.deletedAssignmentIds = Array.from(deletedAsnIds);
     merged.deletedSubmissionIds = Array.from(deletedSubIds);
+    merged.deletedClassIds = Array.from(deletedClassIds);
 
     // 1. Hợp nhất danh sách Users (Loại trừ triệt để các tài khoản đã bị xóa)
     const localUsers = (Array.isArray(local.users) ? local.users : []).filter(u => !deletedUserIds.has(u.id));
@@ -507,45 +677,100 @@ const CloudSync = {
     });
     merged.assignments = Array.from(asnsMap.values()).filter(a => !deletedAsnIds.has(a.id));
 
-    // 3. Hợp nhất Bài Nộp (Submissions) — Ưu tiên giữ bài đã chấm điểm và nét vẽ chấm bài
+    // 3. Hợp nhất Bài Nộp (Submissions) — Khóa thông minh theo (assignmentId + studentId)
     const localSubs = (Array.isArray(local.submissions) ? local.submissions : []).filter(s => !deletedSubIds.has(s.id));
     const remoteSubs = (Array.isArray(remote.submissions) ? remote.submissions : []).filter(s => !deletedSubIds.has(s.id));
     const subsMap = new Map();
 
-    remoteSubs.forEach(s => subsMap.set(s.id, s));
+    const getSubKey = (s) => (s && s.assignmentId && s.studentId) ? `${s.assignmentId}_${s.studentId}` : (s.id || Math.random().toString());
+
+    remoteSubs.forEach(s => subsMap.set(getSubKey(s), s));
     localSubs.forEach(ls => {
-      if (!subsMap.has(ls.id)) {
-        subsMap.set(ls.id, ls);
+      const key = getSubKey(ls);
+      if (!subsMap.has(key)) {
+        subsMap.set(key, ls);
       } else {
-        const rs = subsMap.get(ls.id);
+        const rs = subsMap.get(key);
         if (ls.status === 'graded' && rs.status !== 'graded') {
-          subsMap.set(ls.id, { ...rs, ...ls });
+          subsMap.set(key, { ...rs, ...ls });
         } else if (rs.status === 'graded' && ls.status !== 'graded') {
-          subsMap.set(ls.id, { ...ls, ...rs });
+          subsMap.set(key, { ...ls, ...rs });
         } else {
           const lTime = ls.gradedAt || ls.submittedAt || ls.createdAt || '';
           const rTime = rs.gradedAt || rs.submittedAt || rs.createdAt || '';
-          subsMap.set(ls.id, lTime >= rTime ? { ...rs, ...ls } : { ...ls, ...rs });
+          subsMap.set(key, lTime >= rTime ? { ...rs, ...ls } : { ...ls, ...rs });
         }
       }
     });
     merged.submissions = Array.from(subsMap.values()).filter(s => !deletedSubIds.has(s.id));
 
-    if (window.Store && typeof Store.healAllData === 'function') {
-      Store.healAllData(merged);
-    }
+    // 4. Hợp nhất Danh mục Lớp học (Classes) — Tuyệt đối loại bỏ các lớp đã xóa & không làm mất học sinh khi nhiều em cùng vào lớp
+    const localClasses = (Array.isArray(local.classes) ? local.classes : []).filter(c => c && !deletedClassIds.has(c.id));
+    const remoteClasses = (Array.isArray(remote.classes) ? remote.classes : []).filter(c => c && !deletedClassIds.has(c.id));
+    const classesMap = new Map();
+
+    const currentUserId = (window.Auth && typeof Auth.getCurrentUser === 'function' && Auth.getCurrentUser()) ? Auth.getCurrentUser().id : null;
+    const currentUserRole = (window.Auth && typeof Auth.getCurrentUser === 'function' && Auth.getCurrentUser()) ? Auth.getCurrentUser().role : null;
+
+    remoteClasses.forEach(c => {
+      if (c && c.id && !deletedClassIds.has(c.id)) classesMap.set(c.id, { ...c });
+    });
+
+    localClasses.forEach(lc => {
+      if (!lc || !lc.id || deletedClassIds.has(lc.id)) return;
+      if (!classesMap.has(lc.id)) {
+        classesMap.set(lc.id, { ...lc });
+      } else {
+        const rc = classesMap.get(lc.id);
+
+        // Hợp nhất danh sách học sinh (studentIds) với Set union
+        let mergedStudentIds = [];
+        if (currentUserRole === 'student' && currentUserId) {
+          const remoteOthers = (Array.isArray(rc.studentIds) ? rc.studentIds : []).filter(id => id !== currentUserId);
+          const localOthers = (Array.isArray(lc.studentIds) ? lc.studentIds : []).filter(id => id !== currentUserId);
+          const allOthers = Array.from(new Set([...remoteOthers, ...localOthers]));
+
+          const localHasMe = Array.isArray(lc.studentIds) && lc.studentIds.includes(currentUserId);
+          if (localHasMe) {
+            mergedStudentIds = [...allOthers, currentUserId];
+          } else {
+            mergedStudentIds = allOthers;
+          }
+        } else {
+          mergedStudentIds = Array.from(new Set([
+            ...(Array.isArray(rc.studentIds) ? rc.studentIds : []),
+            ...(Array.isArray(lc.studentIds) ? lc.studentIds : [])
+          ]));
+        }
+
+        // Hợp nhất thông báo lớp học (announcements)
+        const annMap = new Map();
+        (Array.isArray(rc.announcements) ? rc.announcements : []).forEach(a => { if (a && a.id) annMap.set(a.id, a); });
+        (Array.isArray(lc.announcements) ? lc.announcements : []).forEach(a => { if (a && a.id) annMap.set(a.id, a); });
+
+        const baseClass = (lc.updatedAt || '') >= (rc.updatedAt || '') ? { ...rc, ...lc } : { ...lc, ...rc };
+        baseClass.studentIds = mergedStudentIds;
+        baseClass.announcements = Array.from(annMap.values());
+        classesMap.set(lc.id, baseClass);
+      }
+    });
+    merged.classes = Array.from(classesMap.values()).filter(c => c && !deletedClassIds.has(c.id));
 
     return merged;
   },
 
-  // Đẩy dữ liệu lên Cloud (Có Debounce chống dồn lệnh)
+  // Đẩy dữ liệu lên Cloud (Có Debounce chống dồn lệnh và Hàng đợi thông minh)
   schedulePush() {
-    if (!this.isConfigured || this.isApplyingRemote) return;
+    if (!this.isConfigured) return;
+    if (this.isApplyingRemote) {
+      this.hasQueuedPush = true;
+      return;
+    }
 
     if (this.pushTimer) clearTimeout(this.pushTimer);
     this.pushTimer = setTimeout(() => {
       this.pushData(Store.data);
-    }, 350);
+    }, 300);
   },
 
   // Thực hiện đẩy dữ liệu (Đa kênh: HTTP REST API độc lập + Firebase SDK WebSocket)
@@ -562,48 +787,54 @@ const CloudSync = {
       lastUpdated: Date.now(),
       deviceId: this.myDeviceId,
       author: authorName,
-      clientVersion: 4
+      clientVersion: 14
     };
 
     this.renderHeaderIndicator('syncing');
     let pushSuccess = false;
 
-    // 1. Kênh REST API trực tiếp: Đảm bảo 100% dữ liệu đến Firebase ngay lập tức cả trên mobile lẫn PC
-    try {
-      const restUrl = this.getRestUrl();
-      const res = await fetch(restUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        pushSuccess = true;
-        this.lastPushedTimestamp = payload.lastUpdated;
-        this.renderHeaderIndicator('connected');
-        console.log('[CloudSync] ⚡ Đẩy dữ liệu lên Firebase qua REST API thành công!');
-      }
-    } catch (restErr) {
-      console.warn('[CloudSync] REST push warning:', restErr);
-    }
-
-    // 2. Kênh Firebase SDK song song: Báo tức thì cho các thiết bị đang kết nối WebSocket
-    if (this.syncRef) {
+    // 1. Kênh WebSocket chính qua Firebase SDK: Nhanh nhất (0.05s), mượt mà, không dội HTTP kép
+    if (this.syncRef && this.isConnected) {
       try {
-        this.syncRef.set(payload, (error) => {
-          if (error) {
-            console.warn('[CloudSync] SDK push warning:', error);
-            if (!pushSuccess) this.renderHeaderIndicator('error');
-          } else {
-            this.lastPushedTimestamp = payload.lastUpdated;
-            this.renderHeaderIndicator('connected');
-          }
+        await new Promise((resolve) => {
+          this.syncRef.set(payload, (error) => {
+            if (error) {
+              console.warn('[CloudSync] SDK push warning, fallback REST:', error);
+              resolve(false);
+            } else {
+              pushSuccess = true;
+              this.lastPushedTimestamp = payload.lastUpdated;
+              this.renderHeaderIndicator('connected');
+              resolve(true);
+            }
+          });
         });
       } catch (sdkErr) {
-        console.warn('[CloudSync] SDK push error:', sdkErr);
+        console.warn('[CloudSync] SDK push exception:', sdkErr);
       }
     }
 
-    if (!pushSuccess && !this.syncRef) {
+    // 2. Kênh REST API trực tiếp: Kích hoạt dự phòng khi chưa kết nối WebSocket hoặc SDK có sự cố
+    if (!pushSuccess) {
+      try {
+        const restUrl = this.getRestUrl();
+        const res = await fetch(restUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          pushSuccess = true;
+          this.lastPushedTimestamp = payload.lastUpdated;
+          this.renderHeaderIndicator('connected');
+          console.log('[CloudSync] ⚡ Đẩy dữ liệu lên Firebase qua REST API thành công!');
+        }
+      } catch (restErr) {
+        console.warn('[CloudSync] REST push warning:', restErr);
+      }
+    }
+
+    if (!pushSuccess) {
       this.renderHeaderIndicator('error');
     }
 

@@ -390,8 +390,17 @@ const AdminView = {
                     </td>
                     <td style="text-align:center;">
                       <div style="display:inline-flex; gap:5px; flex-wrap:wrap; justify-content:center;">
+                        <button class="btn btn-sm btn-primary" title="Giao bài tập mới cho toàn lớp này" onclick="App.openCreateAssignmentModal(null, '${cls.id}')">
+                          ➕ Giao Bài
+                        </button>
                         <button class="btn btn-sm btn-outline" style="border-color:#10b981; color:#047857; font-weight:700;" title="Xem sổ điểm điện tử ma trận của lớp này" onclick="AdminView.openClassGradebookModal('${cls.id}')">
                           📊 Sổ Điểm
+                        </button>
+                        <button class="btn btn-sm btn-outline" style="border-color:#6366f1; color:#4338ca; font-weight:700;" title="Xem báo cáo đánh giá & nhận xét toàn lớp" onclick="AdminView.openClassEvaluationFromAdmin('${cls.id}')">
+                          📝 Đánh Giá
+                        </button>
+                        <button class="btn btn-sm btn-outline" style="border-color:#0284c7; color:#0369a1; font-weight:700;" title="Xem thống kê & ghi nhận các đợt kiểm tra của lớp" onclick="AdminView.openClassHistoryFromAdmin('${cls.id}')">
+                          📜 Lịch Sử KT
                         </button>
                         <button class="btn btn-sm btn-secondary" title="Xem danh sách học sinh và sĩ số lớp" onclick="AdminView.openClassMembersModal('${cls.id}')">
                           👥 Thành Viên
@@ -399,7 +408,7 @@ const AdminView = {
                         <button class="btn btn-sm btn-outline" title="Chỉnh sửa thông tin lớp (Tên, mã, giáo viên...)" onclick="AdminView.openEditClassModal('${cls.id}')">
                           ✏️ Sửa
                         </button>
-                        <button class="btn btn-sm btn-primary" title="Toàn quyền Admin: Chuyển ngay sang góc nhìn Bàn Gia sư phụ trách lớp này" onclick="Auth.adminSupervise('${cls.tutorId}', '${cls.id}')">
+                        <button class="btn btn-sm btn-outline" title="Toàn quyền Admin: Chuyển ngay sang góc nhìn Bàn Gia sư phụ trách lớp này" onclick="Auth.adminSupervise('${cls.tutorId}', '${cls.id}')">
                           👀 Bàn Dạy
                         </button>
                         <button class="btn btn-sm btn-danger" title="Xóa lớp học" onclick="AdminView.confirmDeleteClass('${cls.id}', '${cls.name.replace(/'/g, "\\'")}')">
@@ -754,9 +763,13 @@ const AdminView = {
     const tutorSelect = document.getElementById('stdFormAssignedTutor');
     if (tutorSelect) {
       const tutors = Store.getTutors();
-      tutorSelect.innerHTML = tutors.map(t => `
-        <option value="${t.id}">${t.name} (${t.phone || 'Gia Sư'})</option>
-      `).join('');
+      if (tutors.length === 0) {
+        tutorSelect.innerHTML = '<option value="">-- Chưa có Gia sư (Chưa phân công) --</option>';
+      } else {
+        tutorSelect.innerHTML = tutors.map(t => `
+          <option value="${t.id}">${t.name} (${t.phone || 'Gia Sư'})</option>
+        `).join('');
+      }
     }
 
     // Cập nhật danh sách lớp học
@@ -832,9 +845,9 @@ const AdminView = {
       password = (pField && pField.value.trim()) || '123456';
     }
 
-    const assignedTutorId = document.getElementById('stdFormAssignedTutor')?.value || 'u_tutor';
-    const tutor = Store.getUserById(assignedTutorId);
-    const assignedTutorName = tutor ? tutor.name : 'Thầy Minh Đức';
+    const assignedTutorId = document.getElementById('stdFormAssignedTutor')?.value || '';
+    const tutor = assignedTutorId ? Store.getUserById(assignedTutorId) : null;
+    const assignedTutorName = tutor ? tutor.name : 'Chưa phân công';
 
     const newStudent = {
       id: 'u_std_' + Date.now(),
@@ -1155,11 +1168,16 @@ const AdminView = {
     // Nạp danh sách gia sư vào dropdown
     const tutorSelect = document.getElementById('editStdAssignedTutor');
     if (tutorSelect) {
-      tutorSelect.innerHTML = Store.getTutors().map(t => `
-        <option value="${t.id}" ${t.id === std.assignedTutorId ? 'selected' : ''}>
-          ${t.name} (${t.subjects ? t.subjects.join(', ') : 'Gia Sư'})
-        </option>
-      `).join('');
+      const tutors = Store.getTutors();
+      if (tutors.length === 0) {
+        tutorSelect.innerHTML = '<option value="">-- Chưa có Gia sư (Chưa phân công) --</option>';
+      } else {
+        tutorSelect.innerHTML = tutors.map(t => `
+          <option value="${t.id}" ${t.id === std.assignedTutorId ? 'selected' : ''}>
+            ${t.name} (${t.subjects ? (Array.isArray(t.subjects) ? t.subjects.join(', ') : t.subjects) : 'Gia Sư'})
+          </option>
+        `).join('');
+      }
     }
 
     // Nạp danh sách lớp học vào dropdown
@@ -1232,9 +1250,9 @@ const AdminView = {
       return;
     }
 
-    const assignedTutorId = document.getElementById('editStdAssignedTutor')?.value || 'u_tutor';
-    const tutor = Store.getUserById(assignedTutorId);
-    const assignedTutorName = tutor ? tutor.name : 'Gia Sư Phụ Trách';
+    const assignedTutorId = document.getElementById('editStdAssignedTutor')?.value || '';
+    const tutor = assignedTutorId ? Store.getUserById(assignedTutorId) : null;
+    const assignedTutorName = tutor ? tutor.name : 'Chưa phân công';
 
     const updatedData = {
       name: name,
@@ -1370,10 +1388,10 @@ const AdminView = {
     if (confirm(`Bạn có chắc muốn THU HỒI tài khoản của học sinh "${std.name}"? Học sinh này sẽ mất quyền vào giao diện học sinh.`)) {
       Store.revokeStudentAccount(stdId);
 
-      // Nếu người dùng đang giả lập tài khoản học sinh này -> chuyển về Gia Sư
+      // Nếu người dùng đang giả lập tài khoản học sinh này -> chuyển về Bàn Admin
       const current = Auth.getCurrentUser();
       if (current && current.id === stdId) {
-        Auth.switchUser('u_tutor');
+        Auth.adminReturnToAdmin();
       }
 
       App.closeModal('manageAccountModal');
@@ -1644,31 +1662,50 @@ const AdminView = {
     const subEl = document.getElementById('adminClassModalSubtitle');
     if (subEl) subEl.textContent = 'Toàn quyền Admin: Khởi tạo lớp học, phân công giáo viên phụ trách & xếp học sinh';
 
+    const delBtn = document.getElementById('adminClassDeleteBtn');
+    if (delBtn) delBtn.style.display = 'none';
+
     // Populate tutors
     const tutorSelect = document.getElementById('adminClassTutorSelect');
     if (tutorSelect) {
       const tutors = Store.getTutors();
-      tutorSelect.innerHTML = tutors.map(t => `
-        <option value="${t.id}">${t.name} (${t.subjects ? (Array.isArray(t.subjects) ? t.subjects.join(', ') : t.subjects) : 'Gia Sư'})</option>
-      `).join('');
+      if (tutors.length === 0) {
+        tutorSelect.innerHTML = '<option value="">-- Chưa có Gia Sư --</option>';
+      } else {
+        tutorSelect.innerHTML = tutors.map(t => `
+          <option value="${t.id}">${t.name} (${t.subjects ? (Array.isArray(t.subjects) ? t.subjects.join(', ') : t.subjects) : 'Gia Sư'})</option>
+        `).join('');
+      }
     }
 
     // Populate student checkboxes
     const cbContainer = document.getElementById('adminClassStudentCheckboxes');
     if (cbContainer) {
       const students = Store.getStudents();
-      cbContainer.innerHTML = students.map(s => `
-        <label style="display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; background:#ffffff; border:1px solid #e2e8f0; margin-bottom:4px; cursor:pointer; font-size:13px;">
-          <input type="checkbox" value="${s.id}" class="admin-cls-std-cb" onchange="AdminView.updateClassStudentCountBadge()">
-          <strong>${s.name}</strong>
-          <small style="color:var(--text-muted);">(${s.grade || 'Lớp 12'} • TK: ${s.username || 'Chưa cấp'})</small>
-        </label>
-      `).join('');
+      if (students.length === 0) {
+        cbContainer.innerHTML = '<div style="padding:10px; color:var(--text-muted); font-size:13px; text-align:center;">Chưa có học sinh nào trên hệ thống.</div>';
+      } else {
+        cbContainer.innerHTML = students.map(s => `
+          <label style="display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; background:#ffffff; border:1px solid #e2e8f0; margin-bottom:4px; cursor:pointer; font-size:13px;">
+            <input type="checkbox" value="${s.id}" class="admin-cls-std-cb" onchange="AdminView.updateClassStudentCountBadge()">
+            <strong>${s.name}</strong>
+            <small style="color:var(--text-muted);">(${s.grade || 'Lớp 12'} • TK: ${s.username || 'Chưa cấp'})</small>
+          </label>
+        `).join('');
+      }
     }
     this.updateClassStudentCountBadge();
 
     const modal = document.getElementById('adminClassModal');
     if (modal) modal.classList.add('active');
+  },
+
+  deleteClassFromModal() {
+    const classId = document.getElementById('adminClassId')?.value;
+    const name = document.getElementById('adminClassName')?.value || 'Lớp học';
+    if (!classId) return;
+    App.closeModal('adminClassModal');
+    this.confirmDeleteClass(classId, name);
   },
 
   openEditClassModal(classId) {
@@ -1693,15 +1730,22 @@ const AdminView = {
     const subEl = document.getElementById('adminClassModalSubtitle');
     if (subEl) subEl.textContent = 'Cập nhật thông tin lớp, đổi giáo viên phụ trách và danh sách học sinh';
 
+    const delBtn = document.getElementById('adminClassDeleteBtn');
+    if (delBtn) delBtn.style.display = 'inline-flex';
+
     // Populate tutors
     const tutorSelect = document.getElementById('adminClassTutorSelect');
     if (tutorSelect) {
       const tutors = Store.getTutors();
-      tutorSelect.innerHTML = tutors.map(t => `
-        <option value="${t.id}" ${t.id === cls.tutorId ? 'selected' : ''}>
-          ${t.name} (${t.subjects ? (Array.isArray(t.subjects) ? t.subjects.join(', ') : t.subjects) : 'Gia Sư'})
-        </option>
-      `).join('');
+      if (tutors.length === 0) {
+        tutorSelect.innerHTML = '<option value="">-- Chưa có Gia Sư --</option>';
+      } else {
+        tutorSelect.innerHTML = tutors.map(t => `
+          <option value="${t.id}" ${t.id === cls.tutorId ? 'selected' : ''}>
+            ${t.name} (${t.subjects ? (Array.isArray(t.subjects) ? t.subjects.join(', ') : t.subjects) : 'Gia Sư'})
+          </option>
+        `).join('');
+      }
     }
 
     // Populate student checkboxes
@@ -1741,9 +1785,9 @@ const AdminView = {
     const grade = document.getElementById('adminClassGrade')?.value || 'Lớp 12';
     const subject = document.getElementById('adminClassSubject')?.value.trim() || 'Toán Học';
     const room = document.getElementById('adminClassRoom')?.value.trim() || 'Phòng Học Trực Tuyến';
-    const tutorId = document.getElementById('adminClassTutorSelect')?.value || 'u_tutor';
-    const tutor = Store.getUserById(tutorId);
-    const tutorName = tutor ? tutor.name : 'Gia Sư Phụ Trách';
+    const tutorId = document.getElementById('adminClassTutorSelect')?.value || '';
+    const tutor = tutorId ? Store.getUserById(tutorId) : null;
+    const tutorName = tutor ? tutor.name : 'Chưa phân công';
 
     if (!name) {
       App.showToast('Vui lòng nhập tên lớp học!', 'error');
@@ -1806,13 +1850,16 @@ const AdminView = {
       return;
     }
     Store.deleteClass(classId);
+    if (typeof TutorView !== 'undefined' && TutorView.selectedClassId === classId) {
+      TutorView.selectedClassId = null;
+    }
     if (window.CloudSync && typeof CloudSync.pushData === 'function') {
       CloudSync.pushData(Store.data, true);
     }
     if (window.GitHubSync && typeof GitHubSync.pushToGitHub === 'function') {
       GitHubSync.pushToGitHub(Store.data, false);
     }
-    App.showToast(`✓ Đã xóa lớp học "${className}"!`, 'info');
+    App.showToast(`✓ Đã xóa vĩnh viễn lớp học "${className}"!`, 'info');
     App.renderCurrentView();
   },
 
@@ -2228,6 +2275,45 @@ const AdminView = {
     App.showToast(`✓ Đã xếp học sinh "${std ? std.name : ''}" vào ${cls ? cls.name : 'học kèm 1-1'}!`, 'success');
     this.openStudentProfileModal(studentId);
     App.renderCurrentView();
+  },
+
+  openClassEvaluationFromAdmin(classId = null) {
+    const targetClassId = classId || this.currentGradebookClassId;
+    const cls = Store.getClassById(targetClassId);
+    if (!cls) {
+      App.showToast('Không tìm thấy lớp học!', 'error');
+      return;
+    }
+
+    App.closeModal('adminClassGradebookModal');
+    // Admin chuyển ngay sang góc nhìn Bàn Giáo Viên phụ trách lớp và mở tab Đánh Giá Toàn Lớp
+    Auth.adminSupervise(cls.tutorId, cls.id);
+    if (typeof TutorView !== 'undefined') {
+      TutorView.setClassTab('evaluation');
+    }
+  },
+
+  openClassHistoryFromAdmin(classId = null) {
+    const targetClassId = classId || this.currentGradebookClassId;
+    const cls = Store.getClassById(targetClassId);
+    if (!cls) {
+      App.showToast('Không tìm thấy lớp học!', 'error');
+      return;
+    }
+
+    App.closeModal('adminClassGradebookModal');
+    // Admin chuyển ngay sang góc nhìn Bàn Giáo Viên phụ trách lớp và mở tab Lịch Sử & Thống Kê
+    Auth.adminSupervise(cls.tutorId, cls.id);
+    if (typeof TutorView !== 'undefined') {
+      TutorView.setClassTab('history');
+    }
+  },
+
+  createAssignmentForCurrentClass() {
+    if (!this.currentGradebookClassId) return;
+    const clsId = this.currentGradebookClassId;
+    App.closeModal('adminClassGradebookModal');
+    App.openCreateAssignmentModal(null, clsId);
   }
 };
 

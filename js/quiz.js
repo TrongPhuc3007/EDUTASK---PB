@@ -1378,7 +1378,7 @@ Lời giải: Oxi được tạo ra từ phản ứng quang phân ly nước tro
     const timeSpentSeconds = Math.round((Date.now() - qz.startTime) / 1000);
 
     const submission = {
-      id: 'sub_' + Date.now(),
+      id: 'sub_' + Date.now() + '_' + student.id,
       assignmentId: qz.assignment.id,
       studentId: student.id,
       studentName: student.name,

@@ -108,6 +108,10 @@ const ThemeManager = {
     return 'winter';
   },
 
+  setTheme(settingKey, showNotification = true) {
+    return this.applyTheme(settingKey, showNotification);
+  },
+
   // Áp dụng chủ đề
   applyTheme(settingKey, showNotification = true) {
     this.currentSetting = settingKey;

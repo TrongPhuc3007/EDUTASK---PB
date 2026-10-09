@@ -107,27 +107,27 @@ const GatewayView = {
               </div>
             </div>
 
-            <!-- Khối Nổi Bật: Đăng Ký Tài Khoản Nhanh Cho Học Sinh / Gia Sư Mới -->
-            <div id="roleRegisterCtaBox" style="${this.currentRole === 'student' ? 'display:flex;' : (this.currentRole === 'tutor' ? 'display:flex;' : 'display:none;')} align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-radius:12px; ${this.currentRole === 'student' ? 'background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border:1.5px solid #10b981; box-shadow:0 4px 12px rgba(16,185,129,0.12);' : 'background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border:1.5px solid #3b82f6;'}; margin-top:-8px;">
+            <!-- Khối Nổi Bật: Đăng Ký Tài Khoản Cho Gia Sư Mới (Chỉ hiện ở cổng Gia Sư, ẩn ở cổng Học Sinh) -->
+            <div id="roleRegisterCtaBox" style="${this.currentRole === 'tutor' ? 'display:flex;' : 'display:none;'} align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-radius:12px; background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border:1.5px solid #3b82f6; margin-top:-8px;">
               <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-size:24px;">${this.currentRole === 'student' ? '🎒' : '👨‍🏫'}</span>
+                <span style="font-size:24px;">👨‍🏫</span>
                 <div>
-                  <div style="font-weight:800; font-size:13.5px; color:${this.currentRole === 'student' ? '#065f46' : '#1e40af'};" id="roleRegisterCtaTitle">
-                    ${this.currentRole === 'student' ? 'Em là Học Sinh Mới?' : 'Thầy/Cô là Gia Sư Mới?'}
+                  <div style="font-weight:800; font-size:13.5px; color:#1e40af;" id="roleRegisterCtaTitle">
+                    Thầy/Cô là Gia Sư Mới?
                   </div>
-                  <div style="font-size:12px; color:${this.currentRole === 'student' ? '#047857' : '#1d4ed8'};" id="roleRegisterCtaSub">
-                    ${this.currentRole === 'student' ? 'Chưa có tài khoản làm bài tập 1 kèm 1?' : 'Đăng ký nhận lớp và giao bài 1 kèm 1?'}
+                  <div style="font-size:12px; color:#1d4ed8;" id="roleRegisterCtaSub">
+                    Đăng ký nhận lớp và giao bài 1 kèm 1?
                   </div>
                 </div>
               </div>
               <button 
                 type="button" 
                 class="btn btn-primary btn-sm" 
-                onclick="GatewayView.openRegisterModal('${this.currentRole === 'tutor' ? 'tutor' : 'student'}')"
+                onclick="GatewayView.openRegisterModal('tutor')"
                 id="btnRoleRegisterCta"
-                style="${this.currentRole === 'student' ? 'background:#059669; border-color:#059669;' : 'background:#2563eb; border-color:#2563eb;'} font-weight:700; font-size:12.5px; padding:7px 14px; border-radius:8px; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.15); cursor:pointer;"
+                style="background:#2563eb; border-color:#2563eb; font-weight:700; font-size:12.5px; padding:7px 14px; border-radius:8px; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.15); cursor:pointer;"
               >
-                ✨ Đăng Ký Ngay
+                ✨ Đăng Ký Gia Sư
               </button>
             </div>
 
@@ -205,42 +205,25 @@ const GatewayView = {
                 <span>🔐</span> <span>ĐĂNG NHẬP VÀO HỆ THỐNG</span> <span class="submit-arrow">→</span>
               </button>
 
-              <!-- Khối Nút Tạo Tài Khoản Nổi Bật -->
-              <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+              <!-- Khối Nút Tạo Tài Khoản Nổi Bật (Chỉ hiển thị cho Gia sư, ẩn ở cổng Học Sinh) -->
+              <div id="gatewayOrDividerContainer" style="${this.currentRole === 'tutor' ? 'display:flex;' : 'display:none;'} margin-top: 14px; flex-direction: column; gap: 8px;">
                 <div style="display: flex; align-items: center; gap: 10px; color: #94a3b8; font-size: 11.5px; font-weight: 700; text-transform: uppercase;">
                   <span style="flex: 1; height: 1px; background: #e2e8f0;"></span>
-                  <span id="gatewayOrDividerText">${this.currentRole === 'student' ? 'HOẶC DÀNH CHO HỌC SINH MỚI' : (this.currentRole === 'tutor' ? 'HOẶC DÀNH CHO GIA SƯ MỚI' : 'HOẶC TẠO TÀI KHOẢN MỚI')}</span>
+                  <span id="gatewayOrDividerText">HOẶC DÀNH CHO GIA SƯ MỚI</span>
                   <span style="flex: 1; height: 1px; background: #e2e8f0;"></span>
                 </div>
                 <button 
                   type="button" 
                   id="btnQuickRegisterFromGateway"
                   class="btn" 
-                  onclick="GatewayView.openRegisterModal(GatewayView.currentRole === 'tutor' ? 'tutor' : 'student')"
-                  style="width: 100%; padding: 12px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; border: 1.5px solid ${this.currentRole === 'tutor' ? '#3b82f6' : '#10b981'}; color: ${this.currentRole === 'tutor' ? '#1e40af' : '#065f46'}; background: ${this.currentRole === 'tutor' ? '#eff6ff' : '#ecfdf5'}; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.06);"
+                  onclick="GatewayView.openRegisterModal('tutor')"
+                  style="width: 100%; padding: 12px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; border: 1.5px solid #3b82f6; color: #1e40af; background: #eff6ff; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.06);"
                 >
-                  <span>✨</span> <span id="quickRegisterBtnText">${this.currentRole === 'tutor' ? 'Tạo Tài Khoản Gia Sư Mới' : 'Tạo Tài Khoản Học Sinh Mới'}</span> <span style="font-size:16px;">→</span>
+                  <span>✨</span> <span id="quickRegisterBtnText">Tạo Tài Khoản Gia Sư Mới</span> <span style="font-size:16px;">→</span>
                 </button>
               </div>
 
             </form>
-
-            <!-- Danh sách tài khoản Học sinh đã kết nối trên Cloud -->
-            <div id="syncedAccountsBox" style="${this.currentRole === 'student' ? 'display:block;' : 'display:none;'} margin-top:14px; padding:10px 12px; background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:12px; font-size:12px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-weight:700; color:#1e293b; display:flex; align-items:center; gap:5px;">
-                  <span>👥</span> <span>Tài khoản học sinh sẵn sàng (${studentList.length}):</span>
-                </span>
-                <span style="font-size:11px; color:#059669; font-weight:700;">⚡ Chạm để điền nhanh</span>
-              </div>
-              <div style="display:flex; flex-wrap:wrap; gap:6px; max-height:95px; overflow-y:auto; padding:2px;">
-                ${studentList.map(s => `
-                  <button type="button" onclick="GatewayView.fillAccount('${s.username}', '${s.password || '123456'}')" style="background:#fff; border:1px solid #cbd5e1; border-radius:8px; padding:4px 9px; font-size:11.5px; cursor:pointer; color:#0f172a; font-weight:600; display:flex; align-items:center; gap:5px; box-shadow:0 1px 3px rgba(0,0,0,0.05); transition:all 0.15s ease;" title="Chạm để tự điền tài khoản em ${s.name}">
-                    <span>🎒</span> <span>${s.name}</span> <span style="color:#64748b; font-size:10px; font-weight:500;">(${s.username})</span>
-                  </button>
-                `).join('')}
-              </div>
-            </div>
 
             <!-- Trạng thái Đồng Bộ Tự Động 100% Không Cần Thao Tác -->
             <div style="margin-top:14px; padding:10px 14px; background:linear-gradient(135deg, #f0fdf4, #ecfdf5); border:1px solid #bbf7d0; border-radius:10px; display:flex; align-items:center; justify-content:space-between; font-size:12.5px; flex-wrap:wrap; gap:8px;">
@@ -309,35 +292,11 @@ const GatewayView = {
     }
 
     // Cập nhật banner CTA đăng ký nổi bật
+    // Cập nhật banner CTA đăng ký (Chỉ hiển thị cho Gia sư, ẩn hoàn toàn ở cổng Học sinh & Quản trị)
     const ctaBox = document.getElementById('roleRegisterCtaBox');
+    const orContainer = document.getElementById('gatewayOrDividerContainer');
     if (ctaBox) {
-      if (role === 'student') {
-        ctaBox.style.display = 'flex';
-        ctaBox.style.background = 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)';
-        ctaBox.style.borderColor = '#10b981';
-        ctaBox.style.boxShadow = '0 4px 12px rgba(16,185,129,0.12)';
-        ctaBox.innerHTML = `
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:24px;">🎒</span>
-            <div>
-              <div style="font-weight:800; font-size:13.5px; color:#065f46;" id="roleRegisterCtaTitle">
-                Em là Học Sinh Mới?
-              </div>
-              <div style="font-size:12px; color:#047857;" id="roleRegisterCtaSub">
-                Chưa có tài khoản làm bài tập 1 kèm 1?
-              </div>
-            </div>
-          </div>
-          <button 
-            type="button" 
-            class="btn btn-primary btn-sm" 
-            onclick="GatewayView.openRegisterModal('student')" 
-            style="background:#059669; border-color:#059669; font-weight:700; font-size:12.5px; padding:7px 14px; border-radius:8px; white-space:nowrap; box-shadow:0 2px 8px rgba(5,150,105,0.3); cursor:pointer;"
-          >
-            ✨ Đăng Ký Ngay
-          </button>
-        `;
-      } else if (role === 'tutor') {
+      if (role === 'tutor') {
         ctaBox.style.display = 'flex';
         ctaBox.style.background = 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)';
         ctaBox.style.borderColor = '#3b82f6';
@@ -368,40 +327,14 @@ const GatewayView = {
       }
     }
 
-    // Cập nhật nút tạo tài khoản phía dưới form
-    const orText = document.getElementById('gatewayOrDividerText');
-    const quickBtnText = document.getElementById('quickRegisterBtnText');
-    const quickBtn = document.getElementById('btnQuickRegisterFromGateway');
-    if (quickBtnText && orText && quickBtn) {
-      if (role === 'student') {
-        orText.textContent = 'HOẶC DÀNH CHO HỌC SINH MỚI';
-        quickBtnText.textContent = 'Tạo Tài Khoản Học Sinh Mới';
-        quickBtn.style.background = '#ecfdf5';
-        quickBtn.style.color = '#065f46';
-        quickBtn.style.borderColor = '#10b981';
-      } else if (role === 'tutor') {
-        orText.textContent = 'HOẶC DÀNH CHO GIA SƯ MỚI';
-        quickBtnText.textContent = 'Tạo Tài Khoản Gia Sư Mới';
-        quickBtn.style.background = '#eff6ff';
-        quickBtn.style.color = '#1e40af';
-        quickBtn.style.borderColor = '#3b82f6';
-      } else {
-        orText.textContent = 'HOẶC TẠO TÀI KHOẢN MỚI';
-        quickBtnText.textContent = 'Tạo Tài Khoản Học Sinh Mới';
-        quickBtn.style.background = '#ecfdf5';
-        quickBtn.style.color = '#065f46';
-        quickBtn.style.borderColor = '#10b981';
-      }
+    // Cập nhật nút tạo tài khoản phía dưới form (Chỉ hiển thị cho Gia sư, ẩn hoàn toàn ở cổng Học sinh)
+    if (orContainer) {
+      orContainer.style.display = (role === 'tutor') ? 'flex' : 'none';
     }
 
     const uInput = document.getElementById('loginUsername');
     if (uInput) {
       uInput.placeholder = `${info.placeholder}...`;
-    }
-
-    const syncedBox = document.getElementById('syncedAccountsBox');
-    if (syncedBox) {
-      syncedBox.style.display = role === 'student' ? 'block' : 'none';
     }
 
     this.dismissAlert();
@@ -541,9 +474,13 @@ const GatewayView = {
     const tutorSelect = document.getElementById('regStdTutorSelect');
     if (tutorSelect) {
       const tutors = Store.getTutors();
-      tutorSelect.innerHTML = tutors.map(t => `
-        <option value="${t.id}">${t.name} (${t.phone || 'Gia Sư Phụ Trách'})</option>
-      `).join('');
+      if (tutors.length === 0) {
+        tutorSelect.innerHTML = '<option value="">-- Chưa có Gia Sư (Admin phân công sau) --</option>';
+      } else {
+        tutorSelect.innerHTML = tutors.map(t => `
+          <option value="${t.id}">${t.name} (${t.phone || 'Gia Sư Phụ Trách'})</option>
+        `).join('');
+      }
     }
 
     // Reset các trường học sinh
@@ -671,9 +608,9 @@ const GatewayView = {
           username = username + Math.floor(Math.random() * 90 + 10);
         }
 
-        const tutor = Store.getUserById(tutorId) || Store.getTutors()[0];
-        const tutorIdFinal = tutor ? tutor.id : 'u_tutor';
-        const tutorNameFinal = tutor ? tutor.name : 'Thầy Minh Đức';
+        const tutor = (tutorId && Store.getUserById(tutorId)) || Store.getTutors()[0] || null;
+        const tutorIdFinal = tutor ? tutor.id : '';
+        const tutorNameFinal = tutor ? tutor.name : 'Chưa phân công';
 
         const words = name.trim().split(/\s+/).filter(Boolean);
         const avatarText = words.length > 1 
@@ -853,18 +790,6 @@ const GatewayView = {
         btn.disabled = false;
         btn.innerHTML = originalText;
       }
-    }
-  },
-
-  // Điền nhanh tài khoản học sinh đã đồng bộ
-  fillAccount(username, password) {
-    const uField = document.getElementById('loginUsername');
-    const pField = document.getElementById('loginPassword');
-    if (uField) uField.value = username;
-    if (pField && password) pField.value = password;
-    this.dismissAlert();
-    if (window.App && App.showToast) {
-      App.showToast(`Đã chọn tài khoản "${username}". Nhấn "Đăng Nhập" để vào bàn học!`, 'info');
     }
   },
 

@@ -23,8 +23,8 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230f2b5c'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z' fill='%231e40af'/%3E%3C/svg%3E">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css?v=12.3">
-  <link rel="stylesheet" href="css/canvas.css?v=12.3">
+  <link rel="stylesheet" href="css/style.css?v=14.0">
+  <link rel="stylesheet" href="css/canvas.css?v=14.0">
 
   <!-- Khởi tạo chủ đề theo mùa tức thì chống chớp nháy (Zero-FOUC) -->
   <script>
@@ -158,9 +158,20 @@
         <!-- Chọn Lớp học nhận bài (Hiện khi chọn Giao cho Lớp học) -->
         <div class="form-group" id="classPickerContainer">
           <label for="newAsnClassSelect">Chọn Lớp học nhận bài:</label>
-          <select id="newAsnClassSelect" class="form-control">
+          <select id="newAsnClassSelect" class="form-control" onchange="App.updateClassPickerInfo()">
             <!-- Dynamic class options -->
           </select>
+          <div id="classPickerInfoBox" style="margin-top:8px;"></div>
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+            <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; font-size:13px; font-weight:600; color:#1e293b;">
+              <input type="checkbox" id="newAsnAutoAnnounce" checked>
+              <span>📢 Tự động đăng thông báo bài tập mới lên Bảng tin lớp học</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; font-size:13px; font-weight:600; color:#1e293b;">
+              <input type="checkbox" id="newAsnZaloNotify" checked>
+              <span>💬 Hiện mẫu tin nhắn Zalo thông báo bài mới gửi nhóm lớp</span>
+            </label>
+          </div>
         </div>
 
         <!-- Danh sách chọn học sinh (Hiện khi chọn Giao riêng cho từng học sinh) -->
@@ -1118,6 +1129,178 @@
     </div>
   </div>
 
+  <!-- ================= MODAL: THÔNG BÁO GIAO BÀI CHO TOÀN LỚP THÀNH CÔNG (ZALO) ================= -->
+  <div class="modal-overlay" id="classAssignmentSuccessModal">
+    <div class="modal-box" style="max-width:620px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:42px; height:42px; background:linear-gradient(135deg, #10b981, #059669); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; color:white; box-shadow:0 4px 12px rgba(16,185,129,0.3);">
+            🎉
+          </div>
+          <div>
+            <h3 style="margin:0; font-size:16px;">Đã Giao Bài Tập Cho Toàn Lớp Thành Công!</h3>
+            <small style="color:var(--text-muted);" id="classAsnSuccessSubtitle">Toàn bộ học sinh trong lớp đã nhận được bài tập trên EduTask</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('classAssignmentSuccessModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:14px;">
+        <div id="classAsnSuccessSummaryCard" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 16px; font-size:13px; color:#166534; display:flex; flex-direction:column; gap:4px;">
+          <!-- Dynamically filled summary -->
+        </div>
+
+        <div>
+          <label style="font-weight:700; font-size:13px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+            <span>📱 Tin nhắn thông báo gửi nhóm Zalo Phụ huynh & Lớp học:</span>
+            <span style="font-size:11.5px; color:var(--text-muted); font-weight:normal;">Đã định dạng sẵn mẫu chuẩn</span>
+          </label>
+          <div class="zalo-preview-box" id="classAsnSuccessZaloText" style="max-height:220px; overflow-y:auto; font-size:13px; line-height:1.6; white-space:pre-wrap;"></div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button class="btn btn-outline" onclick="App.closeModal('classAssignmentSuccessModal')">Đóng</button>
+        <button class="btn btn-primary" onclick="App.copyClassAssignmentZalo()">
+          📋 Sao Chép Tin Nhắn (Dán Vào Zalo Lớp)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: TẠO & CẬP NHẬT ĐÁNH GIÁ ĐỊNH KỲ TOÀN LỚP ================= -->
+  <div class="modal-overlay" id="classEvaluationModal">
+    <div class="modal-box" style="max-width:720px; width:95vw;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:42px; height:42px; background:linear-gradient(135deg, #6366f1, #4f46e5); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; color:white; box-shadow:0 4px 12px rgba(99,102,241,0.3);">
+            📝
+          </div>
+          <div>
+            <h3 id="classEvalModalTitle" style="margin:0; font-size:16px;">Đánh Giá Tình Hình Học Tập Toàn Lớp</h3>
+            <small style="color:var(--text-muted);" id="classEvalModalSubtitle">Đánh giá định kỳ theo tuần hoặc tháng gửi báo cáo cho phụ huynh</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('classEvaluationModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:14px; max-height:75vh; overflow-y:auto;">
+        <input type="hidden" id="classEvalId">
+        <input type="hidden" id="classEvalClassId">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px; flex-wrap:wrap; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:18px;">💡</span>
+            <span style="font-size:12.5px; color:#334155;">Tự động tổng hợp số liệu điểm số và tỷ lệ làm bài của cả lớp</span>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline" onclick="TutorView.autoFillClassEvaluation()" style="font-weight:700; color:var(--primary); border-color:var(--primary);">
+            ⚡ Tự Điền Số Liệu Tự Động
+          </button>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Kỳ đánh giá <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="classEvalPeriod" class="form-control" placeholder="VD: Đánh Giá Tuần 2 - Tháng 10/2026">
+          </div>
+          <div class="form-group">
+            <label>Người đánh giá</label>
+            <input type="text" id="classEvalAuthor" class="form-control" placeholder="Tên Giáo Viên / Gia Sư">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Nhận xét chung về nề nếp, thái độ học tập và mức độ tiếp thu <span style="color:var(--danger)">*</span></label>
+          <textarea id="classEvalOverall" class="form-control" rows="3" placeholder="VD: Cả lớp duy trì nề nếp học tập rất nghiêm túc. Tỷ lệ hoàn thành bài tập về nhà đạt 95%. Đa số các em nắm chắc kiến thức cơ bản..."></textarea>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Ưu điểm nổi bật của lớp</label>
+            <textarea id="classEvalStrengths" class="form-control" rows="2" placeholder="VD: Kỹ năng tính toán chuẩn xác, tinh thần tự giác cao, tích cực trao đổi bài..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Điểm yếu & Kiến thức cần củng cố thêm</label>
+            <textarea id="classEvalWeaknesses" class="form-control" rows="2" placeholder="VD: Một số em còn lúng túng ở câu hỏi vận dụng cao có tham số m..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Kế hoạch & Phương hướng học tập thời gian tới</label>
+          <input type="text" id="classEvalActionPlan" class="form-control" placeholder="VD: Tăng cường 2 phiếu luyện tập chuyên đề Oxyz và tổ chức kiểm tra trắc nghiệm 30 phút.">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>🌟 Danh sách tuyên dương & khen thưởng (Top xuất sắc/Tiến bộ)</label>
+            <input type="text" id="classEvalCommendations" class="form-control" placeholder="VD: Nguyễn Minh Quang (9.5đ), Trần Mai Anh (Trình bày sạch đẹp)...">
+          </div>
+          <div class="form-group">
+            <label>⚠️ Học sinh cần phụ huynh phối hợp đôn đốc</label>
+            <input type="text" id="classEvalAttention" class="form-control" placeholder="VD: Nhắc nhở các bạn chưa nộp đủ bài tập về nhà hoàn thành trước 21h...">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button class="btn btn-outline" onclick="App.closeModal('classEvaluationModal')">Hủy bỏ</button>
+        <button class="btn btn-primary" onclick="TutorView.submitClassEvaluation()">
+          💾 Lưu Bản Đánh Giá Lớp
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: XEM TRƯỚC BÁO CÁO ĐÁNH GIÁ ZALO GỬI CẢ LỚP ================= -->
+  <div class="modal-overlay" id="classEvaluationZaloModal">
+    <div class="modal-box" style="max-width:650px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:42px; height:42px; background:linear-gradient(135deg, #0284c7, #0369a1); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; color:white; box-shadow:0 4px 12px rgba(2,132,199,0.3);">
+            💬
+          </div>
+          <div>
+            <h3 style="margin:0; font-size:16px;">Báo Cáo Đánh Giá Gửi Nhóm Zalo Lớp Học</h3>
+            <small style="color:var(--text-muted);">Định dạng chuẩn để dán gửi phụ huynh và học sinh toàn lớp</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('classEvaluationZaloModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:12px;">
+        <div class="zalo-preview-box" id="classEvaluationZaloPreview" style="max-height:360px; overflow-y:auto; font-size:13px; line-height:1.6; white-space:pre-wrap;"></div>
+      </div>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button class="btn btn-outline" onclick="App.closeModal('classEvaluationZaloModal')">Đóng</button>
+        <button class="btn btn-primary" onclick="TutorView.copyClassEvaluationZalo()">
+          📋 Sao Chép Báo Cáo Zalo (Gửi Nhóm Lớp)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: XEM CHI TIẾT ĐỢT KIỂM TRA & CẬP NHẬT ================= -->
+  <div class="modal-overlay" id="classTestDetailModal">
+    <div class="modal-box" style="max-width:780px; width:95vw;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:42px; height:42px; background:linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; color:white; box-shadow:0 4px 12px rgba(59,130,246,0.3);">
+            📜
+          </div>
+          <div>
+            <h3 id="classTestDetailTitle" style="margin:0; font-size:16px;">Chi Tiết Đợt Kiểm Tra & Lịch Sử Cập Nhật</h3>
+            <small style="color:var(--text-muted);" id="classTestDetailSubtitle">Ghi nhận mốc thời gian, kết quả điểm số và nội dung cập nhật</small>
+          </div>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('classTestDetailModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="gap:14px; max-height:75vh; overflow-y:auto;" id="classTestDetailContent">
+        <!-- Render động nội dung chi tiết -->
+      </div>
+      <div class="modal-footer" style="justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <button class="btn btn-outline" onclick="App.closeModal('classTestDetailModal')">Đóng</button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;" id="classTestDetailFooterActions">
+          <!-- Render động nút thao tác -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= MODAL 9: CẤP & QUẢN LÝ TÀI KHOẢN HỌC SINH (ADMIN) ================= -->
   <div class="modal-overlay" id="manageAccountModal">
     <div class="modal-box" style="max-width:540px;">
@@ -1429,11 +1612,16 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline" onclick="App.closeModal('adminClassModal')">Hủy bỏ</button>
-        <button class="btn btn-primary" onclick="AdminView.submitSaveClass()">
-          💾 Lưu Lớp Học
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+        <button type="button" class="btn btn-danger" id="adminClassDeleteBtn" style="display:none;" onclick="AdminView.deleteClassFromModal()">
+          🗑️ Xóa Lớp Này
         </button>
+        <div style="display:flex; gap:8px; margin-left:auto;">
+          <button class="btn btn-outline" onclick="App.closeModal('adminClassModal')">Hủy bỏ</button>
+          <button class="btn btn-primary" onclick="AdminView.submitSaveClass()">
+            💾 Lưu Lớp Học
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1456,11 +1644,22 @@
       <div class="modal-body" style="gap:14px; max-height:80vh; overflow-y:auto;" id="adminClassGradebookContent">
         <!-- Render động ma trận điểm từ AdminView -->
       </div>
-      <div class="modal-footer" style="justify-content:space-between;">
-        <button class="btn btn-outline btn-sm" id="adminGradebookExportBtn" onclick="AdminView.exportCurrentGradebookCSV()" style="font-weight:700; color:#047857; border-color:#10b981;">
-          📥 Tải File Excel / CSV
-        </button>
-        <button class="btn btn-primary" onclick="App.closeModal('adminClassGradebookModal')">Đóng</button>
+      <div class="modal-footer" style="justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" id="adminGradebookExportBtn" onclick="AdminView.exportCurrentGradebookCSV()" style="font-weight:700; color:#047857; border-color:#10b981;">
+            📥 Tải File Excel / CSV
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="AdminView.openClassEvaluationFromAdmin()" style="font-weight:700; color:#4338ca; border-color:#818cf8;">
+            📝 Xem Báo Cáo Đánh Giá Lớp
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="AdminView.openClassHistoryFromAdmin()" style="font-weight:700; color:#0284c7; border-color:#38bdf8;">
+            📜 Lịch Sử Đợt KT
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="AdminView.createAssignmentForCurrentClass()">
+            ➕ Giao Bài Cho Lớp Này
+          </button>
+        </div>
+        <button class="btn btn-secondary" onclick="App.closeModal('adminClassGradebookModal')">Đóng</button>
       </div>
     </div>
   </div>
@@ -2184,6 +2383,10 @@ BẢNG ĐÁP ÁN:
       <span class="mobile-nav-icon">🎯</span>
       <span class="mobile-nav-label">Mục Tiêu</span>
     </button>
+    <button class="mobile-nav-item" onclick="StudentView.openJoinClassModal()" title="Nhập mã vào lớp học">
+      <span class="mobile-nav-icon">🏫</span>
+      <span class="mobile-nav-label">Mã Lớp</span>
+    </button>
     <button class="mobile-nav-item" onclick="GitHubSync.openModal()">
       <span class="mobile-nav-icon">⚡</span>
       <span class="mobile-nav-label">Đồng Bộ</span>
@@ -2195,20 +2398,20 @@ BẢNG ĐÁP ÁN:
   </nav>
 
   <!-- JavaScript Modules -->
-  <script src="js/cloud-sync.js?v=12.2"></script>
-  <script src="js/github-sync.js?v=12.2"></script>
-  <script src="js/store.js?v=12.2"></script>
-  <script src="js/auth.js?v=12.2"></script>
-  <script src="js/gateway.js?v=12.2"></script>
-  <script src="js/anticheat.js?v=12.2"></script>
-  <script src="js/grader.js?v=12.2"></script>
-  <script src="js/admin.js?v=12.2"></script>
-  <script src="js/quiz.js?v=12.2"></script>
-  <script src="js/theme.js?v=12.3"></script>
-  <script src="js/tutor.js?v=12.2"></script>
-  <script src="js/student.js?v=12.2"></script>
-  <script src="js/parent.js?v=12.2"></script>
-  <script src="js/app.js?v=12.3"></script>
+  <script src="js/cloud-sync.js?v=14.0"></script>
+  <script src="js/github-sync.js?v=14.0"></script>
+  <script src="js/store.js?v=14.0"></script>
+  <script src="js/auth.js?v=14.0"></script>
+  <script src="js/gateway.js?v=14.0"></script>
+  <script src="js/anticheat.js?v=14.0"></script>
+  <script src="js/grader.js?v=14.0"></script>
+  <script src="js/admin.js?v=14.0"></script>
+  <script src="js/quiz.js?v=14.0"></script>
+  <script src="js/theme.js?v=14.0"></script>
+  <script src="js/tutor.js?v=14.0"></script>
+  <script src="js/student.js?v=14.0"></script>
+  <script src="js/parent.js?v=14.0"></script>
+  <script src="js/app.js?v=14.0"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
@@ -2216,21 +2419,25 @@ BẢNG ĐÁP ÁN:
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').then((reg) => {
           console.log('[PWA] ServiceWorker đã kích hoạt thành công:', reg.scope);
-          // Tự động reload khi có Service Worker phiên bản mới được cài đặt
+          try { reg.update(); } catch (e) {}
+          // Tự động reload an toàn khi có Service Worker phiên bản mới (có chống loop)
           reg.onupdatefound = () => {
             const installing = reg.installing;
             if (installing) {
               installing.onstatechange = () => {
                 if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[PWA] Đã phát hiện bản cập nhật mới v12.0! Đang làm mới trang...');
-                  window.location.reload();
+                  const lastReload = parseInt(sessionStorage.getItem('pwa_last_reload') || '0', 10);
+                  if (Date.now() - lastReload > 15000) {
+                    sessionStorage.setItem('pwa_last_reload', String(Date.now()));
+                    console.log('[PWA] Đã phát hiện bản cập nhật mới! Đang làm mới trang...');
+                    window.location.reload();
+                  } else {
+                    console.log('[PWA] Bỏ qua reload Service Worker vì vừa mới tải lại.');
+                  }
                 }
               };
             }
           };
-          if (reg && typeof reg.update === 'function') {
-            reg.update();
-          }
         }).catch((err) => {
           console.log('[PWA] ServiceWorker đăng ký (bỏ qua nếu chạy file://):', err);
         });

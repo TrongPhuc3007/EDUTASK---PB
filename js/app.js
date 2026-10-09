@@ -48,6 +48,15 @@ const App = {
   },
 
   bindGlobalEvents() {
+    // Theo dõi thao tác người dùng (cuộn, vuốt chạm, lăn chuột) để hoãn các đợt re-render nền
+    const markInteraction = () => {
+      this.lastUserInteractionTime = Date.now();
+    };
+    window.addEventListener('scroll', markInteraction, { passive: true });
+    window.addEventListener('touchstart', markInteraction, { passive: true });
+    window.addEventListener('touchmove', markInteraction, { passive: true });
+    window.addEventListener('wheel', markInteraction, { passive: true });
+
     // Lắng nghe sự kiện chuyển đổi user
     window.addEventListener('auth:user_changed', () => {
       this.updateHeaderProfile();
@@ -174,7 +183,6 @@ const App = {
     if (navEl) {
       if (isRealAdmin) {
         const isAdmActive = activeUser.role === 'admin';
-        const isTutActive = activeUser.id === 'u_tutor';
         const isStdActive = activeUser.role === 'student';
 
         navEl.innerHTML = `
@@ -226,27 +234,78 @@ const App = {
     }
   },
 
-  renderCurrentView() {
+  lastRenderedRole: null,
+  pendingRenderTimer: null,
+  lastUserInteractionTime: 0,
+
+  // Render an toàn có debounce chống giật và bảo vệ khi người dùng đang gõ bàn phím / làm bài / tương tác
+  safeRenderCurrentView(force = false) {
+    const isGrader = window.Grader && Grader.activeSubmission;
+    const hasActiveModal = document.querySelector('.modal-overlay.active');
+    const isTakingQuiz = window.Quiz && Quiz.activeQuiz && Quiz.activeQuiz.assignment;
+    const isAntiCheat = window.AntiCheat && AntiCheat.isMonitoring;
+
+    // Đang mở modal, đang chấm bài, đang làm trắc nghiệm hoặc đang thi -> Không hủy DOM giao diện
+    if (isGrader || hasActiveModal || isTakingQuiz || isAntiCheat) return;
+
+    const activeEl = document.activeElement;
+    const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
+    if (!force && isEditing) {
+      if (this.pendingRenderTimer) clearTimeout(this.pendingRenderTimer);
+      this.pendingRenderTimer = setTimeout(() => {
+        this.safeRenderCurrentView(false);
+      }, 1500);
+      return;
+    }
+
+    // Nếu người dùng vừa vuốt chạm hoặc cuộn trang trong vòng 500ms -> Hoãn lại để giữ độ mượt, chống giật
+    const timeSinceInteraction = Date.now() - this.lastUserInteractionTime;
+    if (!force && timeSinceInteraction < 500) {
+      if (this.pendingRenderTimer) clearTimeout(this.pendingRenderTimer);
+      this.pendingRenderTimer = setTimeout(() => {
+        this.safeRenderCurrentView(false);
+      }, 500);
+      return;
+    }
+
+    if (this.pendingRenderTimer) clearTimeout(this.pendingRenderTimer);
+    // Debounce 400ms: Gom nhóm tất cả các đợt đồng bộ liên tiếp từ nhiều máy cùng lúc thành 1 lần vẽ duy nhất
+    this.pendingRenderTimer = setTimeout(() => {
+      this.pendingRenderTimer = null;
+      this.updateHeaderProfile();
+      this.renderCurrentView(false);
+    }, 400);
+  },
+
+  renderCurrentView(forceScrollTop = false) {
     try {
       const container = document.getElementById('viewContainer');
       if (!container) return;
 
-      // Đảm bảo viewport cuộn về đỉnh trang khi chuyển đổi màn hình trên điện thoại
-      window.scrollTo(0, 0);
-      if (document.body) document.body.scrollTop = 0;
-      if (document.documentElement) document.documentElement.scrollTop = 0;
+      const currentScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      const prevHeight = container.offsetHeight;
+      if (prevHeight > 0) {
+        container.style.minHeight = prevHeight + 'px';
+      }
 
       if (!Auth.isAuthenticated()) {
         // Hiển thị Màn Hình 3 Cổng Đăng Nhập Phân Quyền
         GatewayView.render(container);
+        if (forceScrollTop) window.scrollTo(0, 0);
+        container.style.minHeight = '';
         return;
       }
 
       const activeUser = Auth.getCurrentUser();
       if (!activeUser) {
         GatewayView.render(container);
+        if (forceScrollTop) window.scrollTo(0, 0);
+        container.style.minHeight = '';
         return;
       }
+
+      const roleChanged = this.lastRenderedRole !== activeUser.role;
+      this.lastRenderedRole = activeUser.role;
 
       if (activeUser.role === 'admin') {
         AdminView.render(container);
@@ -257,10 +316,23 @@ const App = {
       } else if (activeUser.role === 'parent') {
         ParentView.render(container);
       }
+
+      if (forceScrollTop || roleChanged) {
+        container.style.minHeight = '';
+        window.scrollTo(0, 0);
+      } else {
+        requestAnimationFrame(() => {
+          if (currentScrollY > 0) {
+            window.scrollTo({ top: currentScrollY, behavior: 'instant' });
+          }
+          container.style.minHeight = '';
+        });
+      }
     } catch (err) {
       console.error("Lỗi khi hiển thị trang:", err);
       const container = document.getElementById('viewContainer');
       if (container) {
+        container.style.minHeight = '';
         container.innerHTML = `
           <div style="padding:40px; text-align:center; background:white; border-radius:12px; margin:20px; border:1px solid #fee2e2;">
             <h3 style="color:#dc2626;">⚠️ Đã xảy ra lỗi khi tải dữ liệu</h3>
@@ -358,11 +430,47 @@ const App = {
   // ================= MODAL: TẠO BÀI TẬP CÁ NHÂN HÓA HOẶC CẢ LỚP =================
   currentAssignmentAttachment: null,
 
+  updateClassPickerInfo() {
+    const classSelect = document.getElementById('newAsnClassSelect');
+    const infoBox = document.getElementById('classPickerInfoBox');
+    if (!classSelect || !infoBox) return;
+
+    const classId = classSelect.value;
+    const cls = Store.getClassById(classId);
+    if (!cls) {
+      infoBox.innerHTML = '';
+      return;
+    }
+
+    const students = Store.getStudentsByClass(cls.id);
+    infoBox.innerHTML = `
+      <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:10px; padding:10px 14px; font-size:12.5px; color:#4338ca; display:flex; flex-direction:column; gap:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span>🏫 <strong>Lớp:</strong> ${cls.name}</span>
+          <span class="badge" style="background:#4f46e5; color:white; font-size:11px;">Sĩ số: ${students.length} học sinh</span>
+        </div>
+        <div style="font-size:12px; color:#6d28d9;">
+          Môn học: <strong>${cls.subject || 'Toán'}</strong> • Phụ trách: <strong>${cls.tutorName || 'Gia Sư'}</strong> • Phòng: <strong>${cls.room || 'Trực tuyến'}</strong>
+        </div>
+        <div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:4px; max-height:60px; overflow-y:auto;">
+          ${students.length === 0 ? '<em style="color:#818cf8;">Lớp này chưa có học sinh nào. Hãy thêm học sinh vào lớp trước.</em>' : students.map(s => `
+            <span class="badge" style="background:#ede9fe; color:#5b21b6; font-size:11px; border:1px solid #ddd6fe;">
+              👤 ${s.name}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+
   handleTargetTypeChange(type) {
     const classContainer = document.getElementById('classPickerContainer');
     const studentContainer = document.getElementById('studentPickerContainer');
     if (classContainer) classContainer.style.display = (type === 'class') ? 'block' : 'none';
     if (studentContainer) studentContainer.style.display = (type === 'individual') ? 'block' : 'none';
+    if (type === 'class') {
+      this.updateClassPickerInfo();
+    }
   },
 
   openCreateAssignmentModal(targetStudentId = null, targetClassId = null) {
@@ -371,7 +479,7 @@ const App = {
 
     const user = Auth.getCurrentUser();
     const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
-    const currentTutorId = user ? user.id : 'u_tutor';
+    const currentTutorId = user ? user.id : '';
     const studentListContainer = document.getElementById('studentCheckboxesList');
     
     // Chỉ lấy học sinh thuộc quyền phụ trách của giáo viên này (hoặc toàn bộ nếu là Master Admin)
@@ -614,6 +722,15 @@ const App = {
     URL.revokeObjectURL(url);
   },
 
+  openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.classList.add('active');
+      return true;
+    }
+    return false;
+  },
+
   closeModal(modalId) {
     if (modalId === 'submitHomeworkModal' && window.AntiCheat && AntiCheat.isMonitoring) {
       AntiCheat.stopMonitoring();
@@ -644,7 +761,7 @@ const App = {
 
     const tutor = Auth.getCurrentUser();
     const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
-    const currentTutorId = tutor ? tutor.id : 'u_tutor';
+    const currentTutorId = tutor ? tutor.id : '';
     const availableStudents = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
 
     // Lấy danh sách học sinh được chọn
@@ -718,12 +835,115 @@ const App = {
     }
 
     Store.addAssignment(newAssignment);
+
+    // Tự động đăng thông báo lên bảng tin lớp học nếu có chọn
+    if (targetType === 'class' && classId) {
+      const shouldAnnounce = document.getElementById('newAsnAutoAnnounce')?.checked ?? true;
+      if (shouldAnnounce) {
+        const dFmt = deadline ? new Date(deadline).toLocaleString('vi-VN') : 'Sớm';
+        const typeFmt = submissionType === 'quiz' ? 'Trắc nghiệm trực tuyến' : 'Tự luận (chụp ảnh bài làm)';
+        Store.addClassAnnouncement(classId, {
+          title: `📚 Bài tập mới: ${title}`,
+          content: `Thầy/Cô vừa giao bài tập "${title}" cho toàn lớp.\n` +
+            `• Chuyên đề: ${topic}\n` +
+            `• Hình thức: ${typeFmt}\n` +
+            `• Hạn chót nộp bài: ${dFmt}\n` +
+            `👉 Các em học sinh đăng nhập vào hệ thống EduTask để làm và nộp bài đúng hạn nhé!`
+        });
+      }
+    }
+
     const attachMsg = this.currentAssignmentAttachment ? ` (có đính kèm "${this.currentAssignmentAttachment.name}")` : '';
     const quizMsg = submissionType === 'quiz' ? ` (Trắc nghiệm Online: ${newAssignment.quizData?.questions?.length || 10} câu)` : '';
     const scopeMsg = targetType === 'class' ? `lớp ${className} (${targetStudentIds.length} em)` : `${targetStudentIds.length} học sinh`;
-    this.showToast(`Đã giao bài tập thành công cho ${scopeMsg}${attachMsg}${quizMsg}!`, 'success');
+    
     this.closeModal('createAssignmentModal');
     this.renderCurrentView();
+
+    // Nếu giao cho lớp và có bật thông báo Zalo, hiển thị modal tin nhắn Zalo gửi phụ huynh / nhóm lớp
+    if (targetType === 'class' && classId) {
+      const shouldZalo = document.getElementById('newAsnZaloNotify')?.checked ?? true;
+      const targetClass = Store.getClassById(classId);
+      if (shouldZalo && targetClass) {
+        this.showClassAssignmentZaloSuccess(newAssignment, targetClass);
+        return;
+      }
+    }
+
+    this.showToast(`🎉 Đã giao bài tập thành công cho ${scopeMsg}${attachMsg}${quizMsg}!`, 'success');
+  },
+
+  showClassAssignmentZaloSuccess(asn, cls) {
+    const subtitleEl = document.getElementById('classAsnSuccessSubtitle');
+    if (subtitleEl) {
+      subtitleEl.textContent = `Toàn bộ ${(asn.targetStudentIds || []).length} học sinh trong lớp "${cls.name}" đã nhận được bài tập`;
+    }
+
+    const summaryCard = document.getElementById('classAsnSuccessSummaryCard');
+    if (summaryCard) {
+      summaryCard.innerHTML = `
+        <div style="font-weight:700; font-size:14px; color:#15803d;">
+          ✅ Đã giao bài: "${asn.title}"
+        </div>
+        <div>
+          Lớp nhận bài: <strong>${cls.name}</strong> • Sĩ số nhận: <strong>${(asn.targetStudentIds || []).length} học sinh</strong>
+        </div>
+        <div>
+          Hạn chót nộp: <strong>${asn.deadline ? new Date(asn.deadline).toLocaleString('vi-VN') : 'Không hạn'}</strong> • Hình thức: <strong>${asn.type === 'quiz' ? 'Trắc nghiệm Online' : 'Tự luận (ảnh vở viết tay)'}</strong>
+        </div>
+      `;
+    }
+
+    const dStr = asn.deadline ? new Date(asn.deadline).toLocaleString('vi-VN') : 'Sớm';
+    const typeStr = asn.type === 'quiz' ? 'Trắc nghiệm Online' : 'Tự luận (chụp ảnh vở viết tay)';
+    const attachStr = asn.attachmentName ? `\n• Tài liệu đính kèm: ${asn.attachmentName}` : '';
+
+    const zaloMessage = `📢 THÔNG BÁO GIAO BÀI TẬP VỀ NHÀ — LỚP: ${cls.name.toUpperCase()}
+Kính gửi Quý phụ huynh và các em học sinh,
+Thầy/Cô vừa giao bài tập mới trên hệ thống học tập EduTask:
+
+📚 Tên bài tập: ${asn.title}
+📌 Chuyên đề: ${asn.topic || 'Ôn tập'}
+📝 Hình thức: ${typeStr}${attachStr}
+⏰ Hạn chót nộp bài: ${dStr}
+📋 Yêu cầu: ${asn.description || 'Làm bài cẩn thận và nộp đúng hạn.'}
+
+👉 Các em đăng nhập vào hệ thống EduTask để làm bài và nộp trước thời hạn quy định.
+Chúc các em học tập hiệu quả và hoàn thành bài thật tốt!
+Trân trọng.`;
+
+    const textBox = document.getElementById('classAsnSuccessZaloText');
+    if (textBox) {
+      textBox.textContent = zaloMessage;
+    }
+
+    const modal = document.getElementById('classAssignmentSuccessModal');
+    if (modal) modal.classList.add('active');
+  },
+
+  copyClassAssignmentZalo() {
+    const textBox = document.getElementById('classAsnSuccessZaloText');
+    if (!textBox) return;
+    const text = textBox.textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.showToast('📋 Đã sao chép tin nhắn Zalo bài tập lớp! Bạn có thể dán (Ctrl+V) vào nhóm Zalo lớp ngay.', 'success');
+      }).catch(() => {
+        this.fallbackCopyText(text);
+      });
+    } else {
+      this.fallbackCopyText(text);
+    }
+  },
+
+  fallbackCopyText(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    this.showToast('📋 Đã sao chép tin nhắn Zalo thành công!', 'success');
   },
 
   // ================= MODAL: HỌC SINH NỘP BÀI (HỖ TRỢ NHIỀU TRANG) =================
@@ -883,53 +1103,60 @@ const App = {
     const student = Auth.getCurrentUser();
     if (!student) return;
 
+    if (this.isSubmittingHomework) return;
+
     if (this.currentUploadedPhotos.length === 0) {
       App.showToast('Vui lòng chụp hoặc chọn ít nhất 1 ảnh bài làm để nộp!', 'warning');
       return;
     }
 
-    // Kết thúc phiên giám sát và thu thập bằng chứng rời tab
-    let cheatData = { violationCount: 0, totalDuration: 0, logs: [] };
-    if (window.AntiCheat) {
-      cheatData = AntiCheat.stopMonitoring();
+    this.isSubmittingHomework = true;
+    try {
+      // Kết thúc phiên giám sát và thu thập bằng chứng rời tab
+      let cheatData = { violationCount: 0, totalDuration: 0, logs: [] };
+      if (window.AntiCheat) {
+        cheatData = AntiCheat.stopMonitoring();
+      }
+
+      const photos = this.currentUploadedPhotos;
+      const photoUrl = photos[0];
+      const noteInput = document.getElementById('submitHomeworkNote');
+      const note = noteInput ? noteInput.value.trim() : '';
+
+      const submission = {
+        id: 'sub_' + Date.now() + '_' + student.id,
+        assignmentId: this.currentSubmittingAssignmentId,
+        studentId: student.id,
+        studentName: student.name,
+        submittedAt: new Date().toISOString(),
+        status: 'submitted',
+        photoUrl: photoUrl,
+        photos: photos,
+        studentNote: note,
+        note: note,
+        score: null,
+        feedback: '',
+        gradedAt: null,
+        annotatedPhoto: null,
+        annotatedPhotos: [],
+        cheatCount: cheatData.violationCount,
+        cheatDuration: cheatData.totalDuration,
+        cheatLogs: cheatData.logs
+      };
+
+      Store.addSubmission(submission);
+      
+      if (cheatData.violationCount > 0) {
+        this.showToast(`Đã nộp ${photos.length} trang bài! Hệ thống ghi nhận ${cheatData.violationCount} lần rời tab (${cheatData.totalDuration}s).`, 'warning');
+      } else {
+        this.showToast(`✓ Đã nộp thành công ${photos.length} trang bài tập! Hoàn toàn trung thực (0 lần rời tab).`, 'success');
+      }
+
+      this.closeModal('submitHomeworkModal');
+      this.renderCurrentView();
+    } finally {
+      setTimeout(() => { this.isSubmittingHomework = false; }, 350);
     }
-
-    const photos = this.currentUploadedPhotos;
-    const photoUrl = photos[0];
-    const noteInput = document.getElementById('submitHomeworkNote');
-    const note = noteInput ? noteInput.value.trim() : '';
-
-    const submission = {
-      id: 'sub_' + Date.now(),
-      assignmentId: this.currentSubmittingAssignmentId,
-      studentId: student.id,
-      studentName: student.name,
-      submittedAt: new Date().toISOString(),
-      status: 'submitted',
-      photoUrl: photoUrl,
-      photos: photos,
-      studentNote: note,
-      note: note,
-      score: null,
-      feedback: '',
-      gradedAt: null,
-      annotatedPhoto: null,
-      annotatedPhotos: [],
-      cheatCount: cheatData.violationCount,
-      cheatDuration: cheatData.totalDuration,
-      cheatLogs: cheatData.logs
-    };
-
-    Store.addSubmission(submission);
-    
-    if (cheatData.violationCount > 0) {
-      this.showToast(`Đã nộp ${photos.length} trang bài! Hệ thống ghi nhận ${cheatData.violationCount} lần rời tab (${cheatData.totalDuration}s).`, 'warning');
-    } else {
-      this.showToast(`✓ Đã nộp thành công ${photos.length} trang bài tập! Hoàn toàn trung thực (0 lần rời tab).`, 'success');
-    }
-
-    this.closeModal('submitHomeworkModal');
-    this.renderCurrentView();
   },
 
   // ================= MODAL: XEM BÀI ĐÃ CHẤM (HỖ TRỢ NHIỀU TRANG) =================

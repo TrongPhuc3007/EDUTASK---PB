@@ -38,6 +38,10 @@ const Grader = {
     });
   },
 
+  openModal(submissionId) {
+    return this.open(submissionId);
+  },
+
   open(submissionId) {
     const sub = Store.data.submissions.find(s => s.id === submissionId);
     if (!sub) return;

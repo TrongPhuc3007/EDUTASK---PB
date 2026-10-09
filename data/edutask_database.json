@@ -1,136 +1,12 @@
 {
-  "assignments": [
-    {
-      "classId": "cls_12a1",
-      "createdAt": "2026-10-09T01:53:25.842Z",
-      "description": "Làm hết 10 câu trắc nghiệm",
-      "id": "asn_test_1791510805842",
-      "targetStudentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791342637918"
-      ],
-      "targetType": "class",
-      "title": "Kiểm tra 15 phút Toán - Cả Lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
-      "tutorId": "u_tutor",
-      "type": "quiz",
-      "attachmentName": null,
-      "attachmentSize": null,
-      "attachmentType": null
-    },
-    {
-      "classId": "cls_12a1",
-      "createdAt": "2026-10-09T01:57:10.693Z",
-      "description": "Làm hết 10 câu trắc nghiệm",
-      "id": "asn_test_1791511030693",
-      "targetStudentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791342637918"
-      ],
-      "targetType": "class",
-      "title": "Kiểm tra 15 phút Toán - Cả Lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
-      "tutorId": "u_tutor",
-      "type": "quiz",
-      "attachmentName": null,
-      "attachmentSize": null,
-      "attachmentType": null
-    },
-    {
-      "classId": "cls_12a1",
-      "createdAt": "2026-10-09T01:58:08.862Z",
-      "description": "Làm hết 10 câu trắc nghiệm",
-      "id": "asn_test_1791511088862",
-      "targetStudentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791342637918"
-      ],
-      "targetType": "class",
-      "title": "Kiểm tra 15 phút Toán - Cả Lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
-      "tutorId": "u_tutor",
-      "type": "quiz",
-      "attachmentName": null,
-      "attachmentSize": null,
-      "attachmentType": null
-    },
-    {
-      "classId": "cls_12a1",
-      "createdAt": "2026-10-09T01:59:16.838Z",
-      "description": "Làm hết 10 câu trắc nghiệm",
-      "id": "asn_test_1791511156838",
-      "targetStudentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791342637918"
-      ],
-      "targetType": "class",
-      "title": "Kiểm tra 15 phút Toán - Cả Lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
-      "tutorId": "u_tutor",
-      "type": "quiz",
-      "attachmentName": null,
-      "attachmentSize": null,
-      "attachmentType": null
-    },
-    {
-      "classId": "cls_12a1",
-      "createdAt": "2026-10-09T01:59:51.360Z",
-      "description": "Làm hết 10 câu trắc nghiệm",
-      "id": "asn_test_1791511191360",
-      "targetStudentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791342637918"
-      ],
-      "targetType": "class",
-      "title": "Kiểm tra 15 phút Toán - Cả Lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
-      "tutorId": "u_tutor",
-      "type": "quiz",
-      "attachmentName": null,
-      "attachmentSize": null,
-      "attachmentType": null
-    }
-  ],
-  "classes": [
-    {
-      "id": "cls_12a1",
-      "code": "TOAN12A1",
-      "name": "Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
-      "grade": "Lớp 12",
-      "subject": "Toán Học",
-      "room": "Phòng 302 / Trực Tuyến 01",
-      "tutorId": "u_tutor",
-      "tutorName": "Thầy Minh Đức",
-      "studentIds": [
-        "u_std_quang",
-        "u_std_maianh",
-        "u_std_1791385736306",
-        "u_std_1791342637918"
-      ],
-      "createdAt": "2026-09-01T08:00:00Z",
-      "announcements": [
-        {
-          "id": "ann_1",
-          "title": "Chào mừng cả lớp bước vào kỳ ôn thi nước rút!",
-          "content": "Lớp chúng ta sẽ làm bài kiểm tra trắc nghiệm định kỳ vào Thứ 6 hàng tuần. Các em chú ý hoàn thành đúng hạn để thầy chấm điểm bút đỏ nhé.",
-          "createdAt": "2026-10-06T08:00:00Z",
-          "authorName": "Thầy Minh Đức"
-        }
-      ]
-    }
-  ],
-  "deletedAssignmentIds": [
-    "asn_001",
-    "asn_002",
-    "asn_003",
-    "asn_1791516254953",
-    "asn_004"
-  ],
-  "deletedSubmissionIds": [
-    "sub_001",
-    "sub_002",
-    "sub_1791516331056"
-  ],
+  "meta": {
+    "lastUpdated": "2026-10-09T08:00:00.000Z",
+    "name": "EDUTASK_PB_CENTRAL_DATABASE",
+    "version": 14
+  },
+  "migratedInitialUsers": true,
+  "migratedAdminOnlyV13": true,
+  "migratedClassesTombstoneV14": true,
   "deletedUserIds": [
     "u_std_1791361091065",
     "u_std_1791361864132",
@@ -155,13 +31,22 @@
     "u_tutor_1791305106234",
     "u_std_thuyduong"
   ],
-  "meta": {
-    "lastUpdated": "2026-10-07T14:15:00.000Z",
-    "name": "EDUTASK_PB_CENTRAL_DATABASE",
-    "version": 4
-  },
-  "migratedInitialUsers": true,
-  "submissions": [],
+  "deletedAssignmentIds": [
+    "asn_001",
+    "asn_002",
+    "asn_003",
+    "asn_004",
+    "asn_1791516254953"
+  ],
+  "deletedSubmissionIds": [
+    "sub_001",
+    "sub_002",
+    "sub_1791516331056"
+  ],
+  "deletedClassIds": [
+    "cls_12a1",
+    "cls_10a2"
+  ],
   "users": [
     {
       "accountStatus": "none",
@@ -192,10 +77,7 @@
       "username": "trongphuc"
     }
   ],
-  "deletedClassIds": [
-    "cls_12a1",
-    "cls_10a2"
-  ],
-  "migratedClassesTombstoneV14": true,
-  "migratedAdminOnlyV13": true
+  "assignments": [],
+  "submissions": [],
+  "classes": []
 }

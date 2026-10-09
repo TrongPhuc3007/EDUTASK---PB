@@ -31,7 +31,7 @@ const GitHubSync = {
   hasQueuedPush: false,
   pendingPushTimer: null,
   heartbeatTimer: null,
-  pollingIntervalMs: 3500, // Nhịp tim kiểm tra thay đổi mỗi 3.5 giây
+  pollingIntervalMs: 30000, // Nhịp tim dự phòng (30s) vì Firebase đã xử lý Realtime tức thì
   lastSyncTime: null,
   lastSyncStatus: 'ready', // 'ready', 'syncing', 'waiting', 'error'
   statusMessage: '',
@@ -78,8 +78,11 @@ const GitHubSync = {
   startHeartbeat() {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.heartbeatTimer = setInterval(() => {
-      // Khi tab ẩn thì giãn thời gian để tiết kiệm tài nguyên
+      // Khi tab ẩn hoặc Firebase Realtime đang kết nối tốt thì không cần dội request lên GitHub
       if (document.hidden) return;
+      const currentUser = (window.Store && Store.data && Store.data.currentUser) || (window.Auth && typeof Auth.getCurrentUser === 'function' ? Auth.getCurrentUser() : null);
+      if (currentUser && currentUser.role === 'student') return; // Học sinh tuyệt đối không dội request GitHub định kỳ
+      if (window.CloudSync && CloudSync.isConnected && CloudSync.syncRef) return;
       this.checkRemoteChanges();
     }, this.pollingIntervalMs);
   },
@@ -196,28 +199,11 @@ const GitHubSync = {
           App.checkCrossDeviceNotifications(prevData, Store.data);
         }
 
-        // Cập nhật giao diện nếu không đang thao tác vẽ chấm bài
-        const isGrader = window.Grader && Grader.activeSubmission;
-        const hasActiveModal = document.querySelector('.modal-overlay.active');
-        if (!isGrader && !hasActiveModal) {
-          if (window.App && typeof App.renderCurrentView === 'function') {
-            App.updateHeaderProfile();
-            App.renderCurrentView();
-          }
-        }
-
-        // TỰ ĐỘNG BÙ DỮ LIỆU: Nếu máy này có tài khoản, bài tập hoặc bài nộp mới mà GitHub chưa có
-        // Hệ thống sẽ tự động đẩy ngay bản hợp nhất lên GitHub để các thiết bị khác nhận được ngay!
-        if (prevData && this.hasLocalAdditions(prevData, remoteData)) {
-          console.log('[GitHubSync] ⚡ Phát hiện máy này có dữ liệu mới chưa có trên GitHub! Đang tự động đẩy bù...');
-          setTimeout(() => {
-            this.pushToGitHub(Store.data, false);
-          }, 400);
-        }
-
-        // BẮC CẦU TỰ ĐỘNG: Đảm bảo Firebase Realtime Database cũng nhận được dữ liệu hợp nhất
-        if (window.CloudSync && typeof CloudSync.schedulePush === 'function') {
-          CloudSync.schedulePush();
+        // Cập nhật giao diện an toàn nếu dữ liệu thực sự có thay đổi
+        const cs = window.CloudSync;
+        const hasChanged = cs && typeof cs.hasDataChanged === 'function' ? cs.hasDataChanged(prevData, Store.data) : true;
+        if (hasChanged && window.App && typeof App.safeRenderCurrentView === 'function') {
+          App.safeRenderCurrentView();
         }
       }
     } catch (err) {
@@ -242,9 +228,14 @@ const GitHubSync = {
     const remoteDelSubs = new Set(Array.isArray(remote.deletedSubmissionIds) ? remote.deletedSubmissionIds : []);
     if (localDelSubs.some(id => !remoteDelSubs.has(id))) return true;
 
+    const localDelClasses = Array.isArray(local.deletedClassIds) ? local.deletedClassIds : [];
+    const remoteDelClasses = new Set(Array.isArray(remote.deletedClassIds) ? remote.deletedClassIds : []);
+    if (localDelClasses.some(id => !remoteDelClasses.has(id))) return true;
+
     const allDelUsers = new Set([...localDelUsers, ...remoteDelUsers]);
     const allDelAsns = new Set([...localDelAsns, ...remoteDelAsns]);
     const allDelSubs = new Set([...localDelSubs, ...remoteDelSubs]);
+    const allDelClasses = new Set([...localDelClasses, ...remoteDelClasses]);
 
     // 1. Kiểm tra người dùng mới
     const localUsers = (Array.isArray(local.users) ? local.users : []).filter(u => !allDelUsers.has(u.id));
@@ -271,6 +262,14 @@ const GitHubSync = {
       const rs = remoteSubMap.get(ls.id);
       if (!rs) return true;
       if (ls.status === 'graded' && rs.status !== 'graded') return true;
+    }
+
+    // 4. Kiểm tra lớp học mới
+    const localClasses = (Array.isArray(local.classes) ? local.classes : []).filter(c => !allDelClasses.has(c.id));
+    const remoteClasses = (Array.isArray(remote.classes) ? remote.classes : []).filter(c => !allDelClasses.has(c.id));
+    const remoteClassIds = new Set(remoteClasses.map(c => c.id));
+    for (const c of localClasses) {
+      if (!remoteClassIds.has(c.id)) return true;
     }
 
     return false;
@@ -339,8 +338,13 @@ const GitHubSync = {
     }
   },
 
-  // Lên lịch đẩy tự động (Debounce 500ms hoặc đẩy ngay lập tức)
+  // Lên lịch đẩy tự động (Điều tiết thông minh: Giảm tải khi Firebase Realtime đang kết nối tốt)
   schedulePush(immediate = false) {
+    const currentUser = (window.Store && Store.data && Store.data.currentUser) || (window.Auth && typeof Auth.getCurrentUser === 'function' ? Auth.getCurrentUser() : null);
+    if (currentUser && currentUser.role === 'student') {
+      return Promise.resolve(); // Học sinh không đẩy commit trực tiếp lên GitHub
+    }
+
     if (this.pendingPushTimer) {
       clearTimeout(this.pendingPushTimer);
       this.pendingPushTimer = null;
@@ -351,10 +355,15 @@ const GitHubSync = {
     }
 
     this.renderHeaderIndicator('waiting');
+    // Khi Firebase Realtime đang hoạt động tốt (0.05s sync), GitHub chỉ làm nhiệm vụ sao lưu kho trung tâm
+    // Đặt khoảng giãn 15s để chống xung đột commit SHA liên hoàn khi nhiều máy cùng thao tác đồng thời
+    const isFirebaseLive = window.CloudSync && CloudSync.isConnected && CloudSync.syncRef;
+    const debounceMs = isFirebaseLive ? 15000 : 3000;
+
     this.pendingPushTimer = setTimeout(() => {
       this.pendingPushTimer = null;
       this.pushToGitHub(Store.data, false);
-    }, 500);
+    }, debounceMs);
     return Promise.resolve();
   },
 
@@ -444,11 +453,12 @@ const GitHubSync = {
       });
 
       if (response.status === 409) {
-        // Xung đột SHA do máy khác vừa commit đúng thời điểm này -> Tự động thử lại
+        // Xung đột SHA do máy khác vừa commit đúng thời điểm này -> Tự động thử lại có giãn cách ngẫu nhiên (Jitter backoff)
         console.warn('[GitHubSync] Phát hiện xung đột SHA (409), đang lấy SHA mới để lưu lại...');
         this.lastSha = null;
         this.isSyncing = false;
-        await new Promise(r => setTimeout(r, 600));
+        const retryDelay = 1200 + Math.floor(Math.random() * 800);
+        await new Promise(r => setTimeout(r, retryDelay));
         return await this.pushToGitHub(Store.data, isManual);
       }
 
@@ -494,6 +504,10 @@ const GitHubSync = {
     if (!local) return remote;
     if (!remote) return local;
 
+    if (window.CloudSync && typeof CloudSync.smartMerge === 'function') {
+      return CloudSync.smartMerge(local, remote);
+    }
+
     const merged = { ...remote, ...local };
 
     // Hợp nhất danh sách các mục đã xóa (Tombstones) từ cả 2 nguồn
@@ -509,10 +523,16 @@ const GitHubSync = {
       ...(Array.isArray(local.deletedSubmissionIds) ? local.deletedSubmissionIds : []),
       ...(Array.isArray(remote.deletedSubmissionIds) ? remote.deletedSubmissionIds : [])
     ]);
+    const deletedClassIds = new Set([
+      'cls_12a1', 'cls_10a2',
+      ...(Array.isArray(local.deletedClassIds) ? local.deletedClassIds : []),
+      ...(Array.isArray(remote.deletedClassIds) ? remote.deletedClassIds : [])
+    ]);
 
     merged.deletedUserIds = Array.from(deletedUserIds);
     merged.deletedAssignmentIds = Array.from(deletedAsnIds);
     merged.deletedSubmissionIds = Array.from(deletedSubIds);
+    merged.deletedClassIds = Array.from(deletedClassIds);
 
     // 1. Users: Loại bỏ triệt để các tài khoản đã bị xóa (không cho phép hồi sinh)
     const localUsers = (Array.isArray(local.users) ? local.users : []).filter(u => !deletedUserIds.has(u.id));
@@ -570,6 +590,21 @@ const GitHubSync = {
       }
     });
     merged.submissions = Array.from(subsMap.values()).filter(s => !deletedSubIds.has(s.id));
+
+    // 4. Classes: Loại bỏ triệt để các lớp đã xóa
+    const localClasses = (Array.isArray(local.classes) ? local.classes : []).filter(c => c && !deletedClassIds.has(c.id));
+    const remoteClasses = (Array.isArray(remote.classes) ? remote.classes : []).filter(c => c && !deletedClassIds.has(c.id));
+    const classesMap = new Map();
+    remoteClasses.forEach(c => classesMap.set(c.id, c));
+    localClasses.forEach(lc => {
+      if (!classesMap.has(lc.id)) {
+        classesMap.set(lc.id, lc);
+      } else {
+        const rc = classesMap.get(lc.id);
+        classesMap.set(lc.id, { ...rc, ...lc });
+      }
+    });
+    merged.classes = Array.from(classesMap.values()).filter(c => c && !deletedClassIds.has(c.id));
 
     if (window.Store && typeof Store.healAllData === 'function') {
       Store.healAllData(merged);

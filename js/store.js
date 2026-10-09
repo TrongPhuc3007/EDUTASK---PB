@@ -57,7 +57,7 @@ const Store = {
   // Phục hồi và chuẩn hóa font chữ tiếng Việt cho một chuỗi (Chống lỗi font ?, \uFFFD)
   healString(str) {
     if (typeof str !== 'string' || !str) return str;
-    if (!str.includes('?') && !str.includes('\uFFFD') && !str.includes('')) return str;
+    if (!str.includes('?') && !str.includes('\uFFFD')) return str;
 
     let s = str;
     const phraseMap = [
@@ -138,6 +138,15 @@ const Store = {
     if (!Array.isArray(dataObj.deletedUserIds)) dataObj.deletedUserIds = [];
     if (!Array.isArray(dataObj.deletedAssignmentIds)) dataObj.deletedAssignmentIds = [];
     if (!Array.isArray(dataObj.deletedSubmissionIds)) dataObj.deletedSubmissionIds = [];
+    if (!Array.isArray(dataObj.deletedClassIds)) dataObj.deletedClassIds = [];
+
+    // Luôn bảo vệ triệt để các lớp học mặc định đã xóa (cls_12a1, cls_10a2)
+    const seedClasses = ['cls_12a1', 'cls_10a2'];
+    seedClasses.forEach(cid => {
+      if (!dataObj.deletedClassIds.includes(cid)) {
+        dataObj.deletedClassIds.push(cid);
+      }
+    });
 
     const delUsers = new Set(dataObj.deletedUserIds);
     if (delUsers.size > 0 && Array.isArray(dataObj.users)) {
@@ -150,6 +159,10 @@ const Store = {
     const delSubs = new Set(dataObj.deletedSubmissionIds);
     if (delSubs.size > 0 && Array.isArray(dataObj.submissions)) {
       dataObj.submissions = dataObj.submissions.filter(s => s && !delSubs.has(s.id));
+    }
+    const delClasses = new Set(dataObj.deletedClassIds);
+    if (delClasses.size > 0 && Array.isArray(dataObj.classes)) {
+      dataObj.classes = dataObj.classes.filter(c => c && !delClasses.has(c.id));
     }
 
     // 1. Chuẩn hóa & bảo vệ danh sách Người dùng (Users)
@@ -241,6 +254,50 @@ const Store = {
       });
     }
 
+    // 4. Chuẩn hóa & bảo vệ tính toàn vẹn quan hệ danh sách Lớp học (Classes)
+    if (Array.isArray(dataObj.classes)) {
+      const activeTutors = (dataObj.users || []).filter(u => u && u.role === 'tutor' && !delUsers.has(u.id));
+      const fallbackTutor = activeTutors.length > 0 ? activeTutors[0] : null;
+
+      dataObj.classes.forEach(c => {
+        if (!c) return;
+        // Lọc sạch studentIds không còn tồn tại hoặc đã bị xóa
+        if (Array.isArray(c.studentIds)) {
+          c.studentIds = c.studentIds.filter(sid => !delUsers.has(sid) && (dataObj.users || []).some(u => u && u.id === sid));
+        }
+        // Đảm bảo tutorId hợp lệ
+        if (c.tutorId && (delUsers.has(c.tutorId) || !(dataObj.users || []).some(u => u && u.id === c.tutorId))) {
+          if (fallbackTutor) {
+            c.tutorId = fallbackTutor.id;
+            c.tutorName = fallbackTutor.name;
+          }
+        }
+        for (const k in c) {
+          if (typeof c[k] === 'string') {
+            c[k] = this.healString(c[k]);
+          }
+        }
+      });
+    }
+
+    // 5. Chuẩn hóa targetStudentIds và tutorId trong Assignments
+    if (Array.isArray(dataObj.assignments)) {
+      const activeTutors = (dataObj.users || []).filter(u => u && u.role === 'tutor' && !delUsers.has(u.id));
+      const fallbackTutor = activeTutors.length > 0 ? activeTutors[0] : null;
+
+      dataObj.assignments.forEach(a => {
+        if (!a) return;
+        if (Array.isArray(a.targetStudentIds)) {
+          a.targetStudentIds = a.targetStudentIds.filter(sid => !delUsers.has(sid) && (dataObj.users || []).some(u => u && u.id === sid));
+        }
+        if (a.tutorId && (delUsers.has(a.tutorId) || !(dataObj.users || []).some(u => u && u.id === a.tutorId))) {
+          if (fallbackTutor) {
+            a.tutorId = fallbackTutor.id;
+          }
+        }
+      });
+    }
+
     return dataObj;
   },
 
@@ -258,140 +315,73 @@ const Store = {
             this.data.deletedUserIds.push(id);
           }
         });
+        // Cài đặt chuẩn hóa: Đảm bảo ban đầu chỉ có duy nhất tài khoản Quản Trị Viên (Admin)
+        if (!this.data.migratedAdminOnlyV13) {
+          this.data.users = (this.data.users || []).filter(u => u && (u.id === 'u_admin' || u.role === 'admin'));
+          if (this.data.users.length === 0) {
+            this.data.users = [
+              {
+                id: 'u_admin',
+                username: 'admin',
+                password: 'admin123',
+                name: 'Quản Trị Hệ Thống',
+                role: 'admin',
+                roleName: 'Quản Trị Viên (Admin)',
+                phone: '0900.123.456',
+                avatarText: 'AD'
+              }
+            ];
+          }
+          this.data.assignments = [];
+          this.data.submissions = [];
+          this.data.classes = [];
+          this.data.deletedUserIds = [
+            'u_tutor_1791305106234',
+            'u_std_1791385736306',
+            'u_std_quang',
+            'u_std_maianh',
+            'u_std_nam',
+            'u_std_thuyduong',
+            'u_std_1791342637918',
+            'u_tutor',
+            'u_tutor_linh'
+          ];
+          this.data.deletedAssignmentIds = ['asn_001', 'asn_002', 'asn_003', 'asn_004'];
+          this.data.deletedSubmissionIds = ['sub_001', 'sub_002'];
+          this.data.deletedClassIds = ['cls_12a1', 'cls_10a2'];
+          this.data.migratedInitialUsers = true;
+          this.data.migratedAdminOnlyV13 = true;
+          this.data.migratedClassesTombstoneV14 = true;
+          this.save(false, true);
+        }
+
+        // Cập nhật bảo vệ lớp học đã xóa (Tombstone V14)
+        if (!this.data.migratedClassesTombstoneV14) {
+          if (!Array.isArray(this.data.deletedClassIds)) this.data.deletedClassIds = [];
+          const seedDeletedClasses = ['cls_12a1', 'cls_10a2'];
+          seedDeletedClasses.forEach(cid => {
+            if (!this.data.deletedClassIds.includes(cid)) {
+              this.data.deletedClassIds.push(cid);
+            }
+          });
+          if (Array.isArray(this.data.classes)) {
+            const delC = new Set(this.data.deletedClassIds);
+            this.data.classes = this.data.classes.filter(c => c && !delC.has(c.id));
+          }
+          this.data.migratedClassesTombstoneV14 = true;
+          this.save(false, true);
+        }
+
         // Tự động phục hồi toàn bộ chuỗi font chữ bị lỗi ngay khi nạp & loại bỏ tài khoản đã xóa
         this.healAllData(this.data);
-        // Migration: Đảm bảo toàn bộ tài khoản có username, password, phân quyền và phân công giáo viên chính xác
+
+        // Đảm bảo tài khoản admin luôn có thông tin đăng nhập chuẩn
         if (this.data && Array.isArray(this.data.users)) {
           let updated = false;
-
-          const isDeletedUser = (uid) => Array.isArray(this.data.deletedUserIds) && this.data.deletedUserIds.includes(uid);
-
-          // Chỉ bổ sung tài khoản mẫu lần đầu tiên (nếu chưa từng hoàn thành migration và không nằm trong danh sách đã xóa)
-          if (!this.data.migratedInitialUsers) {
-            // Kiểm tra và bổ sung Gia Sư thứ 2 nếu chưa có (Cô Phương Linh)
-            const hasLinh = this.data.users.some(u => u.id === 'u_tutor_linh');
-            if (!hasLinh && !isDeletedUser('u_tutor_linh')) {
-              this.data.users.splice(2, 0, {
-                id: 'u_tutor_linh',
-                username: 'giasu_linh',
-                password: '123456',
-                name: 'Cô Phương Linh',
-                role: 'tutor',
-                roleName: 'Gia Sư Phụ Trách',
-                phone: '0988.765.432',
-                avatarText: 'PL',
-                subjects: ['Toán & Khoa Học Tự Nhiên']
-              });
-              updated = true;
-            }
-
-            // Kiểm tra và bổ sung Gia Sư thứ 3 nếu chưa có (Cô Bình Bình)
-            const hasBinhBinh = this.data.users.some(u => u.id === 'u_tutor_1791305106234' || u.username === 'binhbinh');
-            if (!hasBinhBinh && !isDeletedUser('u_tutor_1791305106234')) {
-              this.data.users.splice(3, 0, {
-                id: 'u_tutor_1791305106234',
-                username: 'binhbinh',
-                password: '23032004',
-                name: 'Cô Bình Bình',
-                role: 'tutor',
-                roleName: 'Gia Sư Phụ Trách',
-                phone: '0902.704.416',
-                avatarText: 'BB',
-                subjects: ['Toán Học THPT']
-              });
-              updated = true;
-            }
-
-            // Kiểm tra và bổ sung Học Sinh AN nếu chưa có
-            const hasAn = this.data.users.some(u => u.id === 'u_std_1791342637918' || u.username === 'std_an');
-            if (!hasAn && !isDeletedUser('u_std_1791342637918')) {
-              this.data.users.push({
-                id: 'u_std_1791342637918',
-                hasAccount: true,
-                accountStatus: 'active',
-                username: 'std_an',
-                password: '123456',
-                accountCreatedAt: '2026-10-07T03:10:37.918Z',
-                name: 'Học Sinh AN',
-                role: 'student',
-                roleName: 'Học Sinh',
-                assignedTutorId: 'u_tutor_1791305106234',
-                assignedTutorName: 'Cô Bình Bình',
-                dob: '2008-01-01',
-                gender: 'Nam',
-                school: 'THPT',
-                grade: 'Lớp 12',
-                phone: '0902.704.416',
-                address: 'TP.HCM',
-                parentName: 'Phụ huynh em AN',
-                parentPhone: '1238912381',
-                parentJob: '',
-                subject: 'Toán Học 12',
-                initialScore: 5.5,
-                targetScore: 8.5,
-                currentScore: 5.5,
-                feePerSession: 250000,
-                totalSessions: 0,
-                learningMode: '1 kèm 1 tại nhà',
-                schedule: 'Tối Thứ 2 & Thứ 5',
-                startDate: '2026-10-07',
-                strengths: '',
-                weaknesses: '',
-                notes: '',
-                avatarText: 'AN'
-              });
-              updated = true;
-            }
-            this.data.migratedInitialUsers = true;
-            updated = true;
-          }
-
-          // Cập nhật tên Thầy Minh Đức cho u_tutor
-          const mainTutor = this.data.users.find(u => u.id === 'u_tutor');
-          if (mainTutor && (mainTutor.name === 'Gia Sư Trực Tiếp' || !mainTutor.name)) {
-            mainTutor.name = 'Thầy Minh Đức';
-            mainTutor.avatarText = 'MĐ';
-            updated = true;
-          }
-
           this.data.users.forEach(u => {
             if (u.role === 'admin') {
               if (!u.username) { u.username = 'admin'; updated = true; }
               if (!u.password) { u.password = 'admin123'; updated = true; }
-            } else if (u.role === 'tutor') {
-              if (!u.username) { u.username = u.id === 'u_tutor_linh' ? 'giasu_linh' : 'giasu'; updated = true; }
-              if (!u.password) { u.password = '123456'; updated = true; }
-            } else if (u.role === 'student') {
-              if (!u.password) { u.password = '123456'; updated = true; }
-              if (!u.username) {
-                u.username = u.id === 'u_std_quang' ? 'std_quang' : (u.id === 'u_std_maianh' ? 'std_maianh' : (u.id === 'u_std_nam' ? 'std_nam' : 'std_' + u.id));
-                updated = true;
-              }
-              if (typeof u.hasAccount === 'undefined') {
-                updated = true;
-                if (u.id === 'u_std_quang' || u.id === 'u_std_maianh') {
-                  u.hasAccount = true;
-                  u.accountStatus = 'active';
-                } else {
-                  u.hasAccount = false;
-                  u.accountStatus = 'none';
-                }
-              }
-              // Migration: Phân công giáo viên phụ trách cho học sinh
-              if (!u.assignedTutorId) {
-                if (u.id === 'u_std_nam') {
-                  u.assignedTutorId = 'u_tutor_linh';
-                  u.assignedTutorName = 'Cô Phương Linh';
-                } else {
-                  u.assignedTutorId = 'u_tutor';
-                  u.assignedTutorName = 'Thầy Minh Đức';
-                }
-                updated = true;
-              } else if (!u.assignedTutorName) {
-                const tutor = this.data.users.find(t => t.id === u.assignedTutorId);
-                u.assignedTutorName = tutor ? tutor.name : 'Thầy Minh Đức';
-                updated = true;
-              }
             }
           });
           if (updated) {
@@ -399,77 +389,9 @@ const Store = {
           }
         }
 
-        // Migration: Đảm bảo toàn bộ bài tập có trường tutorId và tệp đề bài đính kèm
-        if (this.data && Array.isArray(this.data.assignments)) {
-          let asnUpdated = false;
-          this.data.assignments.forEach(a => {
-            if (!a.tutorId) {
-              // Tìm gia sư của học sinh nhận bài
-              const firstStudent = a.targetStudentIds && a.targetStudentIds[0] ? this.getUserById(a.targetStudentIds[0]) : null;
-              a.tutorId = (firstStudent && firstStudent.assignedTutorId) ? firstStudent.assignedTutorId : 'u_tutor';
-              asnUpdated = true;
-            }
-            if (typeof a.attachmentName === 'undefined') {
-              if (a.id === 'asn_001') {
-                a.attachmentName = 'Phieu_05_Cuc_Tri_Va_Bat_Dang_Thuc.pdf';
-                a.attachmentSize = '1.4 MB';
-                a.attachmentType = 'pdf';
-              } else if (a.id === 'asn_002') {
-                a.attachmentName = 'Phieu_04_De_Khao_Sat_Do_Thi.docx';
-                a.attachmentSize = '820 KB';
-                a.attachmentType = 'docx';
-              } else if (a.id === 'asn_003') {
-                a.attachmentName = '10_Cau_Trac_Nghiem_Nguyen_Ham.pdf';
-                a.attachmentSize = '560 KB';
-                a.attachmentType = 'pdf';
-              } else {
-                a.attachmentName = null;
-                a.attachmentSize = null;
-                a.attachmentType = null;
-              }
-              asnUpdated = true;
-            }
-          });
-          if (asnUpdated) this.save();
-
-          // Tự động bổ sung bài kiểm tra trắc nghiệm mẫu (asn_004) nếu chưa có
-          const isDeletedAsn = (aid) => Array.isArray(this.data.deletedAssignmentIds) && this.data.deletedAssignmentIds.includes(aid);
-          if (!this.data.assignments.some(a => a.id === 'asn_004') && !isDeletedAsn('asn_004')) {
-            const defaultAsns = this.getDefaultData().assignments;
-            const sampleQuiz = defaultAsns.find(a => a.id === 'asn_004');
-            if (sampleQuiz) {
-              this.data.assignments.push(sampleQuiz);
-              this.save();
-            }
-          }
-        }
-
-        // Migration: Đảm bảo toàn bộ bài nộp có trường dữ liệu giám sát rời tab
-        if (this.data && Array.isArray(this.data.submissions)) {
-          let subUpdated = false;
-          this.data.submissions.forEach(s => {
-            if (typeof s.cheatCount === 'undefined') {
-              if (s.id === 'sub_001') {
-                s.cheatCount = 2;
-                s.cheatDuration = 35;
-                s.cheatLogs = [
-                  { count: 1, time: '11:15:20', duration: 15, type: 'Chuyển tab ngoài', reason: 'Nghi vấn mở tab tra cứu công cụ AI (ChatGPT, Claude...)' },
-                  { count: 2, time: '11:32:04', duration: 20, type: 'Mất tiêu điểm cửa sổ', reason: 'Mở cửa sổ ứng dụng ngoài bài làm' }
-                ];
-              } else {
-                s.cheatCount = 0;
-                s.cheatDuration = 0;
-                s.cheatLogs = [];
-              }
-              subUpdated = true;
-            }
-          });
-          if (subUpdated) this.save();
-        }
-
-        // Migration: Đảm bảo hệ thống có danh mục Lớp Học (Classrooms)
-        if (!Array.isArray(this.data.classes) || this.data.classes.length === 0) {
-          this.data.classes = this.getDefaultClasses();
+        // Đảm bảo cấu trúc mảng classes luôn hợp lệ
+        if (!Array.isArray(this.data.classes)) {
+          this.data.classes = [];
           this.save();
         }
       } catch (e) {
@@ -513,18 +435,25 @@ const Store = {
     });
   },
 
+  lastTabUpdateTimestamp: 0,
+
   handleCrossTabUpdate(payload) {
     try {
       const raw = payload.raw || localStorage.getItem(this.STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && Array.isArray(parsed.users)) {
+          const prev = this.data ? JSON.parse(JSON.stringify(this.data)) : null;
           this.healAllData(parsed);
           this.data = parsed;
-          if (window.App && typeof App.renderCurrentView === 'function') {
-            const isGrader = window.Grader && Grader.activeSubmission;
-            const hasActiveModal = document.querySelector('.modal-overlay.active');
-            if (!isGrader && !hasActiveModal) {
+
+          // Kiểm tra xem dữ liệu có thực sự thay đổi cho giao diện đang hiển thị hay không
+          const cs = window.CloudSync;
+          const hasChanged = cs && typeof cs.hasDataChanged === 'function' ? cs.hasDataChanged(prev, parsed) : true;
+          if (hasChanged) {
+            if (window.App && typeof App.safeRenderCurrentView === 'function') {
+              App.safeRenderCurrentView();
+            } else if (window.App && typeof App.renderCurrentView === 'function') {
               App.updateHeaderProfile();
               App.renderCurrentView();
             }
@@ -576,8 +505,12 @@ const Store = {
     }
 
     // Tự động đẩy lên Kho dữ liệu trung tâm GitHub
+    // Lưu ý: Học sinh (student) tuyệt đối không push trực tiếp lên GitHub (để chống xung đột SHA và nghẽn rate limit);
+    // Mọi tương tác của học sinh đều được Firebase Realtime đồng bộ tức thì sang máy Gia sư/Admin.
     const gs = window.GitHubSync || (typeof GitHubSync !== 'undefined' ? GitHubSync : null);
-    if (!skipCloudPush && gs && typeof gs.schedulePush === 'function') {
+    const currentUser = (this.data && this.data.currentUser) || (window.Auth && typeof Auth.getCurrentUser === 'function' ? Auth.getCurrentUser() : null);
+    const isStudent = currentUser && currentUser.role === 'student';
+    if (!skipCloudPush && !isStudent && gs && typeof gs.schedulePush === 'function') {
       return gs.schedulePush(immediate);
     }
     return Promise.resolve();
@@ -596,13 +529,23 @@ const Store = {
   resetDefault() {
     this.data = {
       deletedUserIds: [
-        'u_std_1791361091065',
-        'u_std_1791361864132'
+        'u_tutor_1791305106234',
+        'u_std_1791385736306',
+        'u_std_quang',
+        'u_std_maianh',
+        'u_std_nam',
+        'u_std_thuyduong',
+        'u_std_1791342637918',
+        'u_tutor',
+        'u_tutor_linh'
       ],
-      deletedAssignmentIds: [],
-      deletedSubmissionIds: [],
+      deletedAssignmentIds: ['asn_001', 'asn_002', 'asn_003', 'asn_004'],
+      deletedSubmissionIds: ['sub_001', 'sub_002'],
+      deletedClassIds: ['cls_12a1', 'cls_10a2'],
       migratedInitialUsers: true,
-      // 1. NGƯỜI DÙNG: 1 Admin + 2 Gia Sư Chuyên Môn + Danh Sách Học Sinh Phân Công Kèm 1-1
+      migratedAdminOnlyV13: true,
+      migratedClassesTombstoneV14: true,
+      // 1. CÀI ĐẶT BAN ĐẦU: CHỈ CÓ DUY NHẤT TÀI KHOẢN ADMIN
       users: [
         {
           id: 'u_admin',
@@ -613,376 +556,24 @@ const Store = {
           roleName: 'Quản Trị Viên (Admin)',
           phone: '0900.123.456',
           avatarText: 'AD'
-        },
-        {
-          id: 'u_tutor',
-          username: 'giasu',
-          password: '123456',
-          name: 'Thầy Minh Đức',
-          role: 'tutor',
-          roleName: 'Gia Sư Phụ Trách',
-          phone: '0912.345.678',
-          avatarText: 'MĐ',
-          subjects: ['Toán Học THPT']
-        },
-        {
-          id: 'u_tutor_linh',
-          username: 'giasu_linh',
-          password: '123456',
-          name: 'Cô Phương Linh',
-          role: 'tutor',
-          roleName: 'Gia Sư Phụ Trách',
-          phone: '0988.765.432',
-          avatarText: 'PL',
-          subjects: ['Toán & Khoa Học Tự Nhiên']
-        },
-        {
-          id: 'u_std_quang',
-          hasAccount: true,
-          accountStatus: 'active',
-          username: 'std_quang',
-          password: '123456',
-          accountCreatedAt: '2026-08-15',
-          name: 'Nguyễn Minh Quang',
-          role: 'student',
-          roleName: 'Học Sinh',
-          assignedTutorId: 'u_tutor',
-          assignedTutorName: 'Thầy Minh Đức',
-          dob: '2008-08-15',
-          gender: 'Nam',
-          school: 'THPT Chu Văn An',
-          grade: 'Lớp 12A1',
-          phone: '0901.222.333',
-          address: 'Số 28, Phố Thụy Khuê, Tây Hồ, Hà Nội',
-          parentName: 'Bác Nguyễn Văn Tuấn (Bố)',
-          parentPhone: '0909.888.999',
-          parentJob: 'Kỹ sư xây dựng',
-          subject: 'Toán Học 12 (Ôn thi THPT Quốc Gia)',
-          initialScore: 5.5,
-          targetScore: 9.0,
-          currentScore: 7.8,
-          feePerSession: 250000,
-          totalSessions: 8,
-          learningMode: '1 kèm 1 tại nhà',
-          schedule: 'Tối Thứ 3 (19h30 - 21h30) & Tối Thứ 6 (19h30 - 21h30)',
-          startDate: '2026-08-15',
-          strengths: 'Chăm chỉ, tư duy đại số khá, tiếp thu lý thuyết nhanh.',
-          weaknesses: 'Hổng phần Hình không gian Oxyz, hay tính ẩu nhầm dấu ở bước rút gọn cuối cùng.',
-          notes: 'Mục tiêu đỗ Đại học Bách Khoa Hà Nội (Ngành CNTT).',
-          avatarText: 'MQ'
-        },
-        {
-          id: 'u_std_maianh',
-          hasAccount: true,
-          accountStatus: 'active',
-          username: 'std_maianh',
-          password: '123456',
-          accountCreatedAt: '2026-09-01',
-          name: 'Trần Mai Anh',
-          role: 'student',
-          roleName: 'Học Sinh',
-          assignedTutorId: 'u_tutor',
-          assignedTutorName: 'Thầy Minh Đức',
-          dob: '2008-05-20',
-          gender: 'Nữ',
-          school: 'THPT Kim Liên',
-          grade: 'Lớp 12A3',
-          phone: '0903.444.555',
-          address: 'Tầng 12, Chung cư Star City, Lê Văn Lương, Thanh Xuân',
-          parentName: 'Cô Lê Thu Hà (Mẹ)',
-          parentPhone: '0918.555.444',
-          parentJob: 'Kế toán trưởng',
-          subject: 'Toán Học 12 (Luyện thi ĐH khối D01)',
-          initialScore: 7.0,
-          targetScore: 8.5,
-          currentScore: 8.2,
-          feePerSession: 250000,
-          totalSessions: 6,
-          learningMode: '1 kèm 1 Online qua Google Meet',
-          schedule: 'Tối Thứ 4 (19h30 - 21h30) & Sáng Chủ Nhật (8h30 - 10h30)',
-          startDate: '2026-09-01',
-          strengths: 'Trình bày sạch sẽ, cẩn thận từng bước giải, hình học không gian nắm tốt.',
-          weaknesses: 'Tốc độ làm bài trắc nghiệm còn chậm, ngại các bài toán vận dụng cao chứa tham số m.',
-          notes: 'Mục tiêu xét tuyển Đại học Ngoại Thương.',
-          avatarText: 'MA'
-        },
-        {
-          id: 'u_std_nam',
-          hasAccount: false,
-          accountStatus: 'none',
-          username: 'std_nam',
-          password: '123456',
-          accountCreatedAt: null,
-          name: 'Lê Hoàng Nam',
-          role: 'student',
-          roleName: 'Học Sinh',
-          assignedTutorId: 'u_tutor_linh',
-          assignedTutorName: 'Cô Phương Linh',
-          dob: '2009-11-10',
-          gender: 'Nam',
-          school: 'THPT Cầu Giấy',
-          grade: 'Lớp 11B',
-          phone: '0905.666.777',
-          address: 'Ngõ 165 Cầu Giấy, Hà Nội',
-          parentName: 'Bác Lê Văn Hùng (Bố)',
-          parentPhone: '0933.111.222',
-          parentJob: 'Kinh doanh tự do',
-          subject: 'Toán Học 11 (Lấy lại gốc & Củng cố)',
-          initialScore: 4.0,
-          targetScore: 7.5,
-          currentScore: 6.5,
-          feePerSession: 200000,
-          totalSessions: 4,
-          learningMode: 'Nhóm nhỏ 2 bạn',
-          schedule: 'Chiều Thứ 7 (14h00 - 16h00)',
-          startDate: '2026-09-15',
-          strengths: 'Nhiệt tình, có tinh thần cầu tiến khi được động viên.',
-          weaknesses: 'Mất gốc lượng giác lớp 10, chưa thuộc công thức biến đổi cơ bản.',
-          notes: 'Cần kiểm tra bài cũ đều đặn 10 phút đầu mỗi buổi.',
-          avatarText: 'HN'
-        },
-        {
-          id: 'u_tutor_1791305106234',
-          username: 'binhbinh',
-          password: '23032004',
-          name: 'Cô Bình Bình',
-          role: 'tutor',
-          roleName: 'Gia Sư Phụ Trách',
-          phone: '0902.704.416',
-          avatarText: 'BB',
-          subjects: ['Toán Học THPT']
-        },
-        {
-          id: 'u_std_1791342637918',
-          hasAccount: true,
-          accountStatus: 'active',
-          username: 'std_an',
-          password: '123456',
-          accountCreatedAt: '2026-10-07T03:10:37.918Z',
-          name: 'Học Sinh AN',
-          role: 'student',
-          roleName: 'Học Sinh',
-          assignedTutorId: 'u_tutor_1791305106234',
-          assignedTutorName: 'Cô Bình Bình',
-          dob: '2008-01-01',
-          gender: 'Nam',
-          school: 'THPT',
-          grade: 'Lớp 12',
-          phone: '0902.704.416',
-          address: 'TP.HCM',
-          parentName: 'Phụ huynh em AN',
-          parentPhone: '1238912381',
-          parentJob: '',
-          subject: 'Toán Học 12',
-          initialScore: 5.5,
-          targetScore: 8.5,
-          currentScore: 5.5,
-          feePerSession: 250000,
-          totalSessions: 0,
-          learningMode: '1 kèm 1 tại nhà',
-          schedule: 'Tối Thứ 2 & Thứ 5',
-          startDate: '2026-10-07',
-          strengths: '',
-          weaknesses: '',
-          notes: '',
-          avatarText: 'AN'
         }
       ],
-
-      // 2. BÀI TẬP DO GIA SƯ GIAO CHO TỪNG HỌC SINH
-      assignments: [
-        {
-          id: 'asn_001',
-          tutorId: 'u_tutor',
-          title: 'Phiếu 05: Chuyên Đề Cực Trị & Bất Đẳng Thức',
-          description: 'Làm chi tiết bài 1, 2, 3 ra vở viết tay, chụp ảnh nộp trước buổi học tới.',
-          attachmentName: 'Phieu_05_Cuc_Tri_Va_Bat_Dang_Thuc.pdf',
-          attachmentSize: '1.4 MB',
-          attachmentType: 'pdf',
-          targetType: 'individual',
-          targetStudentIds: ['u_std_quang', 'u_std_1791342637918'],
-          deadline: '2026-10-08T21:00',
-          createdAt: '2026-10-06T09:00',
-          totalPoints: 10,
-          submissionType: 'photo'
-        },
-        {
-          id: 'asn_002',
-          tutorId: 'u_tutor',
-          title: 'Phiếu 04: Khảo Sát Đồ Thị Hàm Số Phân Thức',
-          description: 'Bài tập rèn luyện kỹ năng vẽ bảng biến thiên và tiệm cận.',
-          attachmentName: 'Phieu_04_De_Khao_Sat_Do_Thi.docx',
-          attachmentSize: '820 KB',
-          attachmentType: 'docx',
-          targetType: 'individual',
-          targetStudentIds: ['u_std_maianh', 'u_std_1791342637918'],
-          deadline: '2026-10-07T20:00',
-          createdAt: '2026-10-05T14:00',
-          totalPoints: 10,
-          submissionType: 'photo'
-        },
-        {
-          id: 'asn_003',
-          tutorId: 'u_tutor_linh',
-          title: 'Phiếu 03: Phương Trình Lượng Giác Cơ Bản',
-          description: 'Ôn tập 10 công thức lượng giác và giải các phương trình sin, cos.',
-          attachmentName: '10_Cau_Trac_Nghiem_Nguyen_Ham.pdf',
-          attachmentSize: '560 KB',
-          attachmentType: 'pdf',
-          targetType: 'all',
-          targetStudentIds: ['u_std_nam', 'u_std_quang', 'u_std_1791342637918'],
-          deadline: '2026-10-10T23:59',
-          createdAt: '2026-10-05T08:00',
-          totalPoints: 10,
-          submissionType: 'photo'
-        },
-        {
-          id: 'asn_004',
-          tutorId: 'u_tutor',
-          title: '⚡ Đề Thi Trắc Nghiệm: 5 Câu Nguyên Hàm & Tích Phân',
-          description: 'Bài kiểm tra trắc nghiệm online 5 câu hỏi trọng tâm. Thời gian làm bài 15 phút, hệ thống tự động chấm điểm 10/10 ngay lập tức!',
-          attachmentName: '10_Cau_Trac_Nghiem_Nguyen_Ham.pdf',
-          attachmentSize: '560 KB',
-          attachmentType: 'pdf',
-          targetType: 'individual',
-          targetStudentIds: ['u_std_quang', 'u_std_maianh', 'u_std_1791342637918'],
-          deadline: '2026-10-12T21:00',
-          createdAt: '2026-10-08T08:00',
-          totalPoints: 10,
-          type: 'quiz',
-          submissionType: 'quiz',
-          quizData: {
-            mode: 'detailed',
-            durationMinutes: 15,
-            questions: [
-              {
-                id: 1,
-                text: 'Họ nguyên hàm của hàm số f(x) = 3x² + 2x là:',
-                options: ['x³ + x² + C', '3x³ + 2x² + C', '6x + 2 + C', 'x³ + 2x² + C'],
-                correct: 'A',
-                explanation: 'Áp dụng công thức: ∫(3x² + 2x)dx = 3(x³/3) + 2(x²/2) + C = x³ + x² + C.'
-              },
-              {
-                id: 2,
-                text: 'Tìm nguyên hàm của hàm số f(x) = cos(2x):',
-                options: ['sin(2x) + C', '(1/2)sin(2x) + C', '-2sin(2x) + C', '-(1/2)sin(2x) + C'],
-                correct: 'B',
-                explanation: '∫cos(ax)dx = (1/a)sin(ax) + C => ∫cos(2x)dx = (1/2)sin(2x) + C.'
-              },
-              {
-                id: 3,
-                text: 'Cho hàm số f(x) = e^(2x). Khẳng định nào sau đây đúng?',
-                options: ['∫f(x)dx = 2e^(2x) + C', '∫f(x)dx = e^(2x) + C', '∫f(x)dx = (1/2)e^(2x) + C', '∫f(x)dx = e^x + C'],
-                correct: 'C',
-                explanation: 'Công thức ∫e^(ax)dx = (1/a)e^(ax) + C => ∫e^(2x)dx = (1/2)e^(2x) + C.'
-              },
-              {
-                id: 4,
-                text: 'Họ nguyên hàm của hàm số f(x) = 1/x (với x ≠ 0) là:',
-                options: ['ln|x| + C', '-1/x² + C', 'ln(x) + C', '1/x² + C'],
-                correct: 'A',
-                explanation: 'Theo bảng nguyên hàm cơ bản: ∫(1/x)dx = ln|x| + C.'
-              },
-              {
-                id: 5,
-                text: 'Tích phân I = ∫[0 đến 1] (2x + 1) dx có giá trị bằng:',
-                options: ['1', '2', '3', '4'],
-                correct: 'B',
-                explanation: 'Ta có: ∫(2x + 1)dx = [x² + x] từ 0 đến 1 = (1 + 1) - 0 = 2.'
-              }
-            ]
-          }
-        }
-      ],
-
-      // 3. BÀI NỘP CỦA HỌC SINH (Có tích hợp Giám Sát Chống Gian Lận Rời Tab)
-      submissions: [
-        {
-          id: 'sub_001',
-          assignmentId: 'asn_001',
-          studentId: 'u_std_quang',
-          studentName: 'Nguyễn Minh Quang',
-          submittedAt: '2026-10-06T11:45',
-          status: 'submitted',
-          photoUrl: this.samplePaperDataUrl,
-          score: null,
-          feedback: '',
-          gradedAt: null,
-          annotatedPhoto: null,
-          cheatCount: 2,
-          cheatDuration: 35,
-          cheatLogs: [
-            { count: 1, time: '11:15:20', duration: 15, type: 'Chuyển tab ngoài', reason: 'Nghi vấn mở tab tra cứu công cụ AI (ChatGPT, Claude...)' },
-            { count: 2, time: '11:32:04', duration: 20, type: 'Mất tiêu điểm cửa sổ', reason: 'Mở cửa sổ ứng dụng ngoài bài làm' }
-          ]
-        },
-        {
-          id: 'sub_002',
-          assignmentId: 'asn_002',
-          studentId: 'u_std_maianh',
-          studentName: 'Trần Mai Anh',
-          submittedAt: '2026-10-05T18:20',
-          status: 'graded',
-          photoUrl: this.samplePaperDataUrl,
-          score: 9.0,
-          feedback: 'Bài làm rất sạch sẽ, nắm chắc bảng biến thiên. Tiếp tục phát huy nhé em!',
-          gradedAt: '2026-10-05T20:00',
-          annotatedPhoto: this.samplePaperDataUrl,
-          cheatCount: 0,
-          cheatDuration: 0,
-          cheatLogs: []
-        }
-      ],
-      // 4. DANH MỤC LỚP HỌC (CLASSROOM EXPANSION)
-      classes: [
-        {
-          id: 'cls_12a1',
-          code: 'TOAN12A1',
-          name: 'Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL',
-          grade: 'Lớp 12',
-          subject: 'Toán Học',
-          room: 'Phòng 302 / Trực Tuyến 01',
-          tutorId: 'u_tutor',
-          tutorName: 'Thầy Minh Đức',
-          studentIds: ['u_std_quang', 'u_std_maianh', 'u_std_1791385736306', 'u_std_1791342637918'],
-          createdAt: '2026-09-01T08:00:00Z',
-          announcements: [
-            {
-              id: 'ann_1',
-              title: 'Chào mừng cả lớp bước vào kỳ ôn thi nước rút!',
-              content: 'Lớp chúng ta sẽ làm bài kiểm tra trắc nghiệm định kỳ vào Thứ 6 hàng tuần. Các em chú ý hoàn thành đúng hạn để thầy chấm điểm bút đỏ nhé.',
-              createdAt: '2026-10-06T08:00:00Z',
-              authorName: 'Thầy Minh Đức'
-            }
-          ]
-        },
-        {
-          id: 'cls_10a2',
-          code: 'TOAN10A2',
-          name: 'Lớp 10A2 — Toán Học Cơ Bản & Nâng Cao',
-          grade: 'Lớp 10',
-          subject: 'Toán Học',
-          room: 'Phòng 201 / Trực Tuyến 02',
-          tutorId: 'u_tutor_linh',
-          tutorName: 'Cô Phương Linh',
-          studentIds: ['u_std_nam'],
-          createdAt: '2026-09-05T08:00:00Z',
-          announcements: [
-            {
-              id: 'ann_2',
-              title: 'Khởi động chuyên đề Lượng giác!',
-              content: 'Các em tải phiếu bài tập 03 về làm và nộp ảnh chụp vở viết tay trước 23h59 Chủ nhật.',
-              createdAt: '2026-10-05T09:00:00Z',
-              authorName: 'Cô Phương Linh'
-            }
-          ]
-        }
-      ]
+      // 2. BÀI TẬP TRỐNG BAN ĐẦU
+      assignments: [],
+      // 3. BÀI NỘP TRỐNG BAN ĐẦU
+      submissions: [],
+      // 4. DANH MỤC LỚP HỌC TRỐNG BAN ĐẦU
+      classes: []
     };
-    this.save();
+    this.save(false, true);
   },
 
   // Helpers
+  getUsers() {
+    const del = new Set(this.data?.deletedUserIds || []);
+    return (this.data?.users || []).filter(u => !del.has(u.id));
+  },
+
   getUsersByRole(role) {
     const del = new Set(this.data?.deletedUserIds || []);
     return (this.data?.users || []).filter(u => u.role === role && !del.has(u.id));
@@ -1077,13 +668,11 @@ const Store = {
   },
 
   getStudents() {
-    if (this.data) this.healAllData(this.data);
     const del = new Set(this.data?.deletedUserIds || []);
     return (this.data?.users || []).filter(u => u.role === 'student' && !del.has(u.id));
   },
 
   getTutors() {
-    if (this.data) this.healAllData(this.data);
     const del = new Set(this.data?.deletedUserIds || []);
     return (this.data?.users || []).filter(u => u.role === 'tutor' && !del.has(u.id));
   },
@@ -1168,7 +757,26 @@ const Store = {
 
   getAssignmentsForStudent(studentId) {
     const delAsns = new Set(this.data?.deletedAssignmentIds || []);
-    return (this.data?.assignments || []).filter(a => !delAsns.has(a.id) && Array.isArray(a.targetStudentIds) && a.targetStudentIds.includes(studentId));
+    const studentClassIds = this.getStudentClasses(studentId).map(c => c.id);
+    return (this.data?.assignments || []).filter(a => {
+      if (delAsns.has(a.id)) return false;
+      if (Array.isArray(a.targetStudentIds) && a.targetStudentIds.includes(studentId)) return true;
+      if (a.classId && studentClassIds.includes(a.classId)) return true;
+      return false;
+    });
+  },
+
+  getAssignmentsByClass(classId) {
+    const cls = this.getClassById(classId);
+    if (!cls) return [];
+    const studentIdSet = new Set(cls.studentIds || []);
+    const delAsns = new Set(this.data?.deletedAssignmentIds || []);
+    return (this.data?.assignments || []).filter(a => {
+      if (delAsns.has(a.id)) return false;
+      if (a.classId === classId) return true;
+      if (Array.isArray(a.targetStudentIds) && a.targetStudentIds.some(id => studentIdSet.has(id))) return true;
+      return false;
+    });
   },
 
   getAllAssignments() {
@@ -1216,6 +824,22 @@ const Store = {
     this.save();
   },
 
+  getAssignmentById(id) {
+    if (!this.data || !Array.isArray(this.data.assignments)) return null;
+    return this.data.assignments.find(a => a && a.id === id) || null;
+  },
+
+  saveAssignment(assignment) {
+    if (!assignment || !assignment.id) return false;
+    const existing = this.getAssignmentById(assignment.id);
+    if (existing) {
+      return this.updateAssignment(assignment.id, assignment);
+    } else {
+      this.addAssignment(assignment);
+      return true;
+    }
+  },
+
   updateAssignment(assignmentId, updatedData) {
     if (!this.data || !Array.isArray(this.data.assignments)) return false;
     const index = this.data.assignments.findIndex(a => a.id === assignmentId);
@@ -1250,15 +874,19 @@ const Store = {
   },
 
   addSubmission(submission) {
+    if (!submission) return;
+    if (!submission.id) {
+      submission.id = `sub_${Date.now()}_${submission.studentId || Math.random().toString(36).substr(2, 6)}`;
+    }
     const existingIndex = this.data.submissions.findIndex(
       s => s.assignmentId === submission.assignmentId && s.studentId === submission.studentId
     );
     if (existingIndex >= 0) {
-      this.data.submissions[existingIndex] = submission;
+      this.data.submissions[existingIndex] = { ...this.data.submissions[existingIndex], ...submission };
     } else {
       this.data.submissions.unshift(submission);
     }
-    this.save();
+    this.save(false, true);
   },
 
   updateSubmissionGrading(subId, score, feedback, annotatedPhoto, annotatedPhotos = null) {
@@ -1445,63 +1073,23 @@ const Store = {
 
   // ================= QUẢN LÝ LỚP HỌC (CLASSROOM MODULE) =================
   getDefaultClasses() {
-    return [
-      {
-        id: 'cls_12a1',
-        code: 'TOAN12A1',
-        name: 'Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL',
-        grade: 'Lớp 12',
-        subject: 'Toán Học',
-        room: 'Phòng 302 / Trực Tuyến 01',
-        tutorId: 'u_tutor',
-        tutorName: 'Thầy Minh Đức',
-        studentIds: ['u_std_quang', 'u_std_maianh', 'u_std_1791385736306', 'u_std_1791342637918'],
-        createdAt: '2026-09-01T08:00:00Z',
-        announcements: [
-          {
-            id: 'ann_1',
-            title: 'Chào mừng cả lớp bước vào kỳ ôn thi nước rút!',
-            content: 'Lớp chúng ta sẽ làm bài kiểm tra trắc nghiệm định kỳ vào Thứ 6 hàng tuần. Các em chú ý hoàn thành đúng hạn để thầy chấm điểm bút đỏ nhé.',
-            createdAt: '2026-10-06T08:00:00Z',
-            authorName: 'Thầy Minh Đức'
-          }
-        ]
-      },
-      {
-        id: 'cls_10a2',
-        code: 'TOAN10A2',
-        name: 'Lớp 10A2 — Toán Học Cơ Bản & Nâng Cao',
-        grade: 'Lớp 10',
-        subject: 'Toán Học',
-        room: 'Phòng 201 / Trực Tuyến 02',
-        tutorId: 'u_tutor_linh',
-        tutorName: 'Cô Phương Linh',
-        studentIds: ['u_std_nam'],
-        createdAt: '2026-09-05T08:00:00Z',
-        announcements: [
-          {
-            id: 'ann_2',
-            title: 'Khởi động chuyên đề Lượng giác!',
-            content: 'Các em tải phiếu bài tập 03 về làm và nộp ảnh chụp vở viết tay trước 23h59 Chủ nhật.',
-            createdAt: '2026-10-05T09:00:00Z',
-            authorName: 'Cô Phương Linh'
-          }
-        ]
-      }
-    ];
+    return [];
   },
 
   getClasses() {
     if (!this.data) return [];
-    if (!Array.isArray(this.data.classes) || this.data.classes.length === 0) {
-      this.data.classes = this.getDefaultClasses();
+    if (!Array.isArray(this.data.classes)) {
+      this.data.classes = [];
       this.save();
     }
-    return this.data.classes;
+    const del = new Set(this.data?.deletedClassIds || []);
+    return this.data.classes.filter(c => c && !del.has(c.id));
   },
 
   getClassById(classId) {
     if (!classId) return null;
+    const del = new Set(this.data?.deletedClassIds || []);
+    if (del.has(classId)) return null;
     return this.getClasses().find(c => c.id === classId || c.code === classId) || null;
   },
 
@@ -1541,6 +1129,56 @@ const Store = {
     return true;
   },
 
+  joinClassByCode(studentId, classCode) {
+    if (!studentId || !classCode) {
+      return { success: false, message: 'Vui lòng nhập mã lớp học hợp lệ!' };
+    }
+    const cleanCode = classCode.trim().toUpperCase();
+    const cls = this.getClasses().find(c => 
+      (c.code && c.code.toUpperCase() === cleanCode) || 
+      (c.id && c.id.toUpperCase() === cleanCode)
+    );
+    if (!cls) {
+      return { success: false, message: `Mã lớp "${classCode}" không tồn tại trên hệ thống. Vui lòng kiểm tra lại chính xác mã do Thầy/Cô cung cấp!` };
+    }
+
+    if (!Array.isArray(cls.studentIds)) cls.studentIds = [];
+    if (cls.studentIds.includes(studentId)) {
+      return { success: false, message: `Bạn đã tham gia lớp "${cls.name}" từ trước rồi!`, class: cls };
+    }
+
+    cls.studentIds.push(studentId);
+    cls.updatedAt = new Date().toISOString();
+
+    // Đồng bộ thông tin gia sư phụ trách cho học sinh
+    const student = this.getUserById(studentId);
+    if (student && cls.tutorId) {
+      student.assignedTutorId = cls.tutorId;
+      student.assignedTutorName = cls.tutorName;
+      student.updatedAt = new Date().toISOString();
+    }
+
+    this.save(false, true);
+    return { 
+      success: true, 
+      message: `🎉 Chúc mừng bạn đã tham gia thành công lớp "${cls.name}" do ${cls.tutorName} phụ trách!`, 
+      class: cls 
+    };
+  },
+
+  leaveClass(studentId, classId) {
+    if (!studentId || !classId) return { success: false, message: 'Thông tin không hợp lệ!' };
+    const cls = this.getClassById(classId);
+    if (!cls) return { success: false, message: 'Lớp học không tồn tại!' };
+    if (!Array.isArray(cls.studentIds) || !cls.studentIds.includes(studentId)) {
+      return { success: false, message: 'Bạn không thuộc lớp học này!' };
+    }
+    cls.studentIds = cls.studentIds.filter(id => id !== studentId);
+    cls.updatedAt = new Date().toISOString();
+    this.save(false, true);
+    return { success: true, message: `Đã rời lớp "${cls.name}" thành công!` };
+  },
+
   addClass(classData) {
     if (!this.data) return null;
     if (!Array.isArray(this.data.classes)) this.data.classes = [];
@@ -1557,6 +1195,9 @@ const Store = {
       createdAt: new Date().toISOString(),
       announcements: Array.isArray(classData.announcements) ? classData.announcements : []
     };
+    if (Array.isArray(this.data.deletedClassIds)) {
+      this.data.deletedClassIds = this.data.deletedClassIds.filter(id => id !== newClass.id);
+    }
     this.data.classes.unshift(newClass);
     this.save(false, true);
     return newClass;
@@ -1579,7 +1220,18 @@ const Store = {
 
   deleteClass(classId) {
     if (!this.data || !Array.isArray(this.data.classes)) return false;
-    this.data.classes = this.data.classes.filter(c => c.id !== classId);
+    if (!Array.isArray(this.data.deletedClassIds)) this.data.deletedClassIds = [];
+    if (!this.data.deletedClassIds.includes(classId)) {
+      this.data.deletedClassIds.push(classId);
+    }
+    this.data.classes = this.data.classes.filter(c => c && c.id !== classId);
+    if (Array.isArray(this.data.assignments)) {
+      this.data.assignments.forEach(a => {
+        if (a && a.classId === classId) {
+          a.classId = null;
+        }
+      });
+    }
     this.save(false, true);
     return true;
   },
@@ -1590,8 +1242,19 @@ const Store = {
     if (!Array.isArray(cls.studentIds)) cls.studentIds = [];
     if (!cls.studentIds.includes(studentId)) {
       cls.studentIds.push(studentId);
-      this.save(false, true);
     }
+    // Tự động đồng bộ các bài tập đã giao cho toàn lớp để học sinh mới cũng nhận được
+    if (Array.isArray(this.data?.assignments)) {
+      this.data.assignments.forEach(asn => {
+        if (asn.classId === classId) {
+          if (!Array.isArray(asn.targetStudentIds)) asn.targetStudentIds = [];
+          if (!asn.targetStudentIds.includes(studentId)) {
+            asn.targetStudentIds.push(studentId);
+          }
+        }
+      });
+    }
+    this.save(false, true);
     return true;
   },
 
@@ -1599,6 +1262,17 @@ const Store = {
     const cls = this.getClassById(classId);
     if (!cls || !Array.isArray(cls.studentIds)) return false;
     cls.studentIds = cls.studentIds.filter(id => id !== studentId);
+    // Nếu học sinh chưa nộp bài của bài tập lớp này, loại khỏi targetStudentIds
+    if (Array.isArray(this.data?.assignments)) {
+      this.data.assignments.forEach(asn => {
+        if (asn.classId === classId && Array.isArray(asn.targetStudentIds)) {
+          const sub = this.getSubmission(asn.id, studentId);
+          if (!sub) {
+            asn.targetStudentIds = asn.targetStudentIds.filter(id => id !== studentId);
+          }
+        }
+      });
+    }
     this.save(false, true);
     return true;
   },
@@ -1623,6 +1297,83 @@ const Store = {
     cls.announcements.unshift(ann);
     this.save(false, true);
     return ann;
+  },
+
+  // ================= ĐÁNH GIÁ & NHẬN XÉT TOÀN LỚP (CLASS EVALUATION) =================
+  getClassEvaluations(classId) {
+    const cls = this.getClassById(classId);
+    if (!cls) return [];
+    if (!Array.isArray(cls.evaluations)) {
+      cls.evaluations = [];
+    }
+    return [...cls.evaluations].sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
+  },
+
+  getLatestClassEvaluation(classId) {
+    const evals = this.getClassEvaluations(classId);
+    return evals.length > 0 ? evals[0] : null;
+  },
+
+  saveClassEvaluation(classId, evalData) {
+    const cls = this.getClassById(classId);
+    if (!cls) return null;
+    if (!Array.isArray(cls.evaluations)) cls.evaluations = [];
+
+    const now = new Date().toISOString();
+    let evaluation = null;
+
+    if (evalData.id) {
+      const idx = cls.evaluations.findIndex(e => e.id === evalData.id);
+      if (idx >= 0) {
+        evaluation = {
+          ...cls.evaluations[idx],
+          ...evalData,
+          updatedAt: now
+        };
+        cls.evaluations[idx] = evaluation;
+      }
+    }
+
+    if (!evaluation) {
+      evaluation = {
+        id: evalData.id || ('eval_' + Date.now()),
+        period: evalData.period || ('Đánh Giá Tháng ' + (new Date().getMonth() + 1) + '/' + new Date().getFullYear()),
+        date: evalData.date || now,
+        createdAt: now,
+        overallComment: evalData.overallComment || '',
+        strengths: evalData.strengths || '',
+        weaknesses: evalData.weaknesses || '',
+        actionPlan: evalData.actionPlan || '',
+        commendations: evalData.commendations || '',
+        attentionNeeded: evalData.attentionNeeded || '',
+        studentNotes: evalData.studentNotes || {},
+        createdBy: evalData.createdBy || cls.tutorName || 'Giáo viên phụ trách',
+        statsSnapshot: evalData.statsSnapshot || null
+      };
+      cls.evaluations.unshift(evaluation);
+    }
+
+    this.save(false, true);
+    return evaluation;
+  },
+
+  deleteClassEvaluation(classId, evalId) {
+    const cls = this.getClassById(classId);
+    if (!cls || !Array.isArray(cls.evaluations)) return false;
+    cls.evaluations = cls.evaluations.filter(e => e.id !== evalId);
+    this.save(false, true);
+    return true;
+  },
+
+  updateStudentClassEvaluationNote(classId, evalId, studentId, note) {
+    const cls = this.getClassById(classId);
+    if (!cls || !Array.isArray(cls.evaluations)) return false;
+    const evaluation = cls.evaluations.find(e => e.id === evalId);
+    if (!evaluation) return false;
+    if (!evaluation.studentNotes) evaluation.studentNotes = {};
+    evaluation.studentNotes[studentId] = note;
+    this.save(false, true);
+    return true;
   },
 
   // Sổ Điểm Điện Tử & Bảng Ma Trận Điểm Cả Lớp
@@ -1724,6 +1475,395 @@ const Store = {
         weak: { count: countWeak, percent: studentsWithScore > 0 ? Math.round((countWeak / studentsWithScore) * 100) : 0 }
       }
     };
+  },
+
+  // ================= THỐNG KÊ & LỊCH SỬ CÁC ĐỢT KIỂM TRA / ĐÁNH GIÁ (CLASS TEST HISTORY) =================
+  getClassTestHistory(classId) {
+    const cls = this.getClassById(classId);
+    if (!cls) return { classInfo: null, items: [], summary: {} };
+
+    const students = this.getStudentsByClass(classId);
+    const studentIdSet = new Set(cls.studentIds || []);
+
+    const assignments = this.getAssignmentsByClass(classId);
+    const evaluations = this.getClassEvaluations(classId);
+
+    const historyItems = [];
+
+    // 1. Chuyển đổi các bài kiểm tra / bài tập thành bản ghi đợt kiểm tra
+    assignments.forEach(a => {
+      const subs = this.getSubmissionsByAssignment(a.id).filter(s => studentIdSet.has(s.studentId));
+      const gradedSubs = subs.filter(s => s.status === 'graded');
+      const scores = gradedSubs.map(s => s.score);
+
+      const targetCount = Array.isArray(a.targetStudentIds) && a.targetStudentIds.length > 0 
+        ? a.targetStudentIds.filter(id => studentIdSet.has(id)).length 
+        : students.length;
+
+      const avgScore = scores.length > 0 
+        ? (scores.reduce((sum, v) => sum + v, 0) / scores.length).toFixed(1) 
+        : null;
+
+      let highestScore = null;
+      let highestStudents = [];
+      let lowestScore = null;
+      if (scores.length > 0) {
+        highestScore = Math.max(...scores);
+        lowestScore = Math.min(...scores);
+        highestStudents = gradedSubs.filter(s => s.score === highestScore).map(s => s.studentName);
+      }
+
+      const feedbackCount = gradedSubs.filter(s => s.feedback && s.feedback.trim()).length;
+      const cleanCheatCount = subs.filter(s => !s.cheatCount || s.cheatCount === 0).length;
+
+      // Xác định thời gian cập nhật gần nhất của đợt này
+      let lastUpdatedTime = a.updatedAt || a.createdAt;
+      subs.forEach(s => {
+        if (s.gradedAt && new Date(s.gradedAt) > new Date(lastUpdatedTime)) lastUpdatedTime = s.gradedAt;
+        else if (s.submittedAt && new Date(s.submittedAt) > new Date(lastUpdatedTime)) lastUpdatedTime = s.submittedAt;
+      });
+
+      // Danh sách nội dung cập nhật
+      const updatedDetails = [];
+      const isQuiz = a.type === 'quiz' || a.submissionType === 'quiz';
+      updatedDetails.push({
+        type: 'created',
+        icon: '📌',
+        text: `Đã khởi tạo đề kiểm tra: "${a.title}" (Hình thức: ${isQuiz ? 'Trắc nghiệm Online' : 'Tự luận vở viết tay'})`,
+        time: a.createdAt
+      });
+
+      if (a.deadline) {
+        updatedDetails.push({
+          type: 'deadline',
+          icon: '⏰',
+          text: `Hạn chót nộp bài: ${new Date(a.deadline).toLocaleString('vi-VN')}`,
+          time: a.createdAt
+        });
+      }
+
+      updatedDetails.push({
+        type: 'submission',
+        icon: '📥',
+        text: `Đã thu bài: ${subs.length}/${targetCount} học sinh (${targetCount > 0 ? Math.round((subs.length / targetCount) * 100) : 0}%)`,
+        time: lastUpdatedTime
+      });
+
+      if (gradedSubs.length > 0) {
+        updatedDetails.push({
+          type: 'grading',
+          icon: '✍️',
+          text: `Đã chấm điểm & phê bút đỏ: ${gradedSubs.length}/${subs.length} bài đã nộp`,
+          time: lastUpdatedTime
+        });
+
+        if (avgScore !== null) {
+          const highNames = highestStudents.slice(0, 2).join(', ');
+          updatedDetails.push({
+            type: 'score',
+            icon: '📊',
+            text: `Điểm trung bình đợt: ${avgScore}/10 • Cao nhất: ${highestScore}đ${highNames ? ` (${highNames})` : ''} • Thấp nhất: ${lowestScore}đ`,
+            time: lastUpdatedTime
+          });
+        }
+      }
+
+      if (feedbackCount > 0) {
+        updatedDetails.push({
+          type: 'feedback',
+          icon: '💬',
+          text: `Đã cập nhật lời phê cá nhân hóa cho ${feedbackCount} học sinh`,
+          time: lastUpdatedTime
+        });
+      }
+
+      if (subs.length > 0) {
+        updatedDetails.push({
+          type: 'integrity',
+          icon: '🛡️',
+          text: `Giám sát trung thực: ${cleanCheatCount}/${subs.length} bài nộp không có vi phạm rời tab`,
+          time: lastUpdatedTime
+        });
+      }
+
+      let status = 'in_progress';
+      let statusLabel = 'Đang làm bài';
+      let statusColor = 'primary';
+      if (gradedSubs.length >= targetCount && targetCount > 0) {
+        status = 'completed';
+        statusLabel = 'Đã hoàn tất chấm';
+        statusColor = 'success';
+      } else if (subs.length > 0 && gradedSubs.length < subs.length) {
+        status = 'grading';
+        statusLabel = `Đang chấm (${gradedSubs.length}/${subs.length})`;
+        statusColor = 'warning';
+      } else if (a.deadline && new Date(a.deadline) < new Date()) {
+        status = 'overdue';
+        statusLabel = 'Đã quá hạn nộp';
+        statusColor = 'danger';
+      }
+
+      historyItems.push({
+        id: a.id,
+        itemType: 'test',
+        category: isQuiz ? 'Trắc nghiệm Online' : 'Tự luận viết tay',
+        title: a.title,
+        topic: a.topic || 'Kiểm tra & Luyện tập',
+        description: a.description || '',
+        createdAt: a.createdAt,
+        deadline: a.deadline,
+        lastUpdated: lastUpdatedTime,
+        author: cls.tutorName || 'Gia sư phụ trách',
+        targetCount,
+        submittedCount: subs.length,
+        gradedCount: gradedSubs.length,
+        avgScore,
+        highestScore,
+        lowestScore,
+        highestStudents,
+        status,
+        statusLabel,
+        statusColor,
+        updatedDetails,
+        rawAssignment: a,
+        submissions: subs
+      });
+    });
+
+    // 2. Chuyển đổi các bản đánh giá định kỳ của lớp
+    evaluations.forEach(e => {
+      const updatedDetails = [];
+      updatedDetails.push({
+        type: 'created',
+        icon: '📝',
+        text: `Khởi tạo bản đánh giá định kỳ: "${e.period}"`,
+        time: e.createdAt || e.date
+      });
+
+      if (e.overallComment) {
+        updatedDetails.push({
+          type: 'overall',
+          icon: '📋',
+          text: `Nhận xét chung: "${e.overallComment}"`,
+          time: e.updatedAt || e.createdAt
+        });
+      }
+
+      if (e.strengths) {
+        updatedDetails.push({
+          type: 'strengths',
+          icon: '🟢',
+          text: `Ghi nhận ưu điểm: "${e.strengths}"`,
+          time: e.updatedAt || e.createdAt
+        });
+      }
+
+      if (e.weaknesses) {
+        updatedDetails.push({
+          type: 'weaknesses',
+          icon: '🔴',
+          text: `Cần củng cố: "${e.weaknesses}"`,
+          time: e.updatedAt || e.createdAt
+        });
+      }
+
+      if (e.actionPlan) {
+        updatedDetails.push({
+          type: 'actionPlan',
+          icon: '🎯',
+          text: `Kế hoạch tuần tới: "${e.actionPlan}"`,
+          time: e.updatedAt || e.createdAt
+        });
+      }
+
+      if (e.commendations) {
+        updatedDetails.push({
+          type: 'commendations',
+          icon: '🌟',
+          text: `Tuyên dương khen thưởng: "${e.commendations}"`,
+          time: e.updatedAt || e.createdAt
+        });
+      }
+
+      if (e.attentionNeeded) {
+        updatedDetails.push({
+          type: 'attention',
+          icon: '⚠️',
+          text: `Cần đôn đốc: "${e.attentionNeeded}"`,
+          time: e.updatedAt || e.createdAt
+        });
+      }
+
+      const noteCount = e.studentNotes ? Object.keys(e.studentNotes).filter(k => e.studentNotes[k] && e.studentNotes[k].trim()).length : 0;
+      if (noteCount > 0) {
+        updatedDetails.push({
+          type: 'studentNotes',
+          icon: '💬',
+          text: `Đã lưu lời phê riêng cho ${noteCount}/${students.length} học sinh`,
+          time: e.updatedAt || e.createdAt
+        });
+      }
+
+      historyItems.push({
+        id: e.id,
+        itemType: 'evaluation',
+        category: 'Đánh giá định kỳ toàn lớp',
+        title: e.period,
+        topic: 'Đánh giá định kỳ',
+        description: e.overallComment || '',
+        createdAt: e.createdAt || e.date,
+        deadline: null,
+        lastUpdated: e.updatedAt || e.createdAt || e.date,
+        author: e.createdBy || cls.tutorName || 'Giáo viên phụ trách',
+        targetCount: students.length,
+        submittedCount: students.length,
+        gradedCount: students.length,
+        avgScore: null,
+        highestScore: null,
+        lowestScore: null,
+        highestStudents: [],
+        status: 'recorded',
+        statusLabel: 'Bản đánh giá chính thức',
+        statusColor: 'info',
+        updatedDetails,
+        rawEvaluation: e
+      });
+    });
+
+    // Sắp xếp thứ tự thời gian mới nhất lên trước
+    historyItems.sort((a, b) => new Date(b.lastUpdated || b.createdAt) - new Date(a.lastUpdated || a.createdAt));
+
+    // Thống kê tổng hợp
+    const testsOnly = historyItems.filter(i => i.itemType === 'test');
+    const gradedScores = testsOnly.filter(i => i.avgScore !== null).map(i => parseFloat(i.avgScore));
+    const overallAvgScore = gradedScores.length > 0 
+      ? (gradedScores.reduce((s, v) => s + v, 0) / gradedScores.length).toFixed(1) 
+      : '—';
+
+    let totalSubmitted = 0;
+    let totalTarget = 0;
+    testsOnly.forEach(t => {
+      totalSubmitted += t.submittedCount;
+      totalTarget += t.targetCount;
+    });
+    const avgCompletionRate = totalTarget > 0 ? Math.round((totalSubmitted / totalTarget) * 100) : 100;
+
+    return {
+      classInfo: cls,
+      items: historyItems,
+      summary: {
+        totalItems: historyItems.length,
+        totalTests: testsOnly.length,
+        totalEvals: historyItems.filter(i => i.itemType === 'evaluation').length,
+        lastUpdatedDate: historyItems.length > 0 ? historyItems[0].lastUpdated : null,
+        overallAvgScore,
+        avgCompletionRate
+      }
+    };
+  },
+
+  exportClassTestHistoryCSV(classId) {
+    const history = this.getClassTestHistory(classId);
+    if (!history || !history.classInfo) return;
+
+    const rows = [
+      ['STT', 'Tên Đợt Kiểm Tra / Đánh Giá', 'Phân Loại', 'Thời Gian Giao / Tạo', 'Hạn Nộp', 'Thời Gian Cập Nhật', 'Người Phụ Trách', 'Trạng Thái', 'Sĩ Số / Đã Nộp', 'Điểm TB', 'Điểm Cao Nhất', 'Nội Dung Cập Nhật & Ghi Nhận']
+    ];
+
+    history.items.forEach((item, idx) => {
+      const updatesText = item.updatedDetails.map(u => `${u.icon} ${u.text}`).join(' | ');
+      rows.push([
+        idx + 1,
+        `"${(item.title || '').replace(/"/g, '""')}"`,
+        `"${item.category}"`,
+        `"${new Date(item.createdAt).toLocaleString('vi-VN')}"`,
+        `"${item.deadline ? new Date(item.deadline).toLocaleString('vi-VN') : '—'}"`,
+        `"${new Date(item.lastUpdated).toLocaleString('vi-VN')}"`,
+        `"${item.author}"`,
+        `"${item.statusLabel}"`,
+        `"${item.submittedCount}/${item.targetCount}"`,
+        `"${item.avgScore !== null ? item.avgScore : '—'}"`,
+        `"${item.highestScore !== null ? item.highestScore : '—'}"`,
+        `"${updatesText.replace(/"/g, '""')}"`
+      ]);
+    });
+
+    const csvContent = '\uFEFF' + rows.map(r => r.join(',')).join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `LichSu_KiemTra_${history.classInfo.code}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    if (typeof window === 'undefined' || !window.__EDUTASK_AUDIT_MODE__) {
+      link.click();
+    }
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    if (typeof App !== 'undefined' && App.showToast) {
+      App.showToast(`📊 Đã tải thành công file lịch sử kiểm tra lớp ${history.classInfo.name}!`, 'success');
+    }
+    return csvContent;
+  },
+
+  exportClassEvaluationCSV(classId) {
+    const cls = this.getClassById(classId);
+    if (!cls) return '';
+
+    const gradebook = this.getClassGradebook(classId);
+    const students = this.getStudentsByClass(classId);
+    const evaluations = this.getClassEvaluations(classId);
+    const latestEval = evaluations.length > 0 ? evaluations[0] : null;
+
+    const escapeCsv = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+    const rows = [];
+    rows.push([`BÁO CÁO ĐÁNH GIÁ TÌNH HÌNH HỌC TẬP TOÀN LỚP — ${cls.name.toUpperCase()}`]);
+    rows.push([`Mã Lớp: ${cls.code}`, `Môn: ${cls.subject}`, `Khối: ${cls.grade}`, `Sĩ số: ${students.length} em`]);
+    rows.push([`Kỳ Đánh Giá: ${latestEval ? latestEval.period : 'Mới nhất'}`, `Ngày Xuất: ${new Date().toLocaleString('vi-VN')}`]);
+    if (latestEval) {
+      rows.push([`Nhận Xét Chung: ${escapeCsv(latestEval.overallComment)}`]);
+      rows.push([`Ưu Điểm: ${escapeCsv(latestEval.strengths)}`, `Cần Khắc Phục: ${escapeCsv(latestEval.weaknesses)}`]);
+      rows.push([`Tuyên Dương: ${escapeCsv(latestEval.commendations)}`, `Cần Đôn Đốc: ${escapeCsv(latestEval.attentionNeeded)}`]);
+    }
+    rows.push([]);
+
+    rows.push(['STT', 'Mã Học Sinh', 'Họ Và Tên', 'Tài Khoản', 'Trường Học', 'Điểm TB', 'Số Bài Nộp', 'Tỷ Lệ Hoàn Thành', 'Xếp Loại', 'Lời Phê Của Giáo Viên']);
+
+    students.forEach((std, idx) => {
+      const stdMatrix = gradebook ? gradebook.matrix.find(m => m.student.id === std.id) : null;
+      const note = (latestEval && latestEval.studentNotes && latestEval.studentNotes[std.id]) || '';
+      rows.push([
+        idx + 1,
+        std.id,
+        escapeCsv(std.name),
+        std.username || '',
+        escapeCsv(std.school || ''),
+        stdMatrix && stdMatrix.avgScore !== null ? stdMatrix.avgScore : '—',
+        stdMatrix ? `${stdMatrix.submittedCount}/${stdMatrix.totalAsns}` : '—',
+        stdMatrix ? `${stdMatrix.completionRate}%` : '—',
+        stdMatrix ? stdMatrix.classification : '—',
+        escapeCsv(note)
+      ]);
+    });
+
+    const csvContent = '\uFEFF' + rows.map(r => r.join(',')).join('\r\n');
+    try {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `DanhGiaLop_${cls.code}_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      if (typeof window === 'undefined' || !window.__EDUTASK_AUDIT_MODE__) {
+        link.click();
+      }
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch(e) {}
+    if (typeof App !== 'undefined' && App.showToast) {
+      App.showToast(`📊 Đã xuất thành công file báo cáo đánh giá lớp ${cls.name}!`, 'success');
+    }
+    return csvContent;
   }
 };
 

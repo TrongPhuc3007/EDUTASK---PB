@@ -8,8 +8,10 @@ const TutorView = {
   currentFilter: 'all',          // 'all', 'pending_grading', 'waiting_submission', 'completed'
   selectedStudentId: null,       // null = tất cả, hoặc 'u_std_quang',...
   selectedClassId: null,         // null = tất cả học sinh, hoặc 'cls_12a1', 'cls_10a2'...
-  activeClassTab: 'assignments', // 'assignments' | 'gradebook' | 'leaderboard' | 'announcements'
+  activeClassTab: 'assignments', // 'assignments' | 'gradebook' | 'evaluation' | 'history' | 'leaderboard' | 'announcements'
   searchKeyword: '',
+  historyFilter: 'all',          // 'all', 'test', 'quiz', 'photo', 'evaluation'
+  historySearchKeyword: '',
 
   setClassScope(classId) {
     this.selectedClassId = classId;
@@ -22,6 +24,28 @@ const TutorView = {
   setClassTab(tabName) {
     this.activeClassTab = tabName;
     App.renderCurrentView();
+  },
+
+  setHistoryFilter(filter) {
+    this.historyFilter = filter;
+    App.renderCurrentView();
+  },
+
+  setHistorySearch(keyword) {
+    this.historySearchKeyword = (keyword || '').toLowerCase().trim();
+    App.renderCurrentView();
+    const input = document.getElementById('classHistorySearchInput');
+    if (input) {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  },
+
+  renderClassWorkspace(container, classId, tab = 'assignments') {
+    this.selectedClassId = classId;
+    this.selectedStudentId = null;
+    this.activeClassTab = tab;
+    this.render(container);
   },
 
   /**
@@ -100,7 +124,7 @@ const TutorView = {
   openCreateClassModal() {
     const user = Auth.getCurrentUser();
     const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
-    const currentTutorId = user ? user.id : 'u_tutor';
+    const currentTutorId = user ? user.id : '';
     const students = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
 
     const container = document.getElementById('newClassStudentCheckboxes');
@@ -144,7 +168,7 @@ const TutorView = {
     const studentIds = Array.from(checkedBoxes).map(cb => cb.value);
 
     const user = Auth.getCurrentUser();
-    const currentTutorId = user ? user.id : 'u_tutor';
+    const currentTutorId = user ? user.id : '';
     const tutorName = user ? user.name : 'Gia Sư Phụ Trách';
 
     const newCls = Store.addClass({
@@ -177,7 +201,7 @@ const TutorView = {
 
     const user = Auth.getCurrentUser();
     const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
-    const currentTutorId = user ? user.id : 'u_tutor';
+    const currentTutorId = user ? user.id : '';
     const allStudents = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
     const existingIds = cls.studentIds || [];
     const availableStudents = allStudents.filter(s => !existingIds.includes(s.id));
@@ -698,11 +722,1144 @@ const TutorView = {
     `;
   },
 
+  // ================= CẢI TIẾN: ĐÁNH GIÁ CHO TOÀN LỚP (CLASS EVALUATION) =================
+  openCreateClassEvaluationModal(classId, evalId = null) {
+    const cls = Store.getClassById(classId || this.selectedClassId);
+    if (!cls) return;
+
+    const idInput = document.getElementById('classEvalId');
+    const classIdInput = document.getElementById('classEvalClassId');
+    const periodInput = document.getElementById('classEvalPeriod');
+    const authorInput = document.getElementById('classEvalAuthor');
+    const overallInput = document.getElementById('classEvalOverall');
+    const strengthsInput = document.getElementById('classEvalStrengths');
+    const weaknessesInput = document.getElementById('classEvalWeaknesses');
+    const actionPlanInput = document.getElementById('classEvalActionPlan');
+    const commendationsInput = document.getElementById('classEvalCommendations');
+    const attentionInput = document.getElementById('classEvalAttention');
+
+    const currentUser = Auth.getCurrentUser();
+    const defaultAuthor = currentUser ? currentUser.name : (cls.tutorName || 'Giáo viên phụ trách');
+
+    if (idInput) idInput.value = evalId || '';
+    if (classIdInput) classIdInput.value = cls.id;
+
+    if (evalId) {
+      const evaluations = Store.getClassEvaluations(cls.id);
+      const targetEval = evaluations.find(e => e.id === evalId);
+      if (targetEval) {
+        const titleEl = document.getElementById('classEvalModalTitle');
+        if (titleEl) titleEl.textContent = `Chỉnh Sửa Đánh Giá — ${cls.name}`;
+        if (periodInput) periodInput.value = targetEval.period || '';
+        if (authorInput) authorInput.value = targetEval.createdBy || defaultAuthor;
+        if (overallInput) overallInput.value = targetEval.overallComment || '';
+        if (strengthsInput) strengthsInput.value = targetEval.strengths || '';
+        if (weaknessesInput) weaknessesInput.value = targetEval.weaknesses || '';
+        if (actionPlanInput) actionPlanInput.value = targetEval.actionPlan || '';
+        if (commendationsInput) commendationsInput.value = targetEval.commendations || '';
+        if (attentionInput) attentionInput.value = targetEval.attentionNeeded || '';
+      }
+    } else {
+      const titleEl = document.getElementById('classEvalModalTitle');
+      if (titleEl) titleEl.textContent = `Tạo Đánh Giá Định Kỳ Mới — ${cls.name}`;
+      const now = new Date();
+      if (periodInput) periodInput.value = `Đánh Giá Tuần ${Math.ceil(now.getDate() / 7)} - Tháng ${now.getMonth() + 1}/${now.getFullYear()}`;
+      if (authorInput) authorInput.value = defaultAuthor;
+      if (overallInput) overallInput.value = '';
+      if (strengthsInput) strengthsInput.value = '';
+      if (weaknessesInput) weaknessesInput.value = '';
+      if (actionPlanInput) actionPlanInput.value = '';
+      if (commendationsInput) commendationsInput.value = '';
+      if (attentionInput) attentionInput.value = '';
+
+      // Tự động gợi ý điền dữ liệu
+      this.autoFillClassEvaluation();
+    }
+
+    const modal = document.getElementById('classEvaluationModal');
+    if (modal) modal.classList.add('active');
+  },
+
+  autoFillClassEvaluation() {
+    const classId = document.getElementById('classEvalClassId')?.value || this.selectedClassId;
+    const cls = Store.getClassById(classId);
+    if (!cls) return;
+
+    const gradebook = Store.getClassGradebook(classId);
+    if (!gradebook) return;
+
+    const classAvg = gradebook.classAvg;
+    const rankings = gradebook.rankings || [];
+
+    // Tự động phân tích top học sinh xuất sắc (điểm >= 8.5 hoặc top 2)
+    const topStudents = rankings.filter(r => r.avgScore !== null && r.avgScore >= 8.5);
+    const commendationNames = (topStudents.length > 0 ? topStudents : rankings.slice(0, 2))
+      .filter(r => r.avgScore !== null)
+      .map(r => `${r.student.name} (${r.avgScore}đ)`)
+      .join(', ');
+
+    // Tự động phân tích các em cần đôn đốc (chưa nộp đủ bài hoặc điểm < 6.5)
+    const needAttentionStudents = rankings
+      .filter(r => r.avgScore !== null && (r.avgScore < 6.5 || r.completionRate < 70))
+      .map(r => r.student.name);
+
+    let overallMsg = `Cả lớp ${cls.name} duy trì nề nếp học tập nghiêm túc. Điểm trung bình toàn lớp đạt ${classAvg}/10. `;
+    if (classAvg !== '—' && parseFloat(classAvg) >= 8.0) {
+      overallMsg += `Đa số các em nắm rất chắc kiến thức trọng tâm, kỹ năng giải đề tự tin và nộp bài đều đặn.`;
+    } else if (classAvg !== '—' && parseFloat(classAvg) >= 6.5) {
+      overallMsg += `Các em nắm được kiến thức nền tảng, tuy nhiên cần tăng tốc độ làm bài và rèn thêm tính cẩn thận.`;
+    } else {
+      overallMsg += `Lớp cần tập trung ôn tập lại các dạng bài cơ bản và hoàn thành bài tập về nhà đầy đủ hơn.`;
+    }
+
+    const overallInput = document.getElementById('classEvalOverall');
+    if (overallInput && !overallInput.value.trim()) {
+      overallInput.value = overallMsg;
+    }
+
+    const strengthsInput = document.getElementById('classEvalStrengths');
+    if (strengthsInput && !strengthsInput.value.trim()) {
+      strengthsInput.value = `Tư duy đại số và khả năng áp dụng công thức tốt. Tinh thần tự giác làm bài của đa số học sinh cao.`;
+    }
+
+    const weaknessesInput = document.getElementById('classEvalWeaknesses');
+    if (weaknessesInput && !weaknessesInput.value.trim()) {
+      weaknessesInput.value = `Một số em còn lúng túng ở câu hỏi trắc nghiệm vận dụng cao và các bài toán hình học không gian.`;
+    }
+
+    const actionPlanInput = document.getElementById('classEvalActionPlan');
+    if (actionPlanInput && !actionPlanInput.value.trim()) {
+      actionPlanInput.value = `Tuần tới sẽ tăng cường 2 phiếu luyện tập trọng tâm và tổ chức 1 bài kiểm tra 30 phút rèn tốc độ.`;
+    }
+
+    const commendationsInput = document.getElementById('classEvalCommendations');
+    if (commendationsInput && !commendationsInput.value.trim()) {
+      commendationsInput.value = commendationNames ? `Tuyên dương các em: ${commendationNames}` : `Toàn bộ các em đã có nhiều nỗ lực hoàn thành bài tập.`;
+    }
+
+    const attentionInput = document.getElementById('classEvalAttention');
+    if (attentionInput && !attentionInput.value.trim()) {
+      attentionInput.value = needAttentionStudents.length > 0 
+        ? `Đôn đốc các em hoàn thành bài tập đúng hạn: ${needAttentionStudents.join(', ')}`
+        : `Nhắc nhở cả lớp nộp bài tập về nhà trước 21h00 hàng ngày.`;
+    }
+
+    App.showToast('⚡ Đã tự động phân tích và gợi ý số liệu đánh giá lớp!', 'info');
+  },
+
+  submitClassEvaluation() {
+    const classId = document.getElementById('classEvalClassId')?.value;
+    const evalId = document.getElementById('classEvalId')?.value;
+    const period = document.getElementById('classEvalPeriod')?.value.trim();
+    const overallComment = document.getElementById('classEvalOverall')?.value.trim();
+
+    if (!classId) return;
+    if (!period || !overallComment) {
+      App.showToast('Vui lòng nhập Kỳ đánh giá và Nhận xét chung của lớp!', 'error');
+      return;
+    }
+
+    const gradebook = Store.getClassGradebook(classId);
+    const evalData = {
+      id: evalId || ('eval_' + Date.now()),
+      period,
+      createdBy: document.getElementById('classEvalAuthor')?.value.trim() || 'Giáo viên phụ trách',
+      overallComment,
+      strengths: document.getElementById('classEvalStrengths')?.value.trim() || '',
+      weaknesses: document.getElementById('classEvalWeaknesses')?.value.trim() || '',
+      actionPlan: document.getElementById('classEvalActionPlan')?.value.trim() || '',
+      commendations: document.getElementById('classEvalCommendations')?.value.trim() || '',
+      attentionNeeded: document.getElementById('classEvalAttention')?.value.trim() || '',
+      date: new Date().toISOString(),
+      statsSnapshot: gradebook ? {
+        classAvg: gradebook.classAvg,
+        studentCount: gradebook.students.length,
+        distribution: gradebook.distribution
+      } : null
+    };
+
+    Store.saveClassEvaluation(classId, evalData);
+    App.closeModal('classEvaluationModal');
+    App.showToast(`✓ Đã lưu thành công bản đánh giá "${period}" cho lớp!`, 'success');
+    App.renderCurrentView();
+  },
+
+  deleteClassEvaluation(classId, evalId) {
+    if (!confirm('Bạn có chắc chắn muốn xóa bản đánh giá định kỳ này?')) return;
+    Store.deleteClassEvaluation(classId, evalId);
+    App.showToast('Đã xóa bản đánh giá lớp.', 'info');
+    App.renderCurrentView();
+  },
+
+  openClassEvaluationZaloModal(classId, evalId = null) {
+    const cls = Store.getClassById(classId || this.selectedClassId);
+    if (!cls) return;
+
+    const evaluations = Store.getClassEvaluations(cls.id);
+    const targetEval = evalId ? evaluations.find(e => e.id === evalId) : (evaluations.length > 0 ? evaluations[0] : null);
+
+    if (!targetEval) {
+      App.showToast('Chưa có bản đánh giá nào để tạo tin nhắn Zalo!', 'warning');
+      return;
+    }
+
+    const gradebook = Store.getClassGradebook(cls.id);
+    const students = Store.getStudentsByClass(cls.id);
+    const dist = gradebook ? gradebook.distribution : { excellent: {percent:0}, good: {percent:0}, average: {percent:0}, weak: {percent:0} };
+
+    let avgCompletionRate = 0;
+    if (gradebook && gradebook.matrix.length > 0) {
+      const sumRates = gradebook.matrix.reduce((acc, row) => acc + row.completionRate, 0);
+      avgCompletionRate = Math.round(sumRates / gradebook.matrix.length);
+    }
+
+    const dateStr = new Date(targetEval.date).toLocaleDateString('vi-VN');
+    const msg = `🏫 BÁO CÁO ĐÁNH GIÁ TÌNH HÌNH HỌC TẬP — ${cls.name.toUpperCase()}
+📅 Kỳ đánh giá: ${targetEval.period} (${dateStr})
+👨‍🏫 Giáo viên phụ trách: ${targetEval.createdBy || cls.tutorName}
+
+1. TỔNG QUAN KẾT QUẢ CẢ LỚP:
+• Sĩ số lớp: ${students.length} học sinh
+• Điểm trung bình toàn lớp: ${gradebook ? gradebook.classAvg : '—'}/10
+• Tỷ lệ hoàn thành bài tập về nhà: ${avgCompletionRate}%
+• Phân bổ học lực: Giỏi ${dist.excellent.percent}% | Khá ${dist.good.percent}% | TB ${dist.average.percent}% | Cần cố gắng ${dist.weak.percent}%
+
+2. NHẬN XÉT CỦA GIÁO VIÊN:
+• Nề nếp & Thái độ: ${targetEval.overallComment}
+${targetEval.strengths ? `• Ưu điểm nổi bật: ${targetEval.strengths}` : ''}
+${targetEval.weaknesses ? `• Nội dung cần củng cố: ${targetEval.weaknesses}` : ''}
+
+3. TUYÊN DƯƠNG & KHEN THƯỞNG:
+🌟 ${targetEval.commendations || 'Ghi nhận sự nỗ lực của toàn thể học sinh trong lớp.'}
+
+4. HỌC SINH CẦN PHỤ HUYNH PHỐI HỢP ĐÔN ĐỐC:
+⚠️ ${targetEval.attentionNeeded || 'Nhắc nhở các em hoàn thành bài tập trước hạn quy định.'}
+
+5. KẾ HOẠCH HỌC TẬP THỜI GIAN TỚI:
+🎯 ${targetEval.actionPlan || 'Tiếp tục rèn luyện theo lộ trình chuyên đề.'}
+
+Trân trọng cảm ơn Quý phụ huynh đã luôn đồng hành cùng các con và lớp học!`;
+
+    const previewBox = document.getElementById('classEvaluationZaloPreview');
+    if (previewBox) {
+      previewBox.textContent = msg;
+    }
+
+    const modal = document.getElementById('classEvaluationZaloModal');
+    if (modal) modal.classList.add('active');
+  },
+
+  copyClassEvaluationZalo() {
+    const previewBox = document.getElementById('classEvaluationZaloPreview');
+    if (!previewBox) return;
+    const text = previewBox.textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        App.showToast('📋 Đã sao chép báo cáo Zalo cả lớp! Bạn có thể dán (Ctrl+V) gửi ngay vào nhóm lớp.', 'success');
+      }).catch(() => {
+        this.fallbackCopy(text);
+      });
+    } else {
+      this.fallbackCopy(text);
+    }
+  },
+
+  applyQuickNote(studentId, noteText) {
+    const input = document.getElementById(`stdEvalNote_${studentId}`);
+    if (input) {
+      const cur = input.value.trim();
+      input.value = cur ? `${cur} ${noteText}` : noteText;
+      input.focus();
+    }
+  },
+
+  saveStudentEvaluationNote(classId, studentId) {
+    const input = document.getElementById(`stdEvalNote_${studentId}`);
+    if (!input) return;
+    const note = input.value.trim();
+
+    const evaluations = Store.getClassEvaluations(classId);
+    let latestEval = evaluations.length > 0 ? evaluations[0] : null;
+
+    if (!latestEval) {
+      latestEval = Store.saveClassEvaluation(classId, {
+        period: `Đánh Giá Tháng ${new Date().getMonth() + 1}/${new Date().getFullYear()}`,
+        overallComment: 'Bản đánh giá tổng hợp tình hình học tập và nhận xét chi tiết từng học sinh.',
+        studentNotes: { [studentId]: note }
+      });
+    } else {
+      Store.updateStudentClassEvaluationNote(classId, latestEval.id, studentId, note);
+    }
+
+    App.showToast(`✓ Đã lưu nhận xét cho học sinh!`, 'success');
+  },
+
+  exportClassEvaluationCSV(classId) {
+    if (window.Store && typeof Store.exportClassEvaluationCSV === 'function') {
+      return Store.exportClassEvaluationCSV(classId);
+    }
+  },
+
+  remindClassStudents(classId) {
+    const cls = Store.getClassById(classId || this.selectedClassId);
+    if (!cls) return;
+
+    const students = Store.getStudentsByClass(cls.id);
+    const assignments = Store.getAllAssignments().filter(asn => {
+      if (asn.classId === cls.id) return true;
+      return asn.targetStudentIds && asn.targetStudentIds.some(sid => (cls.studentIds || []).includes(sid));
+    });
+
+    const pendingList = [];
+    assignments.forEach(asn => {
+      const targetIds = (asn.targetStudentIds || []).filter(sid => (cls.studentIds || []).includes(sid));
+      targetIds.forEach(sid => {
+        const sub = Store.getSubmission(asn.id, sid);
+        if (!sub) {
+          const std = students.find(s => s.id === sid);
+          if (std) {
+            pendingList.push({
+              studentName: std.name,
+              asnTitle: asn.title,
+              deadline: asn.deadline ? new Date(asn.deadline).toLocaleString('vi-VN') : 'Sớm'
+            });
+          }
+        }
+      });
+    });
+
+    if (pendingList.length === 0) {
+      App.showToast(`🎉 Tuyệt vời! 100% học sinh lớp "${cls.name}" đều đã nộp bài đầy đủ, không có bài tập nào bị trễ hạn.`, 'success');
+      return;
+    }
+
+    let msg = `🔔 THÔNG BÁO NHẮC NỘP BÀI TẬP — LỚP: ${cls.name.toUpperCase()}\n`;
+    msg += `(Ngày: ${new Date().toLocaleDateString('vi-VN')})\n\n`;
+    msg += `Kính gửi Quý phụ huynh và các em học sinh,\nThầy/Cô xin gửi danh sách các bạn còn bài tập về nhà chưa hoàn thành trên hệ thống EduTask:\n\n`;
+
+    pendingList.forEach((item, idx) => {
+      msg += `${idx + 1}. Em ${item.studentName}: "${item.asnTitle}" (Hạn nộp: ${item.deadline})\n`;
+    });
+
+    msg += `\nCác em hãy tranh thủ đăng nhập làm và gửi bài để Thầy/Cô chấm điểm bút đỏ nhé!\nTrân trọng.`;
+
+    this.fallbackCopy(msg);
+    alert(`📋 ĐÃ SAO CHÉP NỘI DUNG NHẮC NỘP BÀI LỚP "${cls.name}"!\n\nBạn có thể dán (Ctrl+V) ngay vào nhóm Zalo lớp:\n\n${msg}`);
+  },
+
+  renderClassEvaluation(classId) {
+    const cls = Store.getClassById(classId);
+    if (!cls) {
+      return `<div class="content-card" style="padding:24px; text-align:center;">Không tìm thấy dữ liệu lớp học.</div>`;
+    }
+
+    const students = Store.getStudentsByClass(classId);
+    const gradebook = Store.getClassGradebook(classId);
+    const evaluations = Store.getClassEvaluations(classId);
+    const latestEval = evaluations.length > 0 ? evaluations[0] : null;
+    const historyData = Store.getClassTestHistory(classId);
+
+    const classAvg = gradebook ? gradebook.classAvg : '—';
+    const dist = gradebook ? gradebook.distribution : { excellent: {count:0, percent:0}, good: {count:0, percent:0}, average: {count:0, percent:0}, weak: {count:0, percent:0} };
+
+    let totalAssignments = gradebook ? gradebook.assignments.length : 0;
+    let avgCompletionRate = 0;
+    if (gradebook && gradebook.matrix.length > 0) {
+      const sumRates = gradebook.matrix.reduce((acc, row) => acc + row.completionRate, 0);
+      avgCompletionRate = Math.round(sumRates / gradebook.matrix.length);
+    }
+
+    let totalIntegrity = 0;
+    students.forEach(s => {
+      const cheat = Store.getStudentCheatSummary(s.id);
+      totalIntegrity += cheat.integrityRate;
+    });
+    const classIntegrityRate = students.length > 0 ? Math.round(totalIntegrity / students.length) : 100;
+
+    let classOverallRating = 'Khá';
+    if (classAvg !== '—' && typeof classAvg === 'string' && parseFloat(classAvg) >= 8.5) classOverallRating = 'Xuất Sắc / Giỏi';
+    else if (classAvg !== '—' && parseFloat(classAvg) >= 7.0) classOverallRating = 'Khá';
+    else if (classAvg !== '—' && parseFloat(classAvg) >= 5.0) classOverallRating = 'Trung Bình';
+    else if (classAvg !== '—') classOverallRating = 'Cần Cố Gắng';
+
+    return `
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        <!-- KHỐI 1: TỔNG QUAN NĂNG LỰC & HỌC LỰC TOÀN LỚP -->
+        <div class="content-card">
+          <div class="card-header" style="flex-wrap:wrap; gap:10px;">
+            <div>
+              <h3 style="margin:0;">📝 Báo Cáo Đánh Giá Toàn Diện — ${cls.name}</h3>
+              <small style="color:var(--text-muted);">Đánh giá năng lực, chuyên cần, nề nếp học tập và định hướng cải thiện kết quả</small>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-sm btn-primary" onclick="TutorView.openCreateClassEvaluationModal('${classId}')">
+                ➕ Tạo Báo Cáo Đánh Giá Mới
+              </button>
+              ${latestEval ? `
+                <button class="btn btn-sm btn-secondary" onclick="TutorView.openClassEvaluationZaloModal('${classId}', '${latestEval.id}')" title="Xem trước mẫu tin nhắn chuẩn bị gửi Zalo phụ huynh cả lớp">
+                  💬 Gửi Zalo Cả Lớp
+                </button>
+              ` : ''}
+              <button class="btn btn-sm btn-outline" onclick="TutorView.exportClassEvaluationCSV('${classId}')" title="Tải file báo cáo đánh giá Excel/CSV">
+                📥 Tải Báo Cáo CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="card-body" style="padding:20px;">
+            <!-- 4 Thẻ Chỉ Số Vàng -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px; margin-bottom:20px;">
+              <div style="background:linear-gradient(135deg, #eff6ff, #dbeafe); border:1.5px solid #bfdbfe; border-radius:12px; padding:16px; text-align:center;">
+                <div style="font-size:12px; font-weight:700; color:#1e40af;">📊 ĐIỂM TB TOÀN LỚP</div>
+                <div style="font-size:26px; font-weight:900; color:#1d4ed8; margin:4px 0;">${classAvg}/10</div>
+                <span class="badge badge-primary" style="font-size:11px;">Học lực: ${classOverallRating}</span>
+              </div>
+
+              <div style="background:linear-gradient(135deg, #f0fdf4, #dcfce7); border:1.5px solid #bbf7d0; border-radius:12px; padding:16px; text-align:center;">
+                <div style="font-size:12px; font-weight:700; color:#166534;">✍️ TỶ LỆ NỘP BÀI TẬP</div>
+                <div style="font-size:26px; font-weight:900; color:#15803d; margin:4px 0;">${avgCompletionRate}%</div>
+                <span class="badge badge-success" style="font-size:11px;">${totalAssignments} đề bài tập đã giao</span>
+              </div>
+
+              <div style="background:linear-gradient(135deg, #faf5ff, #f3e8ff); border:1.5px solid #e9d5ff; border-radius:12px; padding:16px; text-align:center;">
+                <div style="font-size:12px; font-weight:700; color:#6b21a8;">🛡️ ĐỘ TRUNG THỰC LÀM BÀI</div>
+                <div style="font-size:26px; font-weight:900; color:#7e22ce; margin:4px 0;">${classIntegrityRate}%</div>
+                <span class="badge" style="background:#ede9fe; color:#5b21b6; font-size:11px;">Giám sát chống gian lận</span>
+              </div>
+
+              <div style="background:linear-gradient(135deg, #fffbeb, #fef3c7); border:1.5px solid #fde68a; border-radius:12px; padding:16px; text-align:center;">
+                <div style="font-size:12px; font-weight:700; color:#92400e;">🎒 SĨ SỐ THÀNH VIÊN</div>
+                <div style="font-size:26px; font-weight:900; color:#b45309; margin:4px 0;">${students.length} em</div>
+                <span class="badge badge-warning" style="font-size:11px;">100% Đang theo học</span>
+              </div>
+            </div>
+
+            <!-- Phổ điểm học lực trực quan -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <strong style="font-size:13px; color:#1e293b;">📈 Phân Bổ Học Lực Cả Lớp:</strong>
+                <span style="font-size:12px; color:var(--text-muted);">Dựa trên toàn bộ điểm kiểm tra & bài tập</span>
+              </div>
+              <div style="display:flex; height:18px; border-radius:9px; overflow:hidden; gap:2px; background:#e2e8f0;">
+                <div style="width:${dist.excellent.percent}%; background:#10b981;" title="Giỏi (≥8.5đ): ${dist.excellent.count} em (${dist.excellent.percent}%)"></div>
+                <div style="width:${dist.good.percent}%; background:#3b82f6;" title="Khá (7.0-8.4đ): ${dist.good.count} em (${dist.good.percent}%)"></div>
+                <div style="width:${dist.average.percent}%; background:#f59e0b;" title="Trung bình (5.0-6.9đ): ${dist.average.count} em (${dist.average.percent}%)"></div>
+                <div style="width:${dist.weak.percent}%; background:#ef4444;" title="Yếu (<5.0đ): ${dist.weak.count} em (${dist.weak.percent}%)"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:8px; font-size:12px;">
+                <span>🟢 <strong>Giỏi:</strong> ${dist.excellent.count} em (${dist.excellent.percent}%)</span>
+                <span>🔵 <strong>Khá:</strong> ${dist.good.count} em (${dist.good.percent}%)</span>
+                <span>🟡 <strong>TB:</strong> ${dist.average.count} em (${dist.average.percent}%)</span>
+                <span>🔴 <strong>Yếu:</strong> ${dist.weak.count} em (${dist.weak.percent}%)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KHỐI 2: BẢN ĐÁNH GIÁ ĐỊNH KỲ CỦA GIÁO VIÊN -->
+        <div class="content-card">
+          <div class="card-header" style="flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:22px;">📋</span>
+              <div>
+                <h3 style="margin:0;">Nhật Ký Đánh Giá Định Kỳ Của Giáo Viên</h3>
+                <small style="color:var(--text-muted);">${evaluations.length} kỳ đánh giá đã ghi nhận</small>
+              </div>
+            </div>
+            ${latestEval ? `
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-sm btn-outline" onclick="TutorView.openCreateClassEvaluationModal('${classId}', '${latestEval.id}')">
+                  ✏️ Chỉnh Sửa Đánh Giá
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="TutorView.openClassEvaluationZaloModal('${classId}', '${latestEval.id}')">
+                  💬 Xem Báo Cáo Zalo
+                </button>
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="card-body" style="padding:20px;">
+            ${latestEval ? `
+              <div style="background:#ffffff; border:1.5px solid #c7d2fe; border-radius:14px; padding:20px; box-shadow:0 4px 14px rgba(99,102,241,0.08);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; border-bottom:1px solid #e0e7ff; padding-bottom:12px; flex-wrap:wrap; gap:8px;">
+                  <div>
+                    <h4 style="margin:0; font-size:17px; color:#312e81;">📌 ${latestEval.period}</h4>
+                    <div style="font-size:12.5px; color:var(--text-muted); margin-top:3px;">
+                      Người đánh giá: <strong>${latestEval.createdBy}</strong> • Ngày lập: <strong>${new Date(latestEval.date).toLocaleDateString('vi-VN')}</strong>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:6px;">
+                    <button class="btn btn-xs btn-outline" onclick="TutorView.openClassEvaluationZaloModal('${classId}', '${latestEval.id}')">
+                      📋 Mẫu Zalo
+                    </button>
+                    <button class="btn btn-xs btn-danger" onclick="TutorView.deleteClassEvaluation('${classId}', '${latestEval.id}')" title="Xóa bản đánh giá này">
+                      🗑️ Xóa
+                    </button>
+                  </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr; gap:14px;">
+                  <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px;">
+                    <strong style="color:#1e293b; font-size:13.5px; display:block; margin-bottom:4px;">📝 Nhận Xét Chung Về Tình Hình & Thái Độ Học Tập Cả Lớp:</strong>
+                    <p style="margin:0; font-size:13.5px; color:#334155; line-height:1.6; white-space:pre-wrap;">${latestEval.overallComment}</p>
+                  </div>
+
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 14px;">
+                      <strong style="color:#166534; font-size:13px; display:block; margin-bottom:4px;">🟢 Ưu Điểm Nổi Bật:</strong>
+                      <p style="margin:0; font-size:13px; color:#14532d; line-height:1.5;">${latestEval.strengths || 'Tích cực làm bài và nắm kiến thức cơ bản tốt.'}</p>
+                    </div>
+
+                    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px 14px;">
+                      <strong style="color:#991b1b; font-size:13px; display:block; margin-bottom:4px;">🔴 Điểm Yếu & Cần Củng Cố Thêm:</strong>
+                      <p style="margin:0; font-size:13px; color:#7f1d1d; line-height:1.5;">${latestEval.weaknesses || 'Cần chú ý cẩn thận hơn ở khâu tính toán nháp.'}</p>
+                    </div>
+                  </div>
+
+                  <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px 16px;">
+                    <strong style="color:#1e40af; font-size:13px; display:block; margin-bottom:4px;">🎯 Kế Hoạch & Phương Hướng Rèn Luyện Tới:</strong>
+                    <p style="margin:0; font-size:13px; color:#1e3a8a; line-height:1.5;">${latestEval.actionPlan || 'Tiếp tục luyện đề theo chuyên đề và kiểm tra định kỳ.'}</p>
+                  </div>
+
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div style="background:#fffbeb; border:1px solid #fef08a; border-radius:10px; padding:12px 14px;">
+                      <strong style="color:#854d0e; font-size:13px; display:block; margin-bottom:4px;">🌟 Tuyên Dương & Khen Thưởng:</strong>
+                      <p style="margin:0; font-size:13px; color:#713f12; line-height:1.5;">${latestEval.commendations || 'Ghi nhận sự cố gắng của toàn thể học sinh trong lớp.'}</p>
+                    </div>
+
+                    <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:12px 14px;">
+                      <strong style="color:#9a3412; font-size:13px; display:block; margin-bottom:4px;">⚠️ Cần Phụ Huynh Phối Hợp Đôn Đốc:</strong>
+                      <p style="margin:0; font-size:13px; color:#7c2d12; line-height:1.5;">${latestEval.attentionNeeded || 'Nhắc nhở các em hoàn thành bài tập trước 21h hàng ngày.'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <div style="text-align:center; padding:36px; background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:12px;">
+                <div style="font-size:36px; margin-bottom:8px;">📝</div>
+                <h4 style="margin-bottom:6px; color:#334155;">Lớp này chưa có bản đánh giá định kỳ nào</h4>
+                <p style="color:var(--text-muted); font-size:13.5px; max-width:480px; margin:0 auto 16px auto;">
+                  Hãy tạo bản đánh giá định kỳ để ghi nhận thành tích, nhận xét ưu/nhược điểm và tự động xuất tin nhắn Zalo gửi phụ huynh cả lớp.
+                </p>
+                <button class="btn btn-primary btn-sm" onclick="TutorView.openCreateClassEvaluationModal('${classId}')">
+                  ➕ Tạo Bản Đánh Giá Đầu Tiên Cho Lớp
+                </button>
+              </div>
+            `}
+          </div>
+        </div>
+
+        <!-- KHỐI 3: BẢNG NHẬN XÉT CHI TIẾT TỪNG HỌC SINH TRONG LỚP -->
+        <div class="content-card">
+          <div class="card-header">
+            <div>
+              <h3 style="margin:0;">🎒 Nhận Xét & Lời Khuyên Cho Từng Học Sinh Trong Lớp</h3>
+              <small style="color:var(--text-muted);">Ghi chú nhận xét riêng cho từng em (tự động đưa vào báo cáo cá nhân hóa)</small>
+            </div>
+            <span class="badge badge-primary">${students.length} học sinh</span>
+          </div>
+
+          <div class="card-body" style="padding:16px;">
+            ${students.length === 0 ? `
+              <div style="text-align:center; padding:30px; color:var(--text-muted);">
+                Chưa có học sinh nào trong lớp.
+              </div>
+            ` : `
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                ${students.map((std, idx) => {
+                  const stdMatrix = gradebook ? gradebook.matrix.find(m => m.student.id === std.id) : null;
+                  const scoreStr = stdMatrix && stdMatrix.avgScore !== null ? `${stdMatrix.avgScore}đ` : '—';
+                  const completionStr = stdMatrix ? `${stdMatrix.submittedCount}/${stdMatrix.totalAsns} (${stdMatrix.completionRate}%)` : '—';
+                  const existingNote = (latestEval && latestEval.studentNotes && latestEval.studentNotes[std.id]) || '';
+
+                  return `
+                    <div style="border:1.5px solid #e2e8f0; border-radius:12px; padding:14px; background:#ffffff; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:10px;">
+                      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                          <div class="user-avatar" style="width:34px; height:34px; font-size:12px;">
+                            ${std.avatarText || std.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <strong style="font-size:14px; color:var(--text-main);">${std.name}</strong>
+                            <span style="font-size:11.5px; font-family:var(--font-mono); color:var(--primary); font-weight:600; margin-left:6px;">(${std.username || 'Chưa cấp'})</span>
+                            <div style="font-size:12px; color:var(--text-muted);">${std.school || ''} • ${std.grade || ''}</div>
+                          </div>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:12px;">
+                          <div style="text-align:right;">
+                            <div style="font-size:15px; font-weight:800; color:var(--primary);">${scoreStr}</div>
+                            <small style="color:var(--text-muted); font-size:11px;">Điểm TB</small>
+                          </div>
+                          <div style="text-align:right;">
+                            <div style="font-size:13px; font-weight:700; color:#334155;">${completionStr}</div>
+                            <small style="color:var(--text-muted); font-size:11px;">Tiến độ bài tập</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style="display:flex; flex-direction:column; gap:6px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                          <label style="font-size:12px; font-weight:700; color:#475569; margin:0;">
+                            ✍️ Lời phê & Lời khuyên của Giáo viên:
+                          </label>
+                          <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-xs btn-outline" onclick="TutorView.applyQuickNote('${std.id}', 'Tiếp thu nhanh, tư duy giải đề tốt.')" style="font-size:10.5px; padding:1px 6px;">
+                              + Tiếp thu nhanh
+                            </button>
+                            <button type="button" class="btn btn-xs btn-outline" onclick="TutorView.applyQuickNote('${std.id}', 'Cần cẩn thận hơn ở khâu tính toán cuối.')" style="font-size:10.5px; padding:1px 6px;">
+                              + Tính cẩn thận
+                            </button>
+                            <button type="button" class="btn btn-xs btn-outline" onclick="TutorView.applyQuickNote('${std.id}', 'Chăm chỉ, làm bài đầy đủ đúng hạn.')" style="font-size:10.5px; padding:1px 6px;">
+                              + Chăm chỉ
+                            </button>
+                            <button type="button" class="btn btn-xs btn-outline" onclick="TutorView.applyQuickNote('${std.id}', 'Tiến bộ rõ rệt so với giai đoạn trước.')" style="font-size:10.5px; padding:1px 6px;">
+                              + Tiến bộ vượt bậc
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style="display:flex; gap:8px;">
+                          <input type="text" id="stdEvalNote_${std.id}" class="form-control" style="font-size:13px;" placeholder="Nhập lời phê riêng cho ${std.name}..." value="${existingNote.replace(/"/g, '&quot;')}">
+                          <button class="btn btn-sm btn-primary" onclick="TutorView.saveStudentEvaluationNote('${classId}', '${std.id}')" style="white-space:nowrap; padding:6px 12px;">
+                            💾 Lưu
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `}
+          </div>
+        </div>
+
+        <!-- KHỐI 4: GHI NHẬN CÁC ĐỢT KIỂM TRA & ĐÁNH GIÁ GẦN ĐÂY -->
+        <div class="content-card">
+          <div class="card-header" style="justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+              <h3 style="margin:0;">📜 Lịch Sử & Ghi Nhận Các Đợt Kiểm Tra Gần Đây</h3>
+              <small style="color:var(--text-muted);">Mốc thời gian tổ chức các bài kiểm tra và tóm tắt những nội dung cập nhật mới nhất</small>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="TutorView.setClassTab('history')" style="font-weight:700; color:var(--primary); border-color:var(--primary);">
+              🔍 Xem Toàn Bộ Lịch Sử (${historyData.items.length} đợt)
+            </button>
+          </div>
+          <div class="card-body" style="padding:16px;">
+            ${historyData.items.length === 0 ? `
+              <div style="text-align:center; padding:24px; color:var(--text-muted);">
+                Chưa có đợt kiểm tra nào được ghi nhận. Bấm <strong>"➕ Giao bài cho lớp"</strong> để bắt đầu tổ chức đợt kiểm tra.
+              </div>
+            ` : `
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                ${historyData.items.slice(0, 3).map((item, idx) => `
+                  <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                      <span style="font-size:24px;">${item.itemType === 'test' ? (item.category.includes('Trắc nghiệm') ? '⚡' : '📸') : '📝'}</span>
+                      <div>
+                        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                          <span class="badge ${item.statusColor ? `badge-${item.statusColor}` : 'badge-primary'}" style="font-size:10.5px;">${item.category}</span>
+                          <strong style="font-size:13.5px; color:#1e293b;">${item.title}</strong>
+                        </div>
+                        <small style="color:var(--text-muted); font-size:11.5px;">
+                          🕒 Cập nhật: ${new Date(item.lastUpdated).toLocaleString('vi-VN')} • Người phụ trách: <strong>${item.author}</strong>
+                        </small>
+                      </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      ${item.itemType === 'test' ? `
+                        <div style="text-align:right;">
+                          <strong style="color:${item.avgScore ? '#15803d' : 'var(--text-muted)'}; font-size:14px;">${item.avgScore ? item.avgScore + '/10' : 'Chưa có điểm'}</strong><br>
+                          <small style="color:var(--text-muted); font-size:11px;">Đã nộp: ${item.submittedCount}/${item.targetCount}</small>
+                        </div>
+                      ` : ''}
+                      <button class="btn btn-xs btn-outline" onclick="TutorView.openClassTestDetailModal('${item.id}', '${item.itemType}')">
+                        🔍 Chi tiết
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  // ================= RENDER TAB LỊCH SỬ & THỐNG KÊ CÁC ĐỢT KIỂM TRA =================
+  renderClassTestHistory(classId) {
+    const historyData = Store.getClassTestHistory(classId);
+    const { classInfo, items, summary } = historyData;
+
+    if (!classInfo) {
+      return `<div class="content-card" style="padding:24px; text-align:center;">Không tìm thấy dữ liệu lớp học.</div>`;
+    }
+
+    // Lọc theo loại hình
+    let filteredItems = items;
+    if (this.historyFilter === 'quiz') {
+      filteredItems = filteredItems.filter(i => i.itemType === 'test' && i.category.includes('Trắc nghiệm'));
+    } else if (this.historyFilter === 'photo') {
+      filteredItems = filteredItems.filter(i => i.itemType === 'test' && i.category.includes('Tự luận'));
+    } else if (this.historyFilter === 'test') {
+      filteredItems = filteredItems.filter(i => i.itemType === 'test');
+    } else if (this.historyFilter === 'evaluation') {
+      filteredItems = filteredItems.filter(i => i.itemType === 'evaluation');
+    }
+
+    // Lọc theo từ khóa tìm kiếm
+    if (this.historySearchKeyword) {
+      const q = this.historySearchKeyword;
+      filteredItems = filteredItems.filter(i => {
+        const titleMatch = (i.title || '').toLowerCase().includes(q);
+        const topicMatch = (i.topic || '').toLowerCase().includes(q);
+        const descMatch = (i.description || '').toLowerCase().includes(q);
+        const updatesMatch = (i.updatedDetails || []).some(u => u.text.toLowerCase().includes(q));
+        return titleMatch || topicMatch || descMatch || updatesMatch;
+      });
+    }
+
+    const quizCount = items.filter(i => i.itemType === 'test' && i.category.includes('Trắc nghiệm')).length;
+    const photoCount = items.filter(i => i.itemType === 'test' && i.category.includes('Tự luận')).length;
+    const lastUpdatedStr = summary.lastUpdatedDate ? new Date(summary.lastUpdatedDate).toLocaleString('vi-VN') : 'Chưa có';
+
+    return `
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        <!-- KHỐI 1: TỔNG QUAN & BỐN CHỈ SỐ LỊCH SỬ KIỂM TRA -->
+        <div class="content-card">
+          <div class="card-header" style="flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center;">
+            <div>
+              <h3 style="margin:0;">📜 Danh Sách Thống Kê & Lịch Sử Các Đợt Kiểm Tra — ${classInfo.name}</h3>
+              <small style="color:var(--text-muted);">Ghi nhận toàn diện các mốc thời gian tổ chức kiểm tra, đánh giá định kỳ và chi tiết cập nhật</small>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-sm btn-primary" onclick="App.openCreateAssignmentModal(null, '${classId}')">
+                ➕ Giao Bài Kiểm Tra Mới
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="TutorView.openCreateClassEvaluationModal('${classId}')">
+                📝 Tạo Đánh Giá Định Kỳ
+              </button>
+              <button class="btn btn-sm btn-outline" onclick="Store.exportClassTestHistoryCSV('${classId}')" title="Tải bảng tính Excel/CSV lịch sử kiểm tra">
+                📥 Tải File CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="card-body" style="padding:20px;">
+            <!-- 4 Thẻ Thống Kê -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:20px;">
+              <div style="background:linear-gradient(135deg, #eff6ff, #dbeafe); border:1.5px solid #bfdbfe; border-radius:12px; padding:16px; text-align:center;">
+                <div style="font-size:12px; font-weight:700; color:#1e40af;">🎯 TỔNG CÁC ĐỢT GHI NHẬN</div>
+                <div style="font-size:26px; font-weight:900; color:#1d4ed8; margin:4px 0;">${summary.totalItems} đợt</div>
+                <span class="badge badge-primary" style="font-size:11px;">${summary.totalTests} bài KT • ${summary.totalEvals} bản ĐG</span>
+              </div>
+
+              <div style="background:linear-gradient(135deg, #f0fdf4, #dcfce7); border:1.5px solid #bbf7d0; border-radius:12px; padding:16px; text-align:center;">
+                <div style="font-size:12px; font-weight:700; color:#166534;">🔄 CẬP NHẬT GẦN NHẤT</div>
+                <div style="font-size:15px; font-weight:800; color:#15803d; margin:8px 0;">${lastUpdatedStr}</div>
+                <span class="badge badge-success" style="font-size:11px;">Đồng bộ thời gian thực</span>
+              </div>
+
+              <div style="background:linear-gradient(135deg, #faf5ff, #f3e8ff); border:1.5px solid #e9d5ff; border-radius:12px; padding:16px; text-align:center;">
+                <div style="font-size:12px; font-weight:700; color:#6b21a8;">📈 ĐIỂM TB TOÀN DIỆN</div>
+                <div style="font-size:26px; font-weight:900; color:#7e22ce; margin:4px 0;">${summary.overallAvgScore}/10</div>
+                <span class="badge" style="background:#ede9fe; color:#5b21b6; font-size:11px;">Qua toàn bộ bài kiểm tra</span>
+              </div>
+
+              <div style="background:linear-gradient(135deg, #fffbeb, #fef3c7); border:1.5px solid #fde68a; border-radius:12px; padding:16px; text-align:center;">
+                <div style="font-size:12px; font-weight:700; color:#92400e;">✍️ TỶ LỆ HOÀN THÀNH</div>
+                <div style="font-size:26px; font-weight:900; color:#b45309; margin:4px 0;">${summary.avgCompletionRate}%</div>
+                <span class="badge badge-warning" style="font-size:11px;">Nộp bài đúng hạn</span>
+              </div>
+            </div>
+
+            <!-- Toolbar Lọc & Tìm Kiếm -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px;">
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="btn btn-sm ${this.historyFilter === 'all' ? 'btn-primary' : 'btn-outline'}" onclick="TutorView.setHistoryFilter('all')" style="border-radius:20px; font-size:12.5px;">
+                  📋 Tất Cả (${items.length})
+                </button>
+                <button type="button" class="btn btn-sm ${this.historyFilter === 'quiz' ? 'btn-primary' : 'btn-outline'}" onclick="TutorView.setHistoryFilter('quiz')" style="border-radius:20px; font-size:12.5px;">
+                  ⚡ Trắc Nghiệm (${quizCount})
+                </button>
+                <button type="button" class="btn btn-sm ${this.historyFilter === 'photo' ? 'btn-primary' : 'btn-outline'}" onclick="TutorView.setHistoryFilter('photo')" style="border-radius:20px; font-size:12.5px;">
+                  📸 Tự Luận (${photoCount})
+                </button>
+                <button type="button" class="btn btn-sm ${this.historyFilter === 'evaluation' ? 'btn-primary' : 'btn-outline'}" onclick="TutorView.setHistoryFilter('evaluation')" style="border-radius:20px; font-size:12.5px;">
+                  📝 Đánh Giá Định Kỳ (${summary.totalEvals})
+                </button>
+              </div>
+
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input 
+                  type="text" 
+                  id="classHistorySearchInput"
+                  class="form-control" 
+                  placeholder="🔍 Tìm đợt kiểm tra, nội dung..." 
+                  value="${this.historySearchKeyword}"
+                  oninput="TutorView.setHistorySearch(this.value)"
+                  style="width:260px; font-size:13px; padding:6px 12px; border-radius:8px;"
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KHỐI 2: DANH SÁCH DÒNG THỜI GIAN CÁC ĐỢT KIỂM TRA -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          ${filteredItems.length === 0 ? `
+            <div class="content-card" style="text-align:center; padding:48px 20px; background:#f8fafc; border:2px dashed #cbd5e1; border-radius:16px;">
+              <div style="font-size:42px; margin-bottom:12px;">📂</div>
+              <h4 style="color:#1e293b; margin-bottom:6px;">Không tìm thấy đợt kiểm tra nào phù hợp</h4>
+              <p style="color:#64748b; font-size:14px; max-width:440px; margin:0 auto 16px auto;">
+                Hãy thử chọn bộ lọc khác hoặc nhấn "Giao Bài Kiểm Tra Mới" để tổ chức đợt kiểm tra đầu tiên cho lớp.
+              </p>
+              <button class="btn btn-primary btn-sm" onclick="App.openCreateAssignmentModal(null, '${classId}')">
+                ➕ Giao Bài Kiểm Tra Mới Cho Lớp
+              </button>
+            </div>
+          ` : filteredItems.map((item, idx) => {
+            const isTest = item.itemType === 'test';
+            const icon = isTest ? (item.category.includes('Trắc nghiệm') ? '⚡' : '📸') : '📝';
+
+            return `
+              <div class="content-card" style="border:1.5px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                <!-- Header của đợt -->
+                <div style="background:${isTest ? '#f8fafc' : '#f5f3ff'}; padding:16px 20px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                  <div style="display:flex; align-items:flex-start; gap:12px;">
+                    <div style="width:44px; height:44px; border-radius:12px; background:${isTest ? '#e0f2fe' : '#ede9fe'}; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;">
+                      ${icon}
+                    </div>
+                    <div>
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                        <span class="badge ${item.statusColor ? `badge-${item.statusColor}` : 'badge-primary'}" style="font-size:11px; font-weight:700;">
+                          ${item.category}
+                        </span>
+                        <span class="badge" style="background:#ffffff; color:#334155; border:1px solid #cbd5e1; font-size:11px;">
+                          ${item.statusLabel}
+                        </span>
+                        <span style="font-size:12px; color:var(--text-muted);">
+                          #Đợt ${filteredItems.length - idx}
+                        </span>
+                      </div>
+                      <h4 style="margin:0 0 4px 0; font-size:16px; color:#1e293b;">
+                        ${item.title}
+                      </h4>
+                      <div style="font-size:12.5px; color:#64748b; display:flex; gap:16px; flex-wrap:wrap;">
+                        <span>Chuyên đề: <strong style="color:#334155;">${item.topic}</strong></span>
+                        <span>Người phụ trách: <strong style="color:#334155;">${item.author}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                    <div style="font-size:12px; color:var(--text-muted); text-align:right;">
+                      <div>🕒 Giao/Tạo: <strong>${new Date(item.createdAt).toLocaleString('vi-VN')}</strong></div>
+                      <div>🔄 Cập nhật: <strong style="color:var(--primary);">${new Date(item.lastUpdated).toLocaleString('vi-VN')}</strong></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Thân đợt: Kết quả & Chi tiết nội dung cập nhật -->
+                <div style="padding:18px 20px;">
+                  ${isTest ? `
+                    <!-- 4 Thẻ Chỉ Số Của Riêng Đợt Này -->
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:16px;">
+                      <div style="background:#f1f5f9; padding:10px 14px; border-radius:8px; text-align:center;">
+                        <div style="font-size:11px; color:#64748b; text-transform:uppercase;">Tiến độ nộp</div>
+                        <strong style="font-size:16px; color:#0f172a;">${item.submittedCount}/${item.targetCount}</strong>
+                      </div>
+                      <div style="background:#f0fdf4; padding:10px 14px; border-radius:8px; text-align:center; border:1px solid #bbf7d0;">
+                        <div style="font-size:11px; color:#166534; text-transform:uppercase;">Điểm TB đợt</div>
+                        <strong style="font-size:16px; color:#15803d;">${item.avgScore !== null ? item.avgScore + '/10' : 'Chưa chấm'}</strong>
+                      </div>
+                      <div style="background:#fffbeb; padding:10px 14px; border-radius:8px; text-align:center; border:1px solid #fde68a;">
+                        <div style="font-size:11px; color:#854d0e; text-transform:uppercase;">Thủ khoa đợt</div>
+                        <strong style="font-size:16px; color:#b45309;">${item.highestScore !== null ? item.highestScore + 'đ' : '—'}</strong>
+                      </div>
+                      <div style="background:#fef2f2; padding:10px 14px; border-radius:8px; text-align:center; border:1px solid #fecaca;">
+                        <div style="font-size:11px; color:#991b1b; text-transform:uppercase;">Thấp nhất</div>
+                        <strong style="font-size:16px; color:#b91c1c;">${item.lowestScore !== null ? item.lowestScore + 'đ' : '—'}</strong>
+                      </div>
+                    </div>
+                  ` : ''}
+
+                  <!-- GHI NHẬN CẬP NHẬT NHỮNG GÌ -->
+                  <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; margin-bottom:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                      <strong style="font-size:13px; color:#1e293b; display:flex; align-items:center; gap:6px;">
+                        <span>📝</span> Ghi Nhận Lịch Sử Cập Nhật & Thay Đổi Của Đợt Này:
+                      </strong>
+                      <span style="font-size:11.5px; color:var(--text-muted);">${item.updatedDetails.length} mốc ghi nhận</span>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                      ${item.updatedDetails.map(u => `
+                        <div style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:#334155; line-height:1.5;">
+                          <span style="font-size:15px; flex-shrink:0;">${u.icon}</span>
+                          <div style="flex:1;">
+                            ${u.text}
+                          </div>
+                          <small style="color:#94a3b8; font-size:11px; white-space:nowrap;">
+                            ${new Date(u.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}
+                          </small>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+
+                  <!-- Thanh Thao Tác Chân Đợt -->
+                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:6px;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                      <button class="btn btn-sm btn-primary" onclick="TutorView.openClassTestDetailModal('${item.id}', '${item.itemType}')" style="font-weight:700;">
+                        🔍 Xem Chi Tiết Bảng Điểm & Lời Phê
+                      </button>
+                      <button class="btn btn-sm btn-outline" onclick="TutorView.copyTestZaloSummary('${item.id}', '${item.itemType}')" title="Sao chép báo cáo Zalo đợt này">
+                        📋 Sao Chép Báo Cáo Zalo Đợt Này
+                      </button>
+                    </div>
+
+                    <div style="display:flex; gap:6px;">
+                      ${isTest ? `
+                        <button class="btn btn-xs btn-secondary" onclick="App.openEditAssignmentModal('${item.id}')" title="Chỉnh sửa bài kiểm tra">
+                          ✏️ Sửa Đề
+                        </button>
+                      ` : `
+                        <button class="btn btn-xs btn-secondary" onclick="TutorView.openCreateClassEvaluationModal('${classId}', '${item.id}')" title="Chỉnh sửa bản đánh giá">
+                          ✏️ Sửa Đánh Giá
+                        </button>
+                      `}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  openClassTestDetailModal(testId, itemType = null) {
+    const cls = Store.getClassById(this.selectedClassId);
+    if (!cls) return;
+
+    // Tự động nhận diện itemType nếu người dùng/hệ thống không truyền vào
+    if (!itemType) {
+      const isAsn = Store.getAssignmentById(testId);
+      itemType = isAsn ? 'test' : 'evaluation';
+    }
+
+    const modal = document.getElementById('classTestDetailModal');
+    const titleEl = document.getElementById('classTestDetailTitle');
+    const subtitleEl = document.getElementById('classTestDetailSubtitle');
+    const contentEl = document.getElementById('classTestDetailContent');
+    const footerActionsEl = document.getElementById('classTestDetailFooterActions');
+
+    if (itemType === 'test') {
+      const asn = Store.getAssignmentById(testId);
+      if (!asn) return;
+      const subs = Store.getSubmissionsByAssignment(testId);
+      const students = Store.getStudentsByClass(cls.id);
+      const isQuiz = asn.type === 'quiz' || asn.submissionType === 'quiz';
+
+      titleEl.textContent = `Bảng Điểm & Chi Tiết Đợt: "${asn.title}"`;
+      subtitleEl.textContent = `Lớp: ${cls.name} • Hình thức: ${isQuiz ? 'Trắc nghiệm Online' : 'Tự luận viết tay'} • Hạn chót: ${asn.deadline ? new Date(asn.deadline).toLocaleString('vi-VN') : 'Không hạn'}`;
+
+      contentEl.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <!-- Tóm Tắt Nhanh -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px; font-size:13px; color:#334155; line-height:1.6;">
+            <div>📌 <strong>Chuyên đề:</strong> ${asn.topic || 'Ôn tập'}</div>
+            <div>⏰ <strong>Thời gian giao:</strong> ${new Date(asn.createdAt).toLocaleString('vi-VN')}</div>
+            <div>📋 <strong>Yêu cầu:</strong> ${asn.description || 'Hoàn thành đầy đủ bài tập.'}</div>
+          </div>
+
+          <!-- Bảng Điểm Từng Học Sinh -->
+          <div style="overflow-x:auto;">
+            <table class="table" style="width:100%; border-collapse:collapse; font-size:13px;">
+              <thead>
+                <tr style="background:#f1f5f9; text-align:left;">
+                  <th style="padding:10px 12px; width:45px;">STT</th>
+                  <th style="padding:10px 12px;">Học Sinh</th>
+                  <th style="padding:10px 12px; width:120px;">Trạng Thái</th>
+                  <th style="padding:10px 12px; width:80px; text-align:center;">Điểm</th>
+                  <th style="padding:10px 12px; min-width:180px;">Lời Phê / Nhận Xét</th>
+                  <th style="padding:10px 12px; width:110px; text-align:center;">Giám Sát</th>
+                  <th style="padding:10px 12px; width:110px; text-align:center;">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${students.map((std, idx) => {
+                  const sub = subs.find(s => s.studentId === std.id);
+                  let statusHtml = '<span class="badge badge-warning">⏳ Chưa nộp</span>';
+                  let scoreHtml = '—';
+                  let feedbackHtml = '<span style="color:#94a3b8; font-style:italic;">Chưa có</span>';
+                  let cheatHtml = '<span style="color:#10b981; font-size:11.5px;">✓ Trung thực</span>';
+                  let actionBtn = '';
+
+                  if (sub) {
+                    if (sub.status === 'graded') {
+                      statusHtml = '<span class="badge badge-success">✅ Đã chấm</span>';
+                      scoreHtml = `<strong style="font-size:15px; color:${sub.score >= 8 ? '#15803d' : (sub.score >= 5 ? '#2563eb' : '#dc2626')};">${sub.score}đ</strong>`;
+                      feedbackHtml = sub.feedback ? `<span style="color:#166534;">💬 ${sub.feedback}</span>` : '<span style="color:#94a3b8; font-style:italic;">Chưa phê</span>';
+                      actionBtn = `<button class="btn btn-xs btn-outline" onclick="App.openReviewModal('${sub.id}')">🔍 Xem bài</button>`;
+                    } else {
+                      statusHtml = '<span class="badge badge-primary">⏳ Chờ chấm</span>';
+                      actionBtn = isQuiz 
+                        ? `<button class="btn btn-xs btn-primary" onclick="Quiz.openResultModal('${sub.id}')">📊 Xem điểm</button>`
+                        : `<button class="btn btn-xs btn-primary" onclick="App.openGraderModal('${sub.id}')">✍️ Chấm ngay</button>`;
+                    }
+
+                    if (sub.cheatCount > 0) {
+                      cheatHtml = `<span class="badge badge-danger" style="font-size:10.5px;">⚠️ Rời tab ${sub.cheatCount} lần</span>`;
+                    }
+                  }
+
+                  return `
+                    <tr style="border-bottom:1px solid #e2e8f0;">
+                      <td style="padding:10px 12px; text-align:center;">${idx + 1}</td>
+                      <td style="padding:10px 12px;">
+                        <strong>${std.name}</strong><br>
+                        <small style="color:var(--text-muted); font-family:var(--font-mono);">${std.username || 'Chưa cấp'}</small>
+                      </td>
+                      <td style="padding:10px 12px;">${statusHtml}</td>
+                      <td style="padding:10px 12px; text-align:center;">${scoreHtml}</td>
+                      <td style="padding:10px 12px;">${feedbackHtml}</td>
+                      <td style="padding:10px 12px; text-align:center;">${cheatHtml}</td>
+                      <td style="padding:10px 12px; text-align:center;">${actionBtn}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      footerActionsEl.innerHTML = `
+        <button class="btn btn-primary btn-sm" onclick="TutorView.copyTestZaloSummary('${asn.id}', 'test')">
+          📋 Sao Chép Báo Cáo Zalo Đợt Này
+        </button>
+      `;
+    } else {
+      const evals = Store.getClassEvaluations(cls.id);
+      const ev = evals.find(e => e.id === testId);
+      if (!ev) return;
+
+      titleEl.textContent = `Bản Đánh Giá Định Kỳ: "${ev.period}"`;
+      subtitleEl.textContent = `Lớp: ${cls.name} • Người đánh giá: ${ev.createdBy} • Ngày: ${new Date(ev.date || ev.createdAt).toLocaleDateString('vi-VN')}`;
+
+      contentEl.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:14px; font-size:13.5px; line-height:1.6;">
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px;">
+            <strong style="color:#1e293b;">📝 Nhận Xét Chung:</strong>
+            <p style="margin:4px 0 0 0; color:#334155; white-space:pre-wrap;">${ev.overallComment || 'Chưa cập nhật'}</p>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 14px;">
+              <strong style="color:#166534;">🟢 Ưu Điểm Nổi Bật:</strong>
+              <p style="margin:4px 0 0 0; color:#14532d;">${ev.strengths || 'Nắm vững kiến thức'}</p>
+            </div>
+            <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px 14px;">
+              <strong style="color:#991b1b;">🔴 Cần Củng Cố:</strong>
+              <p style="margin:4px 0 0 0; color:#7f1d1d;">${ev.weaknesses || 'Cần cẩn thận tính toán'}</p>
+            </div>
+          </div>
+
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px 16px;">
+            <strong style="color:#1e40af;">🎯 Kế Hoạch Tuần Tới:</strong>
+            <p style="margin:4px 0 0 0; color:#1e3a8a;">${ev.actionPlan || 'Tiếp tục rèn luyện theo chuyên đề'}</p>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div style="background:#fffbeb; border:1px solid #fef08a; border-radius:10px; padding:12px 14px;">
+              <strong style="color:#854d0e;">🌟 Tuyên Dương:</strong>
+              <p style="margin:4px 0 0 0; color:#713f12;">${ev.commendations || 'Ghi nhận tinh thần tự giác của cả lớp'}</p>
+            </div>
+            <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:12px 14px;">
+              <strong style="color:#9a3412;">⚠️ Cần Đôn Đốc:</strong>
+              <p style="margin:4px 0 0 0; color:#7c2d12;">${ev.attentionNeeded || 'Nhắc nhở nộp bài đúng hạn'}</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      footerActionsEl.innerHTML = `
+        <button class="btn btn-primary btn-sm" onclick="TutorView.openClassEvaluationZaloModal('${cls.id}', '${ev.id}')">
+          💬 Xem Bản Tin Zalo
+        </button>
+      `;
+    }
+
+    if (modal) modal.classList.add('active');
+  },
+
+  copyTestZaloSummary(testId, itemType = 'test') {
+    const cls = Store.getClassById(this.selectedClassId);
+    if (!cls) return;
+
+    if (itemType === 'evaluation') {
+      this.openClassEvaluationZaloModal(cls.id, testId);
+      return;
+    }
+
+    const asn = Store.getAssignmentById(testId);
+    if (!asn) return;
+
+    const subs = Store.getSubmissionsByAssignment(testId);
+    const students = Store.getStudentsByClass(cls.id);
+    const gradedSubs = subs.filter(s => s.status === 'graded');
+    const scores = gradedSubs.map(s => s.score);
+
+    const avgScore = scores.length > 0 ? (scores.reduce((s, v) => s + v, 0) / scores.length).toFixed(1) : 'Đang chấm';
+    const highestScore = scores.length > 0 ? Math.max(...scores) : '—';
+    const topNames = scores.length > 0 ? gradedSubs.filter(s => s.score === highestScore).map(s => s.studentName).join(', ') : '';
+
+    const isQuiz = asn.type === 'quiz' || asn.submissionType === 'quiz';
+    const typeStr = isQuiz ? 'Trắc nghiệm Online' : 'Tự luận vở viết tay';
+
+    const msg = `📢 BÁO CÁO KẾT QUẢ ĐỢT KIỂM TRA — LỚP: ${cls.name.toUpperCase()}
+Kính gửi Quý phụ huynh và các em học sinh,
+Thầy/Cô xin tổng kết kết quả đợt kiểm tra vừa qua như sau:
+
+📚 Bài kiểm tra: ${asn.title}
+📌 Chuyên đề: ${asn.topic || 'Kiểm tra & Ôn tập'}
+📝 Hình thức: ${typeStr}
+⏰ Thời gian giao: ${new Date(asn.createdAt).toLocaleDateString('vi-VN')}
+
+📊 KẾT QUẢ TỔNG HỢP:
+• Tỷ lệ nộp bài: ${subs.length}/${students.length} học sinh (${students.length > 0 ? Math.round((subs.length / students.length) * 100) : 0}%)
+• Số bài đã chấm hoàn tất: ${gradedSubs.length}/${subs.length} bài
+• Điểm trung bình cả lớp: ${avgScore}/10
+• Điểm cao nhất đợt: ${highestScore}đ${topNames ? ` (Tuyên dương: ${topNames})` : ''}
+
+💬 NHẬN XÉT CỦA GIÁO VIÊN:
+${asn.description || 'Các em đã có tinh thần làm bài nghiêm túc và hoàn thành tốt yêu cầu.'}
+
+👉 Chi tiết bài chấm và lời phê bút đỏ đã được cập nhật đầy đủ trên ứng dụng EduTask. Phụ huynh và học sinh vui lòng đăng nhập để xem lại từng câu làm của mình.
+Trân trọng.`;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(msg).then(() => {
+        App.showToast(`📋 Đã sao chép tin nhắn Zalo tổng kết đợt kiểm tra "${asn.title}"!`, 'success');
+      }).catch(() => {
+        this.fallbackCopy(msg);
+        App.showToast(`📋 Đã sao chép tin nhắn Zalo tổng kết đợt kiểm tra!`, 'success');
+      });
+    } else {
+      this.fallbackCopy(msg);
+      App.showToast(`📋 Đã sao chép tin nhắn Zalo tổng kết đợt kiểm tra!`, 'success');
+    }
+  },
+
   render(container) {
     const currentUser = Auth.getCurrentUser();
     const isSupervising = Auth.isAdminSupervising();
     const isMasterAdmin = Auth.isRealAdmin() && !isSupervising;
-    const currentTutorId = currentUser ? currentUser.id : 'u_tutor';
+    const currentTutorId = currentUser ? currentUser.id : '';
 
     // Danh sách các lớp học do giáo viên này phụ trách (hoặc tất cả nếu là Master Admin)
     const allClasses = isMasterAdmin ? Store.getClasses() : Store.getClassesByTutor(currentTutorId);
@@ -779,6 +1936,12 @@ const TutorView = {
             <button class="btn btn-white" onclick="App.openCreateAssignmentModal(null, '${currentClass.id}')">
               ➕ Giao Bài Cho Lớp
             </button>
+            <button class="btn btn-secondary" onclick="TutorView.setClassTab('evaluation')" title="Đánh giá và nhận xét toàn diện cho cả lớp">
+              📝 Đánh Giá Lớp
+            </button>
+            <button class="btn btn-secondary" onclick="TutorView.remindClassStudents('${currentClass.id}')" title="Tạo tin nhắn Zalo nhắc nộp bài tập cho lớp này">
+              🔔 Nhắc Cả Lớp
+            </button>
             <button class="btn btn-secondary" onclick="TutorView.openAddStudentToClassModal('${currentClass.id}')" title="Thêm học sinh vào lớp học này">
               🎒 ➕ Thêm Học Sinh
             </button>
@@ -788,6 +1951,11 @@ const TutorView = {
             <button class="btn btn-secondary" onclick="TutorView.setClassTab('announcements')" title="Mở bảng tin và thành viên lớp">
               📢 Bảng Tin Lớp
             </button>
+            ${(isMasterAdmin || (currentUser && currentUser.id === currentClass.tutorId)) ? `
+              <button class="btn btn-secondary" onclick="AdminView.confirmDeleteClass('${currentClass.id}', '${(currentClass.name || '').replace(/'/g, "\\'")}')" title="Xóa vĩnh viễn lớp học này" style="color:#ef4444; border-color:rgba(239,68,68,0.4);">
+                🗑️ Xóa Lớp
+              </button>
+            ` : ''}
           </div>
         </div>
       `;
@@ -855,6 +2023,12 @@ const TutorView = {
           <button class="class-nav-tab-btn ${this.activeClassTab === 'gradebook' ? 'active' : ''}" onclick="TutorView.setClassTab('gradebook')">
             📊 Sổ Điểm Điện Tử & Ma Trận
           </button>
+          <button class="class-nav-tab-btn ${this.activeClassTab === 'evaluation' ? 'active' : ''}" onclick="TutorView.setClassTab('evaluation')">
+            📝 Đánh Giá Toàn Lớp
+          </button>
+          <button class="class-nav-tab-btn ${this.activeClassTab === 'history' ? 'active' : ''}" onclick="TutorView.setClassTab('history')">
+            📜 Lịch Sử & Thống Kê Đợt KT
+          </button>
           <button class="class-nav-tab-btn ${this.activeClassTab === 'leaderboard' ? 'active' : ''}" onclick="TutorView.setClassTab('leaderboard')">
             🏆 Bảng Vinh Danh & Podium
           </button>
@@ -866,6 +2040,14 @@ const TutorView = {
 
       if (this.activeClassTab === 'gradebook') {
         container.innerHTML = bannerHtml + scopeBarHtml + navTabsHtml + this.renderClassGradebook(currentClass.id);
+        return;
+      }
+      if (this.activeClassTab === 'evaluation') {
+        container.innerHTML = bannerHtml + scopeBarHtml + navTabsHtml + this.renderClassEvaluation(currentClass.id);
+        return;
+      }
+      if (this.activeClassTab === 'history') {
+        container.innerHTML = bannerHtml + scopeBarHtml + navTabsHtml + this.renderClassTestHistory(currentClass.id);
         return;
       }
       if (this.activeClassTab === 'leaderboard') {
@@ -1024,6 +2206,12 @@ const TutorView = {
         <button class="class-nav-tab-btn ${this.activeClassTab === 'gradebook' ? 'active' : ''}" onclick="TutorView.setClassTab('gradebook')">
           📊 Sổ Điểm Điện Tử & Ma Trận
         </button>
+        <button class="class-nav-tab-btn ${this.activeClassTab === 'evaluation' ? 'active' : ''}" onclick="TutorView.setClassTab('evaluation')">
+          📝 Đánh Giá Toàn Lớp
+        </button>
+        <button class="class-nav-tab-btn ${this.activeClassTab === 'history' ? 'active' : ''}" onclick="TutorView.setClassTab('history')">
+          📜 Lịch Sử & Thống Kê Đợt KT
+        </button>
         <button class="class-nav-tab-btn ${this.activeClassTab === 'leaderboard' ? 'active' : ''}" onclick="TutorView.setClassTab('leaderboard')">
           🏆 Bảng Vinh Danh & Podium
         </button>
@@ -1044,18 +2232,25 @@ const TutorView = {
       <div class="content-card">
         <div class="card-header">
           <h3>📋 Quản Lý Bài Tập & Chấm Điểm ${currentClass ? `(${currentClass.name})` : ''}</h3>
-          <div style="display:flex; gap:8px;">
-            <button class="btn btn-sm btn-outline" onclick="TutorView.remindAllStudents()">
-              🔔 Nhắc nộp bài
-            </button>
-            <button class="btn btn-sm btn-secondary" onclick="TutorView.openZaloModal()">
-              💬 Tạo tin Zalo
-            </button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
             ${currentClass ? `
               <button class="btn btn-sm btn-primary" onclick="App.openCreateAssignmentModal(null, '${currentClass.id}')">
                 ➕ Giao bài cho lớp
               </button>
-            ` : ''}
+              <button class="btn btn-sm btn-secondary" onclick="TutorView.remindClassStudents('${currentClass.id}')" title="Tạo tin nhắn Zalo nhắc nộp bài tập cho lớp này">
+                🔔 Nhắc cả lớp
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="TutorView.setClassTab('evaluation')">
+                📝 Đánh giá lớp
+              </button>
+            ` : `
+              <button class="btn btn-sm btn-outline" onclick="TutorView.remindAllStudents()">
+                🔔 Nhắc nộp bài
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="TutorView.openZaloModal()">
+                💬 Tạo tin Zalo
+              </button>
+            `}
           </div>
         </div>
 
@@ -1444,7 +2639,7 @@ const TutorView = {
 
     const currentUser = Auth.getCurrentUser();
     const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
-    const currentTutorId = currentUser ? currentUser.id : 'u_tutor';
+    const currentTutorId = currentUser ? currentUser.id : '';
     const students = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
 
     // Cập nhật danh sách chọn lớp
@@ -1523,7 +2718,7 @@ const TutorView = {
       }
     } else {
       const currentUser = Auth.getCurrentUser();
-      const currentTutorId = currentUser ? currentUser.id : 'u_tutor';
+      const currentTutorId = currentUser ? currentUser.id : '';
       const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
       const students = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
       targetStudentIds = students.map(s => s.id);
@@ -1557,7 +2752,7 @@ const TutorView = {
   exportGradesCSV() {
     const currentUser = Auth.getCurrentUser();
     const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
-    const currentTutorId = currentUser ? currentUser.id : 'u_tutor';
+    const currentTutorId = currentUser ? currentUser.id : '';
     const students = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
 
     const assignments = Store.getAllAssignments().filter(asn => {
@@ -1644,7 +2839,7 @@ const TutorView = {
   remindAllStudents() {
     const currentUser = Auth.getCurrentUser();
     const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
-    const currentTutorId = currentUser ? currentUser.id : 'u_tutor';
+    const currentTutorId = currentUser ? currentUser.id : '';
     const students = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
 
     const assignments = Store.getAllAssignments().filter(asn => {
@@ -1693,7 +2888,7 @@ const TutorView = {
   openZaloModal(preselectedStudentId = null, preselectedAssignmentId = null) {
     const currentUser = Auth.getCurrentUser();
     const isMasterAdmin = Auth.isRealAdmin() && !Auth.isAdminSupervising();
-    const currentTutorId = currentUser ? currentUser.id : 'u_tutor';
+    const currentTutorId = currentUser ? currentUser.id : '';
 
     const students = isMasterAdmin ? Store.getStudents() : Store.getStudentsByTutor(currentTutorId);
     const assignments = Store.getAllAssignments().filter(asn => {
