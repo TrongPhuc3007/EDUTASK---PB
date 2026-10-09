@@ -179,25 +179,28 @@
   ],
   "classes": [
     {
-      "id": "cls_10a2",
-      "code": "TOAN10A2",
-      "name": "Lớp 10A2 — Toán Học Cơ Bản & Nâng Cao",
-      "grade": "Lớp 10",
+      "id": "cls_12a1",
+      "code": "TOAN12A1",
+      "name": "Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
+      "grade": "Lớp 12",
       "subject": "Toán Học",
-      "room": "Phòng 201 / Trực Tuyến 02",
-      "tutorId": "u_tutor_linh",
-      "tutorName": "Cô Phương Linh",
+      "room": "Phòng 302 / Trực Tuyến 01",
+      "tutorId": "u_tutor",
+      "tutorName": "Thầy Minh Đức",
       "studentIds": [
-        "u_std_nam"
+        "u_std_quang",
+        "u_std_maianh",
+        "u_std_1791385736306",
+        "u_std_1791342637918"
       ],
-      "createdAt": "2026-09-05T08:00:00Z",
+      "createdAt": "2026-09-01T08:00:00Z",
       "announcements": [
         {
-          "id": "ann_2",
-          "title": "Khởi động chuyên đề Lượng giác!",
-          "content": "Các em tải phiếu bài tập 03 về làm và nộp ảnh chụp vở viết tay trước 23h59 Chủ nhật.",
-          "createdAt": "2026-10-05T09:00:00Z",
-          "authorName": "Cô Phương Linh"
+          "id": "ann_1",
+          "title": "Chào mừng cả lớp bước vào kỳ ôn thi nước rút!",
+          "content": "Lớp chúng ta sẽ làm bài kiểm tra trắc nghiệm định kỳ vào Thứ 6 hàng tuần. Các em chú ý hoàn thành đúng hạn để thầy chấm điểm bút đỏ nhé.",
+          "createdAt": "2026-10-06T08:00:00Z",
+          "authorName": "Thầy Minh Đức"
         }
       ]
     }
