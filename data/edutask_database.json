@@ -100,6 +100,21 @@
       ],
       "type": "quiz",
       "createdAt": "2026-10-09T01:53:25.842Z"
+    },
+    {
+      "id": "asn_test_1791511030693",
+      "title": "Kiểm tra 15 phút Toán - Cả Lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL",
+      "description": "Làm hết 10 câu trắc nghiệm",
+      "classId": "cls_12a1",
+      "targetType": "class",
+      "targetStudentIds": [
+        "u_std_quang",
+        "u_std_maianh",
+        "u_std_1791385736306",
+        "u_std_1791342637918"
+      ],
+      "type": "quiz",
+      "createdAt": "2026-10-09T01:57:10.693Z"
     }
   ],
   "deletedAssignmentIds": [
@@ -222,6 +237,43 @@
         }
       ],
       "evaluations": [
+        {
+          "id": "eval_1791511030697",
+          "period": "Đánh Giá Tuần 2 - Tháng 10/2026",
+          "date": "2026-10-09T01:57:10.697Z",
+          "createdAt": "2026-10-09T01:57:10.697Z",
+          "overallComment": "Cả lớp Lớp 12A1 — Toán THPT & Luyện Thi ĐGNL duy trì nề nếp học tập nghiêm túc. Điểm trung bình toàn lớp đạt 9.0/10. Đa số các em nắm rất chắc kiến thức trọng tâm, kỹ năng giải đề tự tin và nộp bài đều đặn.",
+          "strengths": "Tư duy đại số và khả năng áp dụng công thức tốt. Tinh thần tự giác làm bài của đa số học sinh cao.",
+          "weaknesses": "Một số em còn lúng túng ở câu hỏi trắc nghiệm vận dụng cao và các bài toán hình học không gian.",
+          "actionPlan": "Tuần tới sẽ tăng cường 2 phiếu luyện tập trọng tâm và tổ chức 1 bài kiểm tra 30 phút rèn tốc độ.",
+          "commendations": "Tuyên dương các em: Trần Mai Anh (9đ)",
+          "attentionNeeded": "Đôn đốc các em hoàn thành bài tập đúng hạn: Trần Mai Anh",
+          "studentNotes": {},
+          "createdBy": "Thầy Minh Đức",
+          "statsSnapshot": {
+            "classAvg": "9.0",
+            "studentCount": 3,
+            "distribution": {
+              "totalRated": 1,
+              "excellent": {
+                "count": 1,
+                "percent": 100
+              },
+              "good": {
+                "count": 0,
+                "percent": 0
+              },
+              "average": {
+                "count": 0,
+                "percent": 0
+              },
+              "weak": {
+                "count": 0,
+                "percent": 0
+              }
+            }
+          }
+        },
         {
           "id": "eval_12a1_t10",
           "period": "Đánh Giá Tuần 1 - Tháng 10/2026",
