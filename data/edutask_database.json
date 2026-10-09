@@ -251,7 +251,8 @@
     "u_std_1791385736306",
     "u_std_1791513678136",
     "u_std_1791513987435",
-    "u_std_1791513970707"
+    "u_std_1791513970707",
+    "u_std_1791513996438"
   ],
   "meta": {
     "lastUpdated": "2026-10-07T14:15:00.000Z",
@@ -328,41 +329,6 @@
         "Toán Học THPT"
       ],
       "username": "binhbinh"
-    },
-    {
-      "accountCreatedAt": "2026-10-09T02:46:36.438Z",
-      "accountStatus": "active",
-      "address": "Chưa cập nhật",
-      "assignedTutorId": "u_tutor_1791305106234",
-      "assignedTutorName": "Cô Bình Bình",
-      "avatarText": "TV",
-      "currentScore": 6.5,
-      "dob": "2008-01-01",
-      "feePerSession": 250000,
-      "gender": "Nam",
-      "grade": "Lớp 11",
-      "hasAccount": true,
-      "id": "u_std_1791513996438",
-      "initialScore": 6.5,
-      "learningMode": "1 kèm 1",
-      "name": "Thái Khánh Vy",
-      "notes": "Đăng ký tài khoản trực tuyến",
-      "parentJob": "",
-      "parentName": "Phụ huynh em Thái Khánh Vy",
-      "parentPhone": "0988849848",
-      "password": "123456",
-      "phone": "0988849848",
-      "role": "student",
-      "roleName": "Học Sinh",
-      "schedule": "Theo thỏa thuận với gia sư",
-      "school": "THPT Mạc Đĩnh Chi",
-      "startDate": "2026-10-09",
-      "strengths": "Chăm chỉ, sẵn sàng rèn luyện",
-      "subject": "Toán Học 11",
-      "targetScore": 9,
-      "totalSessions": 0,
-      "username": "std_tkvy",
-      "weaknesses": "Cần củng cố kiến thức phương pháp"
     },
     {
       "accountCreatedAt": "2026-10-09T02:46:41.708Z",
