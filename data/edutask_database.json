@@ -98,7 +98,8 @@
         "Toán, Lý THPT"
       ],
       "degree": "Giáo viên dạy kèm chuyên môn",
-      "avatarText": "LB"
+      "avatarText": "LB",
+      "accountStatus": "none"
     }
   ],
   "assignments": [],
